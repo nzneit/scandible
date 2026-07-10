@@ -1,9 +1,12 @@
 import { parseUpcList } from './upc';
 import { readUpcFile } from './fileInput';
 import { encodeShareUrl } from './shareUrl';
+import { buildQrSvg } from './qr';
 import { DEFAULT_SETTINGS, type Settings, type UpcEntry } from './types';
 
 const URL_WARN_LENGTH = 2000;
+const QR_DENSE_MSG = 'QR is dense — hold the phone steady, or use the copied link.';
+const QR_TOO_LONG_MSG = 'Too many codes for a QR — share the copied link instead.';
 
 export function mountSetupView(
   root: HTMLElement,
@@ -36,10 +39,12 @@ export function mountSetupView(
       </div>
       <ul class="validation-list"></ul>
       <div class="share-row">
-        <button type="button" class="copy-link">Copy link</button>
+        <button type="button" class="copy-link">Share link</button>
         <input type="text" class="share-url" readonly />
         <span class="url-warning" hidden>Link is long; it may be truncated by some browsers.</span>
       </div>
+      <div class="qr-code" hidden aria-label="QR code for the share link"></div>
+      <p class="qr-status" hidden></p>
       <button type="button" class="start" disabled>Start</button>
     </div>
   `;
@@ -58,6 +63,15 @@ export function mountSetupView(
   const shareUrl = root.querySelector('.share-url') as HTMLInputElement;
   const urlWarning = root.querySelector('.url-warning') as HTMLElement;
   const start = root.querySelector('.start') as HTMLButtonElement;
+  const qrCode = root.querySelector('.qr-code') as HTMLElement;
+  const qrStatus = root.querySelector('.qr-status') as HTMLElement;
+
+  const clearQr = () => {
+    qrCode.innerHTML = '';
+    qrCode.hidden = true;
+    qrStatus.textContent = '';
+    qrStatus.hidden = true;
+  };
 
   input.value = initial.codes.join('\n');
   speedInput.value = String(settings.speedPxPerSec);
@@ -77,6 +91,10 @@ export function mountSetupView(
   rotateInput.addEventListener('change', syncRotateEnabled);
   skewInput.addEventListener('change', syncSkewEnabled);
 
+  [speedInput, loopInput, rotateInput, rotateMaxInput, skewInput, skewMaxInput].forEach((el) =>
+    el.addEventListener('change', clearQr),
+  );
+
   let entries: UpcEntry[] = [];
 
   const currentSettings = (): Settings => ({
@@ -90,6 +108,7 @@ export function mountSetupView(
   });
 
   const refresh = () => {
+    clearQr();
     fileError.hidden = true;
     fileError.textContent = '';
     entries = parseUpcList(input.value);
@@ -124,6 +143,19 @@ export function mountSetupView(
     shareUrl.value = url;
     urlWarning.hidden = url.length <= URL_WARN_LENGTH;
     void navigator.clipboard?.writeText(url).catch(() => {});
+
+    const qr = buildQrSvg(url);
+    if (qr.ok) {
+      qrCode.innerHTML = qr.svg;
+      qrCode.hidden = false;
+      qrStatus.textContent = qr.dense ? QR_DENSE_MSG : '';
+      qrStatus.hidden = !qr.dense;
+    } else {
+      qrCode.innerHTML = '';
+      qrCode.hidden = true;
+      qrStatus.textContent = QR_TOO_LONG_MSG;
+      qrStatus.hidden = false;
+    }
   });
 
   start.addEventListener('click', () => {

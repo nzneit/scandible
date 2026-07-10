@@ -129,4 +129,62 @@ describe('mountSetupView', () => {
     expect(settings.skewMaxDeg).toBe(20);
     expect(settings.seed).toBe(999);
   });
+
+  it('relabels the share button to "Share link"', () => {
+    mountSetupView(root, { codes: ['036000291452'], settings: {} }, () => {});
+    expect(q<HTMLButtonElement>('.copy-link').textContent).toBe('Share link');
+  });
+
+  it('renders a QR code into .qr-code when Share link is clicked', () => {
+    mountSetupView(root, { codes: ['036000291452'], settings: {} }, () => {});
+    q<HTMLButtonElement>('.copy-link').click();
+    const qr = q<HTMLElement>('.qr-code');
+    expect(qr.hidden).toBe(false);
+    expect(qr.querySelector('svg')).not.toBeNull();
+  });
+
+  it('shows the dense warning for a long code list', () => {
+    const codes = Array.from({ length: 80 }, () => '036000291452');
+    mountSetupView(root, { codes, settings: {} }, () => {});
+    q<HTMLButtonElement>('.copy-link').click();
+    const status = q<HTMLElement>('.qr-status');
+    expect(status.hidden).toBe(false);
+    expect(status.textContent).toContain('dense');
+    expect(q<HTMLElement>('.qr-code').querySelector('svg')).not.toBeNull();
+  });
+
+  it('shows the too-long fallback and no QR for an over-capacity code list', () => {
+    const codes = Array.from({ length: 300 }, () => '036000291452');
+    mountSetupView(root, { codes, settings: {} }, () => {});
+    q<HTMLButtonElement>('.copy-link').click();
+    const status = q<HTMLElement>('.qr-status');
+    expect(status.hidden).toBe(false);
+    expect(status.textContent).toContain('Too many codes');
+    const qr = q<HTMLElement>('.qr-code');
+    expect(qr.hidden).toBe(true);
+    expect(qr.querySelector('svg')).toBeNull();
+  });
+
+  it('clears a rendered QR when the code list is edited afterwards', () => {
+    mountSetupView(root, { codes: ['036000291452'], settings: {} }, () => {});
+    q<HTMLButtonElement>('.copy-link').click();
+    expect(q<HTMLElement>('.qr-code').querySelector('svg')).not.toBeNull();
+    const input = q<HTMLTextAreaElement>('.upc-input');
+    input.value = '012345678905';
+    input.dispatchEvent(new Event('input'));
+    const qr = q<HTMLElement>('.qr-code');
+    expect(qr.hidden).toBe(true);
+    expect(qr.querySelector('svg')).toBeNull();
+    expect(q<HTMLElement>('.qr-status').hidden).toBe(true);
+  });
+
+  it('clears a rendered QR when a setting is changed afterwards', () => {
+    mountSetupView(root, { codes: ['036000291452'], settings: {} }, () => {});
+    q<HTMLButtonElement>('.copy-link').click();
+    expect(q<HTMLElement>('.qr-code').querySelector('svg')).not.toBeNull();
+    const loop = q<HTMLInputElement>('.loop-input');
+    loop.checked = true;
+    loop.dispatchEvent(new Event('change'));
+    expect(q<HTMLElement>('.qr-code').hidden).toBe(true);
+  });
 });
