@@ -103,6 +103,16 @@ describe('createScroller', () => {
     s.destroy();
   });
 
+  it('drives the track with a 3D translate so it is GPU-layer promoted', () => {
+    const s = createScroller(container, entries, {
+      speedPxPerSec: 60, loop: false, rotate: false, rotateMaxDeg: 8, skew: false, skewMaxDeg: 8, seed: 0,
+    });
+    const track = container.querySelector<HTMLElement>('.scroller-track')!;
+    // Initial render (offset 0) must use the 3D transform form, not translateY.
+    expect(track.style.transform).toBe('translate3d(0, 0px, 0)');
+    s.destroy();
+  });
+
   it('leaves barcode items untransformed when both distortions are off', () => {
     const s = createScroller(container, entries, {
       speedPxPerSec: 60, loop: false, rotate: false, rotateMaxDeg: 10, skew: false, skewMaxDeg: 10, seed: 5,

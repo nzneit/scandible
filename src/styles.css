@@ -20,7 +20,7 @@ html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
 .scroll-column { position: absolute; inset: 0; display: flex; justify-content: center; }
 /* Seam-uniform rhythm: equal top+bottom padding per barcode, no last-item margin,
    no collapsing margins — so the copy1/copy2 gap equals the internal gap. */
-.scroller-track { display: flex; flex-direction: column; }
+.scroller-track { display: flex; flex-direction: column; will-change: transform; }
 .scroller-copy { display: flex; flex-direction: column; }
 .barcode-item {
   display: flex;

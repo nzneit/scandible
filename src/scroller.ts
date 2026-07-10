@@ -74,7 +74,7 @@ export function createScroller(
     copy2.style.display = loop ? '' : 'none';
   };
   const render = () => {
-    track.style.transform = `translateY(${-offset}px)`;
+    track.style.transform = `translate3d(0, ${-offset}px, 0)`;
   };
   const measure = () => {
     // The repeat period is copy 1's own height: copy 2 immediately follows copy 1 in the
