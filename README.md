@@ -59,3 +59,7 @@ to **GitHub Actions**.
 - **Vite** + **vanilla TypeScript** (no UI framework)
 - **JsBarcode** for UPC-A barcode rendering (inline SVG)
 - **Vitest** + **jsdom** for unit tests
+
+## License
+
+[MIT](LICENSE) © Nathan Neitman
