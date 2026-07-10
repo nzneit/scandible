@@ -13,7 +13,7 @@ beforeEach(() => {
 
 describe('createScroller', () => {
   it('renders two copies of the valid entries only, and starts paused', () => {
-    const s = createScroller(container, entries, { speedPxPerSec: 60, loop: false });
+    const s = createScroller(container, entries, { speedPxPerSec: 60, loop: false, skew: false, skewMaxDeg: 8, skewSeed: 0 });
     // 2 valid entries × 2 copies = 4 barcode items
     expect(container.querySelectorAll('.barcode-item').length).toBe(4);
     expect(s.isPlaying()).toBe(false);
@@ -21,7 +21,7 @@ describe('createScroller', () => {
   });
 
   it('hides copy 2 when loop is off and shows it when on', () => {
-    const s = createScroller(container, entries, { speedPxPerSec: 60, loop: false });
+    const s = createScroller(container, entries, { speedPxPerSec: 60, loop: false, skew: false, skewMaxDeg: 8, skewSeed: 0 });
     const copies = container.querySelectorAll<HTMLElement>('.scroller-copy');
     expect(copies[1].style.display).toBe('none');
     s.setLoop(true);
@@ -32,7 +32,7 @@ describe('createScroller', () => {
   });
 
   it('play() and pause() flip the playing state', () => {
-    const s = createScroller(container, entries, { speedPxPerSec: 60, loop: true });
+    const s = createScroller(container, entries, { speedPxPerSec: 60, loop: true, skew: false, skewMaxDeg: 8, skewSeed: 0 });
     s.play();
     expect(s.isPlaying()).toBe(true);
     s.pause();
@@ -69,7 +69,7 @@ describe('createScroller', () => {
 
     try {
       const onFinish = vi.fn();
-      const s = createScroller(container, entries, { speedPxPerSec: 60, loop: false }, onFinish);
+      const s = createScroller(container, entries, { speedPxPerSec: 60, loop: false, skew: false, skewMaxDeg: 8, skewSeed: 0 }, onFinish);
       s.play();
       expect(frameCb).not.toBeNull();
       frameCb!(16);
@@ -79,5 +79,27 @@ describe('createScroller', () => {
       Element.prototype.getBoundingClientRect = realRect;
       globalThis.requestAnimationFrame = realRaf;
     }
+  });
+
+  it('applies the same skew transform per index to both copies when skew is on', () => {
+    const s = createScroller(container, entries, {
+      speedPxPerSec: 60, loop: false, skew: true, skewMaxDeg: 10, skewSeed: 5,
+    });
+    const copies = container.querySelectorAll<HTMLElement>('.scroller-copy');
+    const items0 = copies[0].querySelectorAll<HTMLElement>('.barcode-item');
+    const items1 = copies[1].querySelectorAll<HTMLElement>('.barcode-item');
+    expect(items0[0].style.transform).not.toBe('');
+    expect(items0[0].style.transform).toBe(items1[0].style.transform);
+    expect(items0[1].style.transform).toBe(items1[1].style.transform);
+    s.destroy();
+  });
+
+  it('leaves barcode items untransformed when skew is off', () => {
+    const s = createScroller(container, entries, {
+      speedPxPerSec: 60, loop: false, skew: false, skewMaxDeg: 10, skewSeed: 5,
+    });
+    const item = container.querySelector<HTMLElement>('.barcode-item')!;
+    expect(item.style.transform).toBe('');
+    s.destroy();
   });
 });

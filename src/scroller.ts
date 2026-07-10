@@ -1,5 +1,6 @@
 import { advanceOffset, isAtEnd } from './scrollMath';
 import { renderBarcodeSvg } from './barcode';
+import { buildSkewTransforms } from './skew';
 import type { Settings, UpcEntry } from './types';
 
 const MAX_DELTA_MS = 100;
@@ -24,15 +25,20 @@ export function createScroller(
   const valid = entries.filter((e) => e.valid);
   const count = valid.length;
 
+  const transforms = settings.skew
+    ? buildSkewTransforms(count, settings.skewMaxDeg, settings.skewSeed)
+    : null;
+
   const buildCopy = (): HTMLElement => {
     const copy = document.createElement('div');
     copy.className = 'scroller-copy';
-    for (const e of valid) {
+    valid.forEach((e, i) => {
       const item = document.createElement('div');
       item.className = 'barcode-item';
+      if (transforms) item.style.transform = transforms[i];
       item.appendChild(renderBarcodeSvg(e));
       copy.appendChild(item);
-    }
+    });
     return copy;
   };
 

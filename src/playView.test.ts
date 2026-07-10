@@ -19,7 +19,7 @@ describe('formatFinishMessage', () => {
 
 describe('mountPlayView', () => {
   it('renders the scroller column and overlay controls, finish hidden', () => {
-    mountPlayView(root, entries, { speedPxPerSec: 60, loop: false }, () => {});
+    mountPlayView(root, entries, { speedPxPerSec: 60, loop: false, skew: false, skewMaxDeg: 8, skewSeed: 0 }, () => {});
     expect(root.querySelectorAll('.barcode-item').length).toBe(4); // 2 valid × 2 copies
     expect(root.querySelector('.ctl-playpause')).not.toBeNull();
     expect(root.querySelector('.ctl-speed')).not.toBeNull();
@@ -28,7 +28,7 @@ describe('mountPlayView', () => {
 
   it('calls onBack when the back button is clicked', () => {
     const onBack = vi.fn();
-    mountPlayView(root, entries, { speedPxPerSec: 60, loop: false }, onBack);
+    mountPlayView(root, entries, { speedPxPerSec: 60, loop: false, skew: false, skewMaxDeg: 8, skewSeed: 0 }, onBack);
     (root.querySelector('.ctl-back') as HTMLButtonElement).click();
     expect(onBack).toHaveBeenCalledTimes(1);
   });

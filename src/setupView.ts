@@ -19,10 +19,16 @@ export function mountSetupView(
       <input type="file" class="file-input" accept=".txt,.csv" />
       <p class="file-error" hidden></p>
       <div class="settings-row">
-        <label>Speed
+        <label class="field">Speed
           <input type="range" class="speed-input" min="10" max="5000" step="5" />
         </label>
-        <label><input type="checkbox" class="loop-input" /> Loop</label>
+        <label class="field">Loop
+          <input type="checkbox" class="loop-input" />
+        </label>
+        <label class="field">Random skew
+          <input type="checkbox" class="skew-input" />
+          <input type="range" class="skew-max-input" min="1" max="30" step="1" />
+        </label>
       </div>
       <ul class="validation-list"></ul>
       <div class="share-row">
@@ -38,6 +44,8 @@ export function mountSetupView(
   const fileInput = root.querySelector('.file-input') as HTMLInputElement;
   const speedInput = root.querySelector('.speed-input') as HTMLInputElement;
   const loopInput = root.querySelector('.loop-input') as HTMLInputElement;
+  const skewInput = root.querySelector('.skew-input') as HTMLInputElement;
+  const skewMaxInput = root.querySelector('.skew-max-input') as HTMLInputElement;
   const list = root.querySelector('.validation-list') as HTMLUListElement;
   const fileError = root.querySelector('.file-error') as HTMLElement;
   const copyLink = root.querySelector('.copy-link') as HTMLButtonElement;
@@ -48,12 +56,22 @@ export function mountSetupView(
   input.value = initial.codes.join('\n');
   speedInput.value = String(settings.speedPxPerSec);
   loopInput.checked = settings.loop;
+  skewInput.checked = settings.skew;
+  skewMaxInput.value = String(settings.skewMaxDeg);
+  const syncSkewEnabled = () => {
+    skewMaxInput.disabled = !skewInput.checked;
+  };
+  syncSkewEnabled();
+  skewInput.addEventListener('change', syncSkewEnabled);
 
   let entries: UpcEntry[] = [];
 
   const currentSettings = (): Settings => ({
     speedPxPerSec: Number(speedInput.value),
     loop: loopInput.checked,
+    skew: skewInput.checked,
+    skewMaxDeg: Number(skewMaxInput.value),
+    skewSeed: settings.skewSeed,
   });
 
   const refresh = () => {

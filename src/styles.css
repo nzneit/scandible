@@ -5,6 +5,9 @@ html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
 /* Setup */
 .setup { max-width: 640px; margin: 0 auto; padding: 24px; display: flex; flex-direction: column; gap: 12px; }
 .upc-input { width: 100%; font-family: monospace; }
+/* Each setting on its own line: label text on top, input(s) below, spaced apart. */
+.settings-row { display: flex; flex-direction: column; gap: 16px; }
+.field { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
 .validation-list { list-style: none; padding: 0; margin: 0; max-height: 200px; overflow: auto; }
 .validation-list .valid { color: #0a0; }
 .validation-list .invalid { color: #c00; }

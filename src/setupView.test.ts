@@ -45,7 +45,7 @@ describe('mountSetupView', () => {
     const [entries, settings] = onStart.mock.calls[0];
     expect(entries).toHaveLength(1);
     expect(entries[0].valid).toBe(true);
-    expect(settings).toEqual({ speedPxPerSec: 60, loop: false });
+    expect(settings).toEqual({ speedPxPerSec: 60, loop: false, skew: false, skewMaxDeg: 8, skewSeed: 0 });
   });
 
   it('builds a share URL into .share-url on Copy link', () => {
@@ -89,5 +89,26 @@ describe('mountSetupView', () => {
     q<HTMLButtonElement>('.copy-link').click();
     expect(q<HTMLInputElement>('.share-url').value.length).toBeLessThanOrEqual(2000);
     expect(q<HTMLElement>('.url-warning').hidden).toBe(true);
+  });
+
+  it('prefills skew controls and disables the slider when skew is off', () => {
+    mountSetupView(root, { codes: ['036000291452'], settings: { skew: false, skewMaxDeg: 15, skewSeed: 77 } }, () => {});
+    expect(q<HTMLInputElement>('.skew-input').checked).toBe(false);
+    expect(q<HTMLInputElement>('.skew-max-input').value).toBe('15');
+    expect(q<HTMLInputElement>('.skew-max-input').disabled).toBe(true);
+  });
+
+  it('carries skew, skewMaxDeg, and the seed into onStart', () => {
+    const onStart = vi.fn();
+    mountSetupView(
+      root,
+      { codes: ['036000291452'], settings: { skew: true, skewMaxDeg: 20, skewSeed: 999 } },
+      onStart,
+    );
+    q<HTMLButtonElement>('.start').click();
+    const [, settings] = onStart.mock.calls[0];
+    expect(settings.skew).toBe(true);
+    expect(settings.skewMaxDeg).toBe(20);
+    expect(settings.skewSeed).toBe(999);
   });
 });

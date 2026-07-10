@@ -9,6 +9,9 @@ export function startApp(root: HTMLElement, search: string): void {
   const decoded = decodeShareUrl(search);
   let entries: UpcEntry[] = parseUpcList(decoded.codes.join('\n'));
   let settings: Settings = { ...DEFAULT_SETTINGS, ...decoded.settings };
+  if (decoded.settings.skewSeed === undefined) {
+    settings.skewSeed = Math.floor(Math.random() * 0x100000000) >>> 0;
+  }
 
   const showSetup = () => {
     mountSetupView(root, { codes: entries.map((e) => e.raw), settings }, (e, s) => {
