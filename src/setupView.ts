@@ -25,6 +25,10 @@ export function mountSetupView(
         <label class="field">Loop
           <input type="checkbox" class="loop-input" />
         </label>
+        <label class="field">Random rotation
+          <input type="checkbox" class="rotate-input" />
+          <input type="range" class="rotate-max-input" min="1" max="30" step="1" />
+        </label>
         <label class="field">Random skew
           <input type="checkbox" class="skew-input" />
           <input type="range" class="skew-max-input" min="1" max="30" step="1" />
@@ -44,6 +48,8 @@ export function mountSetupView(
   const fileInput = root.querySelector('.file-input') as HTMLInputElement;
   const speedInput = root.querySelector('.speed-input') as HTMLInputElement;
   const loopInput = root.querySelector('.loop-input') as HTMLInputElement;
+  const rotateInput = root.querySelector('.rotate-input') as HTMLInputElement;
+  const rotateMaxInput = root.querySelector('.rotate-max-input') as HTMLInputElement;
   const skewInput = root.querySelector('.skew-input') as HTMLInputElement;
   const skewMaxInput = root.querySelector('.skew-max-input') as HTMLInputElement;
   const list = root.querySelector('.validation-list') as HTMLUListElement;
@@ -56,12 +62,19 @@ export function mountSetupView(
   input.value = initial.codes.join('\n');
   speedInput.value = String(settings.speedPxPerSec);
   loopInput.checked = settings.loop;
+  rotateInput.checked = settings.rotate;
+  rotateMaxInput.value = String(settings.rotateMaxDeg);
   skewInput.checked = settings.skew;
   skewMaxInput.value = String(settings.skewMaxDeg);
+  const syncRotateEnabled = () => {
+    rotateMaxInput.disabled = !rotateInput.checked;
+  };
   const syncSkewEnabled = () => {
     skewMaxInput.disabled = !skewInput.checked;
   };
+  syncRotateEnabled();
   syncSkewEnabled();
+  rotateInput.addEventListener('change', syncRotateEnabled);
   skewInput.addEventListener('change', syncSkewEnabled);
 
   let entries: UpcEntry[] = [];
@@ -69,9 +82,11 @@ export function mountSetupView(
   const currentSettings = (): Settings => ({
     speedPxPerSec: Number(speedInput.value),
     loop: loopInput.checked,
+    rotate: rotateInput.checked,
+    rotateMaxDeg: Number(rotateMaxInput.value),
     skew: skewInput.checked,
     skewMaxDeg: Number(skewMaxInput.value),
-    skewSeed: settings.skewSeed,
+    seed: settings.seed,
   });
 
   const refresh = () => {

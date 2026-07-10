@@ -9,16 +9,20 @@ export interface UpcEntry {
 export interface Settings {
   speedPxPerSec: number; // scroll speed in CSS px per second
   loop: boolean; // wrap at end vs. stop
-  skew: boolean; // random per-barcode rotation + shear
-  skewMaxDeg: number; // max |degrees| for rotation and shear (slider 1–30)
-  skewSeed: number; // uint32 PRNG seed — makes the skew arrangement reproducible
+  rotate: boolean; // random per-barcode rotation on/off
+  rotateMaxDeg: number; // max |degrees| for rotation (slider 1–30)
+  skew: boolean; // random per-barcode skewX (slant) on/off
+  skewMaxDeg: number; // max |degrees| for slant (slider 1–30)
+  seed: number; // uint32 PRNG seed — shared by both axes; makes the arrangement reproducible
 }
 
 /** Single source of truth for defaults; used to fill Partial<Settings>. */
 export const DEFAULT_SETTINGS: Settings = {
   speedPxPerSec: 60,
   loop: false,
+  rotate: false,
+  rotateMaxDeg: 8,
   skew: false,
   skewMaxDeg: 8,
-  skewSeed: 0,
+  seed: 0,
 };

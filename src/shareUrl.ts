@@ -2,8 +2,8 @@ import type { Settings } from './types';
 
 const SPEED_MIN = 10;
 const SPEED_MAX = 5000;
-const SKEW_MIN = 1;
-const SKEW_MAX = 30;
+const DEG_MIN = 1;
+const DEG_MAX = 30;
 const SEED_MAX = 0xffffffff;
 
 /** Build "?codes=...&speed=...&loop=..." from raw code strings + settings. codes are
@@ -13,9 +13,11 @@ export function encodeShareUrl(codes: string[], settings: Settings): string {
   params.set('codes', codes.join('\n'));
   params.set('speed', String(settings.speedPxPerSec));
   params.set('loop', settings.loop ? '1' : '0');
+  params.set('rot', settings.rotate ? '1' : '0');
+  params.set('rotmax', String(settings.rotateMaxDeg));
   params.set('skew', settings.skew ? '1' : '0');
   params.set('skewmax', String(settings.skewMaxDeg));
-  params.set('skewseed', String(settings.skewSeed));
+  params.set('seed', String(settings.seed));
   return '?' + params.toString();
 }
 
@@ -40,6 +42,17 @@ export function decodeShareUrl(search: string): { codes: string[]; settings: Par
   if (loopRaw === '0' || loopRaw === '1') {
     settings.loop = loopRaw === '1';
   }
+  const rotRaw = params.get('rot');
+  if (rotRaw === '0' || rotRaw === '1') {
+    settings.rotate = rotRaw === '1';
+  }
+  const rotMaxRaw = params.get('rotmax');
+  if (rotMaxRaw !== null) {
+    const v = Number(rotMaxRaw);
+    if (Number.isFinite(v) && v >= DEG_MIN && v <= DEG_MAX) {
+      settings.rotateMaxDeg = v;
+    }
+  }
   const skewRaw = params.get('skew');
   if (skewRaw === '0' || skewRaw === '1') {
     settings.skew = skewRaw === '1';
@@ -47,15 +60,15 @@ export function decodeShareUrl(search: string): { codes: string[]; settings: Par
   const skewMaxRaw = params.get('skewmax');
   if (skewMaxRaw !== null) {
     const v = Number(skewMaxRaw);
-    if (Number.isFinite(v) && v >= SKEW_MIN && v <= SKEW_MAX) {
+    if (Number.isFinite(v) && v >= DEG_MIN && v <= DEG_MAX) {
       settings.skewMaxDeg = v;
     }
   }
-  const seedRaw = params.get('skewseed');
+  const seedRaw = params.get('seed');
   if (seedRaw !== null) {
     const v = Number(seedRaw);
     if (Number.isInteger(v) && v >= 0 && v <= SEED_MAX) {
-      settings.skewSeed = v;
+      settings.seed = v;
     }
   }
   return { codes, settings };

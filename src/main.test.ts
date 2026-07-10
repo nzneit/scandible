@@ -23,10 +23,10 @@ describe('startApp', () => {
     expect(root.querySelector('.setup')).not.toBeNull();
   });
 
-  it('preserves a URL-provided skew seed in the Copy-link URL', () => {
-    startApp(root, '?codes=036000291452&skew=1&skewseed=424242');
+  it('preserves a URL-provided seed in the Copy-link URL', () => {
+    startApp(root, '?codes=036000291452&skew=1&seed=424242');
     (root.querySelector('.copy-link') as HTMLButtonElement).click();
-    expect((root.querySelector('.share-url') as HTMLInputElement).value).toContain('skewseed=424242');
+    expect((root.querySelector('.share-url') as HTMLInputElement).value).toContain('seed=424242');
   });
 
   it('generates a session seed from Math.random when the URL has none', () => {
@@ -37,7 +37,7 @@ describe('startApp', () => {
       const url = (root.querySelector('.share-url') as HTMLInputElement).value;
       const expectedSeed = Math.floor(0.42 * 0x100000000) >>> 0;
       expect(randomSpy).toHaveBeenCalled();
-      expect(url).toContain(`skewseed=${expectedSeed}`);
+      expect(url).toContain(`seed=${expectedSeed}`);
       expect(expectedSeed).not.toBe(0);
     } finally {
       randomSpy.mockRestore();
@@ -55,6 +55,6 @@ describe('startApp', () => {
     (root2.querySelector('.copy-link') as HTMLButtonElement).click();
     const url2 = (root2.querySelector('.share-url') as HTMLInputElement).value;
 
-    expect(url1.match(/skewseed=(\d+)/)![1]).not.toBe(url2.match(/skewseed=(\d+)/)![1]);
+    expect(url1.match(/[?&]seed=(\d+)/)![1]).not.toBe(url2.match(/[?&]seed=(\d+)/)![1]);
   });
 });

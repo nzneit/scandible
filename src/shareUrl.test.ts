@@ -4,11 +4,11 @@ import { encodeShareUrl, decodeShareUrl } from './shareUrl';
 describe('shareUrl', () => {
   it('round-trips codes and settings', () => {
     const search = encodeShareUrl(['036000291452', '012345678905'], {
-      speedPxPerSec: 120, loop: true, skew: false, skewMaxDeg: 8, skewSeed: 0,
+      speedPxPerSec: 120, loop: true, rotate: false, rotateMaxDeg: 8, skew: false, skewMaxDeg: 8, seed: 0,
     });
     expect(decodeShareUrl(search)).toEqual({
       codes: ['036000291452', '012345678905'],
-      settings: { speedPxPerSec: 120, loop: true, skew: false, skewMaxDeg: 8, skewSeed: 0 },
+      settings: { speedPxPerSec: 120, loop: true, rotate: false, rotateMaxDeg: 8, skew: false, skewMaxDeg: 8, seed: 0 },
     });
   });
 
@@ -24,22 +24,25 @@ describe('shareUrl', () => {
     expect(decodeShareUrl('?speed=5001')).toEqual({ codes: [], settings: {} });
   });
 
-  it('round-trips skew settings', () => {
+  it('round-trips rotation and skew settings', () => {
     const search = encodeShareUrl(['036000291452'], {
-      speedPxPerSec: 60, loop: false, skew: true, skewMaxDeg: 12, skewSeed: 123456,
+      speedPxPerSec: 60, loop: false, rotate: true, rotateMaxDeg: 15, skew: true, skewMaxDeg: 12, seed: 123456,
     });
     expect(decodeShareUrl(search)).toEqual({
       codes: ['036000291452'],
-      settings: { speedPxPerSec: 60, loop: false, skew: true, skewMaxDeg: 12, skewSeed: 123456 },
+      settings: { speedPxPerSec: 60, loop: false, rotate: true, rotateMaxDeg: 15, skew: true, skewMaxDeg: 12, seed: 123456 },
     });
   });
 
-  it('is lenient on skew params', () => {
+  it('is lenient on rotation, skew, and seed params', () => {
+    expect(decodeShareUrl('?rot=2')).toEqual({ codes: [], settings: {} });
+    expect(decodeShareUrl('?rotmax=99')).toEqual({ codes: [], settings: {} });
     expect(decodeShareUrl('?skew=2')).toEqual({ codes: [], settings: {} });
-    expect(decodeShareUrl('?skewmax=99')).toEqual({ codes: [], settings: {} });
-    expect(decodeShareUrl('?skewseed=-1')).toEqual({ codes: [], settings: {} });
-    expect(decodeShareUrl('?skew=1&skewmax=30&skewseed=0')).toEqual({
-      codes: [], settings: { skew: true, skewMaxDeg: 30, skewSeed: 0 },
+    expect(decodeShareUrl('?skewmax=0')).toEqual({ codes: [], settings: {} });
+    expect(decodeShareUrl('?seed=-1')).toEqual({ codes: [], settings: {} });
+    expect(decodeShareUrl('?rot=1&rotmax=20&skew=1&skewmax=30&seed=0')).toEqual({
+      codes: [],
+      settings: { rotate: true, rotateMaxDeg: 20, skew: true, skewMaxDeg: 30, seed: 0 },
     });
   });
 });

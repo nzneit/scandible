@@ -45,7 +45,7 @@ describe('mountSetupView', () => {
     const [entries, settings] = onStart.mock.calls[0];
     expect(entries).toHaveLength(1);
     expect(entries[0].valid).toBe(true);
-    expect(settings).toEqual({ speedPxPerSec: 60, loop: false, skew: false, skewMaxDeg: 8, skewSeed: 0 });
+    expect(settings).toEqual({ speedPxPerSec: 60, loop: false, rotate: false, rotateMaxDeg: 8, skew: false, skewMaxDeg: 8, seed: 0 });
   });
 
   it('builds a share URL into .share-url on Copy link', () => {
@@ -91,24 +91,42 @@ describe('mountSetupView', () => {
     expect(q<HTMLElement>('.url-warning').hidden).toBe(true);
   });
 
-  it('prefills skew controls and disables the slider when skew is off', () => {
-    mountSetupView(root, { codes: ['036000291452'], settings: { skew: false, skewMaxDeg: 15, skewSeed: 77 } }, () => {});
+  it('prefills rotation and skew controls and disables each slider when its toggle is off', () => {
+    mountSetupView(root, {
+      codes: ['036000291452'],
+      settings: { rotate: false, rotateMaxDeg: 20, skew: false, skewMaxDeg: 15, seed: 77 },
+    }, () => {});
+    expect(q<HTMLInputElement>('.rotate-input').checked).toBe(false);
+    expect(q<HTMLInputElement>('.rotate-max-input').value).toBe('20');
+    expect(q<HTMLInputElement>('.rotate-max-input').disabled).toBe(true);
     expect(q<HTMLInputElement>('.skew-input').checked).toBe(false);
     expect(q<HTMLInputElement>('.skew-max-input').value).toBe('15');
     expect(q<HTMLInputElement>('.skew-max-input').disabled).toBe(true);
   });
 
-  it('carries skew, skewMaxDeg, and the seed into onStart', () => {
+  it('enables the rotation slider when its checkbox is checked', () => {
+    mountSetupView(root, { codes: ['036000291452'], settings: { rotate: false } }, () => {});
+    const cb = q<HTMLInputElement>('.rotate-input');
+    const slider = q<HTMLInputElement>('.rotate-max-input');
+    expect(slider.disabled).toBe(true);
+    cb.checked = true;
+    cb.dispatchEvent(new Event('change'));
+    expect(slider.disabled).toBe(false);
+  });
+
+  it('carries rotation, skew, and the seed into onStart', () => {
     const onStart = vi.fn();
     mountSetupView(
       root,
-      { codes: ['036000291452'], settings: { skew: true, skewMaxDeg: 20, skewSeed: 999 } },
+      { codes: ['036000291452'], settings: { rotate: true, rotateMaxDeg: 25, skew: true, skewMaxDeg: 20, seed: 999 } },
       onStart,
     );
     q<HTMLButtonElement>('.start').click();
     const [, settings] = onStart.mock.calls[0];
+    expect(settings.rotate).toBe(true);
+    expect(settings.rotateMaxDeg).toBe(25);
     expect(settings.skew).toBe(true);
     expect(settings.skewMaxDeg).toBe(20);
-    expect(settings.skewSeed).toBe(999);
+    expect(settings.seed).toBe(999);
   });
 });
