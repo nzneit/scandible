@@ -42,7 +42,7 @@ Requires Node 20+.
 ```bash
 npm install      # install dependencies
 npm run dev      # start the Vite dev server
-npm test         # run the Vitest suite (jsdom)
+npm test         # svelte-check + Vitest suite (jsdom)
 npm run build    # production build to dist/
 npm run preview  # serve the production build locally
 ```
@@ -50,15 +50,16 @@ npm run preview  # serve the production build locally
 ## Deployment
 
 Deployed to GitHub Pages via GitHub Actions (`.github/workflows/deploy.yml`): every push to
-`main` runs the tests, builds, and publishes `dist/` with `actions/deploy-pages`. Vite's
-`base` is `'/scandible/'` for the project-site subpath, and the repo's Pages source is set
-to **GitHub Actions**.
+`main` runs the tests, builds, and publishes `dist/` with `actions/deploy-pages`.
+SvelteKit's `paths.base` is `'/scandible'` in production builds for the project-site
+subpath, adapter-static emits the site to `dist/`, and the repo's Pages source is set to
+**GitHub Actions**.
 
 ## Tech stack
 
-- **Vite** + **vanilla TypeScript** (no UI framework)
+- **SvelteKit** + **Svelte 5** (static-adapter SPA, TypeScript)
 - **JsBarcode** for UPC-A barcode rendering (inline SVG)
-- **Vitest** + **jsdom** for unit tests
+- **Vitest** + **@testing-library/svelte** (jsdom) for unit tests
 
 ## License
 

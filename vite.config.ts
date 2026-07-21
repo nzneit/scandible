@@ -1,9 +1,11 @@
+import { sveltekit } from '@sveltejs/kit/vite';
+import { svelteTesting } from '@testing-library/svelte/vite';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
-  base: '/scandible/',
+  plugins: [sveltekit(), svelteTesting()],
   test: {
     environment: 'jsdom',
-    setupFiles: ['./vitest.setup.ts'],
+    setupFiles: ['./src/vitest.setup.ts'],
   },
 });
