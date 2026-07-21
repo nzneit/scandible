@@ -29,10 +29,12 @@
 Create the new pure module alongside the existing `skew.ts` (which stays in place and keeps working until Task 2 removes it). This task changes no shared types and no consumers, so the whole project stays green.
 
 **Files:**
+
 - Create: `src/transforms.ts`
 - Create: `src/transforms.test.ts`
 
 **Interfaces:**
+
 - Consumes: nothing (self-contained; internal `mulberry32` PRNG).
 - Produces (relied on by Task 2's `scroller.ts`):
   - `export interface DistortOpts { rotate: boolean; rotateMaxDeg: number; skew: boolean; skewMaxDeg: number }`
@@ -49,50 +51,70 @@ import { buildTransforms } from './transforms';
 const BOTH = { rotate: true, rotateMaxDeg: 10, skew: true, skewMaxDeg: 10 };
 
 describe('buildTransforms', () => {
-  it('returns one transform per barcode', () => {
-    expect(buildTransforms(5, BOTH, 1)).toHaveLength(5);
-    expect(buildTransforms(0, BOTH, 1)).toEqual([]);
-  });
+	it('returns one transform per barcode', () => {
+		expect(buildTransforms(5, BOTH, 1)).toHaveLength(5);
+		expect(buildTransforms(0, BOTH, 1)).toEqual([]);
+	});
 
-  it('is deterministic for a given seed and seed-sensitive', () => {
-    expect(buildTransforms(4, BOTH, 42)).toEqual(buildTransforms(4, BOTH, 42));
-    expect(buildTransforms(4, BOTH, 42)).not.toEqual(buildTransforms(4, BOTH, 43));
-  });
+	it('is deterministic for a given seed and seed-sensitive', () => {
+		expect(buildTransforms(4, BOTH, 42)).toEqual(buildTransforms(4, BOTH, 42));
+		expect(buildTransforms(4, BOTH, 42)).not.toEqual(buildTransforms(4, BOTH, 43));
+	});
 
-  it('emits rotate()+skewX() within ±maxDeg when both axes are on', () => {
-    const out = buildTransforms(50, { rotate: true, rotateMaxDeg: 10, skew: true, skewMaxDeg: 6 }, 7);
-    for (const t of out) {
-      const m = t.match(/^rotate\((-?\d+(?:\.\d+)?)deg\) skewX\((-?\d+(?:\.\d+)?)deg\)$/);
-      expect(m).not.toBeNull();
-      expect(Math.abs(Number(m![1]))).toBeLessThanOrEqual(10);
-      expect(Math.abs(Number(m![2]))).toBeLessThanOrEqual(6);
-    }
-  });
+	it('emits rotate()+skewX() within ±maxDeg when both axes are on', () => {
+		const out = buildTransforms(
+			50,
+			{ rotate: true, rotateMaxDeg: 10, skew: true, skewMaxDeg: 6 },
+			7
+		);
+		for (const t of out) {
+			const m = t.match(/^rotate\((-?\d+(?:\.\d+)?)deg\) skewX\((-?\d+(?:\.\d+)?)deg\)$/);
+			expect(m).not.toBeNull();
+			expect(Math.abs(Number(m![1]))).toBeLessThanOrEqual(10);
+			expect(Math.abs(Number(m![2]))).toBeLessThanOrEqual(6);
+		}
+	});
 
-  it('emits only rotate() when skew is off', () => {
-    const out = buildTransforms(10, { rotate: true, rotateMaxDeg: 8, skew: false, skewMaxDeg: 8 }, 3);
-    for (const t of out) expect(t).toMatch(/^rotate\(-?\d+(?:\.\d+)?deg\)$/);
-  });
+	it('emits only rotate() when skew is off', () => {
+		const out = buildTransforms(
+			10,
+			{ rotate: true, rotateMaxDeg: 8, skew: false, skewMaxDeg: 8 },
+			3
+		);
+		for (const t of out) expect(t).toMatch(/^rotate\(-?\d+(?:\.\d+)?deg\)$/);
+	});
 
-  it('emits only skewX() when rotation is off', () => {
-    const out = buildTransforms(10, { rotate: false, rotateMaxDeg: 8, skew: true, skewMaxDeg: 8 }, 3);
-    for (const t of out) expect(t).toMatch(/^skewX\(-?\d+(?:\.\d+)?deg\)$/);
-  });
+	it('emits only skewX() when rotation is off', () => {
+		const out = buildTransforms(
+			10,
+			{ rotate: false, rotateMaxDeg: 8, skew: true, skewMaxDeg: 8 },
+			3
+		);
+		for (const t of out) expect(t).toMatch(/^skewX\(-?\d+(?:\.\d+)?deg\)$/);
+	});
 
-  it('emits empty strings when both axes are off', () => {
-    expect(
-      buildTransforms(3, { rotate: false, rotateMaxDeg: 8, skew: false, skewMaxDeg: 8 }, 3),
-    ).toEqual(['', '', '']);
-  });
+	it('emits empty strings when both axes are off', () => {
+		expect(
+			buildTransforms(3, { rotate: false, rotateMaxDeg: 8, skew: false, skewMaxDeg: 8 }, 3)
+		).toEqual(['', '', '']);
+	});
 
-  it('keeps rotation values identical whether or not skew is enabled (positional draws)', () => {
-    const seed = 99;
-    const withSkew = buildTransforms(6, { rotate: true, rotateMaxDeg: 10, skew: true, skewMaxDeg: 10 }, seed);
-    const noSkew = buildTransforms(6, { rotate: true, rotateMaxDeg: 10, skew: false, skewMaxDeg: 10 }, seed);
-    // The rotate(...) part of the "both on" output must equal the rotation-only output.
-    const rotOnly = withSkew.map((t) => t.split(' ')[0]);
-    expect(rotOnly).toEqual(noSkew);
-  });
+	it('keeps rotation values identical whether or not skew is enabled (positional draws)', () => {
+		const seed = 99;
+		const withSkew = buildTransforms(
+			6,
+			{ rotate: true, rotateMaxDeg: 10, skew: true, skewMaxDeg: 10 },
+			seed
+		);
+		const noSkew = buildTransforms(
+			6,
+			{ rotate: true, rotateMaxDeg: 10, skew: false, skewMaxDeg: 10 },
+			seed
+		);
+		// The rotate(...) part of the "both on" output must equal the rotation-only output.
+		const rotOnly = withSkew.map((t) => t.split(' ')[0]);
+		expect(rotOnly).toEqual(noSkew);
+	});
 });
 ```
 
@@ -108,21 +130,21 @@ Create `src/transforms.ts`:
 ```ts
 /** Deterministic PRNG (mulberry32): same seed → same [0, 1) sequence. */
 function mulberry32(seed: number): () => number {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
+	let a = seed >>> 0;
+	return () => {
+		a = (a + 0x6d2b79f5) >>> 0;
+		let t = Math.imul(a ^ (a >>> 15), 1 | a);
+		t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+		return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+	};
 }
 
 /** Which distortion axes are enabled and their per-axis max magnitudes. */
 export interface DistortOpts {
-  rotate: boolean;
-  rotateMaxDeg: number;
-  skew: boolean;
-  skewMaxDeg: number;
+	rotate: boolean;
+	rotateMaxDeg: number;
+	skew: boolean;
+	skewMaxDeg: number;
 }
 
 /** One CSS transform per barcode. For every barcode the PRNG is advanced twice
@@ -133,18 +155,18 @@ export interface DistortOpts {
  *  `''` when both axes are off. Each angle is drawn from [-maxDeg, +maxDeg] and
  *  fixed to 2 decimals. Deterministic; length === count. Pure — safe at render time. */
 export function buildTransforms(count: number, opts: DistortOpts, seed: number): string[] {
-  const rng = mulberry32(seed);
-  const out: string[] = [];
-  for (let i = 0; i < count; i++) {
-    // Always draw both, in this order, to keep the two axes positionally independent.
-    const rot = ((rng() * 2 - 1) * opts.rotateMaxDeg).toFixed(2);
-    const shear = ((rng() * 2 - 1) * opts.skewMaxDeg).toFixed(2);
-    const parts: string[] = [];
-    if (opts.rotate) parts.push(`rotate(${rot}deg)`);
-    if (opts.skew) parts.push(`skewX(${shear}deg)`);
-    out.push(parts.join(' '));
-  }
-  return out;
+	const rng = mulberry32(seed);
+	const out: string[] = [];
+	for (let i = 0; i < count; i++) {
+		// Always draw both, in this order, to keep the two axes positionally independent.
+		const rot = ((rng() * 2 - 1) * opts.rotateMaxDeg).toFixed(2);
+		const shear = ((rng() * 2 - 1) * opts.skewMaxDeg).toFixed(2);
+		const parts: string[] = [];
+		if (opts.rotate) parts.push(`rotate(${rot}deg)`);
+		if (opts.skew) parts.push(`skewX(${shear}deg)`);
+		out.push(parts.join(' '));
+	}
+	return out;
 }
 ```
 
@@ -175,6 +197,7 @@ git commit -m "feat: add buildTransforms (independent rotation + skew) module"
 Atomic migration to the new `Settings` shape. Because changing the `Settings` interface breaks every consumer and test literal at once, this task updates all of them together and deletes the old `skew.ts`/`skew.test.ts`. It ends with `tsc`, `npm test`, and `npm run build` all green and the feature fully working (rotation controllable from the setup UI and round-tripped through the share URL).
 
 **Files:**
+
 - Modify: `src/types.ts` (whole `Settings` interface + `DEFAULT_SETTINGS`)
 - Modify: `src/scroller.ts:1-43` (import + transforms construction)
 - Modify: `src/shareUrl.ts` (whole file — new params + constants)
@@ -184,6 +207,7 @@ Atomic migration to the new `Settings` shape. Because changing the `Settings` in
 - Test (update literals/assertions): `src/types.test.ts`, `src/scroller.test.ts`, `src/playView.test.ts`, `src/shareUrl.test.ts`, `src/main.test.ts`, `src/setupView.test.ts`
 
 **Interfaces:**
+
 - Consumes: `buildTransforms(count, DistortOpts, seed)` from `./transforms` (Task 1).
 - Produces (final public shapes):
   - `Settings = { speedPxPerSec: number; loop: boolean; rotate: boolean; rotateMaxDeg: number; skew: boolean; skewMaxDeg: number; seed: number }`
@@ -197,24 +221,24 @@ Replace the entire body of `src/types.ts` (keep the `UpcEntry` interface exactly
 ```ts
 /** Playback settings, round-tripped through the share URL. */
 export interface Settings {
-  speedPxPerSec: number; // scroll speed in CSS px per second
-  loop: boolean; // wrap at end vs. stop
-  rotate: boolean; // random per-barcode rotation on/off
-  rotateMaxDeg: number; // max |degrees| for rotation (slider 1–30)
-  skew: boolean; // random per-barcode skewX (slant) on/off
-  skewMaxDeg: number; // max |degrees| for slant (slider 1–30)
-  seed: number; // uint32 PRNG seed — shared by both axes; makes the arrangement reproducible
+	speedPxPerSec: number; // scroll speed in CSS px per second
+	loop: boolean; // wrap at end vs. stop
+	rotate: boolean; // random per-barcode rotation on/off
+	rotateMaxDeg: number; // max |degrees| for rotation (slider 1–30)
+	skew: boolean; // random per-barcode skewX (slant) on/off
+	skewMaxDeg: number; // max |degrees| for slant (slider 1–30)
+	seed: number; // uint32 PRNG seed — shared by both axes; makes the arrangement reproducible
 }
 
 /** Single source of truth for defaults; used to fill Partial<Settings>. */
 export const DEFAULT_SETTINGS: Settings = {
-  speedPxPerSec: 60,
-  loop: false,
-  rotate: false,
-  rotateMaxDeg: 8,
-  skew: false,
-  skewMaxDeg: 8,
-  seed: 0,
+	speedPxPerSec: 60,
+	loop: false,
+	rotate: false,
+	rotateMaxDeg: 8,
+	skew: false,
+	skewMaxDeg: 8,
+	seed: 0
 };
 ```
 
@@ -235,27 +259,27 @@ import { buildTransforms } from './transforms';
 Then replace the transforms construction (currently lines 28-30):
 
 ```ts
-  const transforms = settings.skew
-    ? buildSkewTransforms(count, settings.skewMaxDeg, settings.skewSeed)
-    : null;
+const transforms = settings.skew
+	? buildSkewTransforms(count, settings.skewMaxDeg, settings.skewSeed)
+	: null;
 ```
 
 with:
 
 ```ts
-  const transforms =
-    settings.rotate || settings.skew
-      ? buildTransforms(
-          count,
-          {
-            rotate: settings.rotate,
-            rotateMaxDeg: settings.rotateMaxDeg,
-            skew: settings.skew,
-            skewMaxDeg: settings.skewMaxDeg,
-          },
-          settings.seed,
-        )
-      : null;
+const transforms =
+	settings.rotate || settings.skew
+		? buildTransforms(
+				count,
+				{
+					rotate: settings.rotate,
+					rotateMaxDeg: settings.rotateMaxDeg,
+					skew: settings.skew,
+					skewMaxDeg: settings.skewMaxDeg
+				},
+				settings.seed
+			)
+		: null;
 ```
 
 (Leave the rest of `scroller.ts` unchanged — `buildCopy` already applies `transforms[i]` to each item.)
@@ -276,69 +300,72 @@ const SEED_MAX = 0xffffffff;
 /** Build "?codes=...&speed=...&loop=..." from raw code strings + settings. codes are
  *  joined with "\n" so internal commas/whitespace survive URLSearchParams encoding. */
 export function encodeShareUrl(codes: string[], settings: Settings): string {
-  const params = new URLSearchParams();
-  params.set('codes', codes.join('\n'));
-  params.set('speed', String(settings.speedPxPerSec));
-  params.set('loop', settings.loop ? '1' : '0');
-  params.set('rot', settings.rotate ? '1' : '0');
-  params.set('rotmax', String(settings.rotateMaxDeg));
-  params.set('skew', settings.skew ? '1' : '0');
-  params.set('skewmax', String(settings.skewMaxDeg));
-  params.set('seed', String(settings.seed));
-  return '?' + params.toString();
+	const params = new URLSearchParams();
+	params.set('codes', codes.join('\n'));
+	params.set('speed', String(settings.speedPxPerSec));
+	params.set('loop', settings.loop ? '1' : '0');
+	params.set('rot', settings.rotate ? '1' : '0');
+	params.set('rotmax', String(settings.rotateMaxDeg));
+	params.set('skew', settings.skew ? '1' : '0');
+	params.set('skewmax', String(settings.skewMaxDeg));
+	params.set('seed', String(settings.seed));
+	return '?' + params.toString();
 }
 
 /** Parse location.search into codes + partial settings. Per-parameter leniency,
  *  never throws. */
 export function decodeShareUrl(search: string): { codes: string[]; settings: Partial<Settings> } {
-  const params = new URLSearchParams(search);
-  const codesRaw = params.get('codes');
-  const codes = codesRaw
-    ? codesRaw.split('\n').map((c) => c.trim()).filter((c) => c.length > 0)
-    : [];
+	const params = new URLSearchParams(search);
+	const codesRaw = params.get('codes');
+	const codes = codesRaw
+		? codesRaw
+				.split('\n')
+				.map((c) => c.trim())
+				.filter((c) => c.length > 0)
+		: [];
 
-  const settings: Partial<Settings> = {};
-  const speedRaw = params.get('speed');
-  if (speedRaw !== null) {
-    const speed = Number(speedRaw);
-    if (Number.isFinite(speed) && speed >= SPEED_MIN && speed <= SPEED_MAX) {
-      settings.speedPxPerSec = speed;
-    }
-  }
-  const loopRaw = params.get('loop');
-  if (loopRaw === '0' || loopRaw === '1') {
-    settings.loop = loopRaw === '1';
-  }
-  const rotRaw = params.get('rot');
-  if (rotRaw === '0' || rotRaw === '1') {
-    settings.rotate = rotRaw === '1';
-  }
-  const rotMaxRaw = params.get('rotmax');
-  if (rotMaxRaw !== null) {
-    const v = Number(rotMaxRaw);
-    if (Number.isFinite(v) && v >= DEG_MIN && v <= DEG_MAX) {
-      settings.rotateMaxDeg = v;
-    }
-  }
-  const skewRaw = params.get('skew');
-  if (skewRaw === '0' || skewRaw === '1') {
-    settings.skew = skewRaw === '1';
-  }
-  const skewMaxRaw = params.get('skewmax');
-  if (skewMaxRaw !== null) {
-    const v = Number(skewMaxRaw);
-    if (Number.isFinite(v) && v >= DEG_MIN && v <= DEG_MAX) {
-      settings.skewMaxDeg = v;
-    }
-  }
-  const seedRaw = params.get('seed');
-  if (seedRaw !== null) {
-    const v = Number(seedRaw);
-    if (Number.isInteger(v) && v >= 0 && v <= SEED_MAX) {
-      settings.seed = v;
-    }
-  }
-  return { codes, settings };
+	const settings: Partial<Settings> = {};
+	const speedRaw = params.get('speed');
+	if (speedRaw !== null) {
+		const speed = Number(speedRaw);
+		if (Number.isFinite(speed) && speed >= SPEED_MIN && speed <= SPEED_MAX) {
+			settings.speedPxPerSec = speed;
+		}
+	}
+	const loopRaw = params.get('loop');
+	if (loopRaw === '0' || loopRaw === '1') {
+		settings.loop = loopRaw === '1';
+	}
+	const rotRaw = params.get('rot');
+	if (rotRaw === '0' || rotRaw === '1') {
+		settings.rotate = rotRaw === '1';
+	}
+	const rotMaxRaw = params.get('rotmax');
+	if (rotMaxRaw !== null) {
+		const v = Number(rotMaxRaw);
+		if (Number.isFinite(v) && v >= DEG_MIN && v <= DEG_MAX) {
+			settings.rotateMaxDeg = v;
+		}
+	}
+	const skewRaw = params.get('skew');
+	if (skewRaw === '0' || skewRaw === '1') {
+		settings.skew = skewRaw === '1';
+	}
+	const skewMaxRaw = params.get('skewmax');
+	if (skewMaxRaw !== null) {
+		const v = Number(skewMaxRaw);
+		if (Number.isFinite(v) && v >= DEG_MIN && v <= DEG_MAX) {
+			settings.skewMaxDeg = v;
+		}
+	}
+	const seedRaw = params.get('seed');
+	if (seedRaw !== null) {
+		const v = Number(seedRaw);
+		if (Number.isInteger(v) && v >= 0 && v <= SEED_MAX) {
+			settings.seed = v;
+		}
+	}
+	return { codes, settings };
 }
 ```
 
@@ -347,17 +374,17 @@ export function decodeShareUrl(search: string): { codes: string[]; settings: Par
 In `src/main.ts`, replace lines 12-14:
 
 ```ts
-  if (decoded.settings.skewSeed === undefined) {
-    settings.skewSeed = Math.floor(Math.random() * 0x100000000) >>> 0;
-  }
+if (decoded.settings.skewSeed === undefined) {
+	settings.skewSeed = Math.floor(Math.random() * 0x100000000) >>> 0;
+}
 ```
 
 with:
 
 ```ts
-  if (decoded.settings.seed === undefined) {
-    settings.seed = Math.floor(Math.random() * 0x100000000) >>> 0;
-  }
+if (decoded.settings.seed === undefined) {
+	settings.seed = Math.floor(Math.random() * 0x100000000) >>> 0;
+}
 ```
 
 - [ ] **Step 5: Add the rotation control to the setup UI**
@@ -365,74 +392,78 @@ with:
 In `src/setupView.ts`, replace the `.settings-row` block (currently lines 21-32) with a version that adds a "Random rotation" field **before** "Random skew", mirroring the existing skew field exactly:
 
 ```html
-      <div class="settings-row">
-        <label class="field">Speed
-          <input type="range" class="speed-input" min="10" max="5000" step="5" />
-        </label>
-        <label class="field">Loop
-          <input type="checkbox" class="loop-input" />
-        </label>
-        <label class="field">Random rotation
-          <input type="checkbox" class="rotate-input" />
-          <input type="range" class="rotate-max-input" min="1" max="30" step="1" />
-        </label>
-        <label class="field">Random skew
-          <input type="checkbox" class="skew-input" />
-          <input type="range" class="skew-max-input" min="1" max="30" step="1" />
-        </label>
-      </div>
+<div class="settings-row">
+	<label class="field"
+		>Speed
+		<input type="range" class="speed-input" min="10" max="5000" step="5" />
+	</label>
+	<label class="field"
+		>Loop
+		<input type="checkbox" class="loop-input" />
+	</label>
+	<label class="field"
+		>Random rotation
+		<input type="checkbox" class="rotate-input" />
+		<input type="range" class="rotate-max-input" min="1" max="30" step="1" />
+	</label>
+	<label class="field"
+		>Random skew
+		<input type="checkbox" class="skew-input" />
+		<input type="range" class="skew-max-input" min="1" max="30" step="1" />
+	</label>
+</div>
 ```
 
 Add the two element refs next to the existing `skewInput`/`skewMaxInput` lookups (after line 48):
 
 ```ts
-  const rotateInput = root.querySelector('.rotate-input') as HTMLInputElement;
-  const rotateMaxInput = root.querySelector('.rotate-max-input') as HTMLInputElement;
+const rotateInput = root.querySelector('.rotate-input') as HTMLInputElement;
+const rotateMaxInput = root.querySelector('.rotate-max-input') as HTMLInputElement;
 ```
 
 Replace the skew prefill + enable-sync block (currently lines 59-65):
 
 ```ts
-  skewInput.checked = settings.skew;
-  skewMaxInput.value = String(settings.skewMaxDeg);
-  const syncSkewEnabled = () => {
-    skewMaxInput.disabled = !skewInput.checked;
-  };
-  syncSkewEnabled();
-  skewInput.addEventListener('change', syncSkewEnabled);
+skewInput.checked = settings.skew;
+skewMaxInput.value = String(settings.skewMaxDeg);
+const syncSkewEnabled = () => {
+	skewMaxInput.disabled = !skewInput.checked;
+};
+syncSkewEnabled();
+skewInput.addEventListener('change', syncSkewEnabled);
 ```
 
 with prefill + enable-sync for **both** axes:
 
 ```ts
-  rotateInput.checked = settings.rotate;
-  rotateMaxInput.value = String(settings.rotateMaxDeg);
-  skewInput.checked = settings.skew;
-  skewMaxInput.value = String(settings.skewMaxDeg);
-  const syncRotateEnabled = () => {
-    rotateMaxInput.disabled = !rotateInput.checked;
-  };
-  const syncSkewEnabled = () => {
-    skewMaxInput.disabled = !skewInput.checked;
-  };
-  syncRotateEnabled();
-  syncSkewEnabled();
-  rotateInput.addEventListener('change', syncRotateEnabled);
-  skewInput.addEventListener('change', syncSkewEnabled);
+rotateInput.checked = settings.rotate;
+rotateMaxInput.value = String(settings.rotateMaxDeg);
+skewInput.checked = settings.skew;
+skewMaxInput.value = String(settings.skewMaxDeg);
+const syncRotateEnabled = () => {
+	rotateMaxInput.disabled = !rotateInput.checked;
+};
+const syncSkewEnabled = () => {
+	skewMaxInput.disabled = !skewInput.checked;
+};
+syncRotateEnabled();
+syncSkewEnabled();
+rotateInput.addEventListener('change', syncRotateEnabled);
+skewInput.addEventListener('change', syncSkewEnabled);
 ```
 
 Replace `currentSettings` (currently lines 69-75):
 
 ```ts
-  const currentSettings = (): Settings => ({
-    speedPxPerSec: Number(speedInput.value),
-    loop: loopInput.checked,
-    rotate: rotateInput.checked,
-    rotateMaxDeg: Number(rotateMaxInput.value),
-    skew: skewInput.checked,
-    skewMaxDeg: Number(skewMaxInput.value),
-    seed: settings.seed,
-  });
+const currentSettings = (): Settings => ({
+	speedPxPerSec: Number(speedInput.value),
+	loop: loopInput.checked,
+	rotate: rotateInput.checked,
+	rotateMaxDeg: Number(rotateMaxInput.value),
+	skew: skewInput.checked,
+	skewMaxDeg: Number(skewMaxInput.value),
+	seed: settings.seed
+});
 ```
 
 - [ ] **Step 6: Delete the obsolete skew module and its test**
@@ -450,15 +481,15 @@ import { describe, it, expect } from 'vitest';
 import { DEFAULT_SETTINGS } from './types';
 
 describe('DEFAULT_SETTINGS', () => {
-  it('defaults to 60 px/s, loop off, rotation off, skew off', () => {
-    expect(DEFAULT_SETTINGS.speedPxPerSec).toBe(60);
-    expect(DEFAULT_SETTINGS.loop).toBe(false);
-    expect(DEFAULT_SETTINGS.rotate).toBe(false);
-    expect(DEFAULT_SETTINGS.rotateMaxDeg).toBe(8);
-    expect(DEFAULT_SETTINGS.skew).toBe(false);
-    expect(DEFAULT_SETTINGS.skewMaxDeg).toBe(8);
-    expect(DEFAULT_SETTINGS.seed).toBe(0);
-  });
+	it('defaults to 60 px/s, loop off, rotation off, skew off', () => {
+		expect(DEFAULT_SETTINGS.speedPxPerSec).toBe(60);
+		expect(DEFAULT_SETTINGS.loop).toBe(false);
+		expect(DEFAULT_SETTINGS.rotate).toBe(false);
+		expect(DEFAULT_SETTINGS.rotateMaxDeg).toBe(8);
+		expect(DEFAULT_SETTINGS.skew).toBe(false);
+		expect(DEFAULT_SETTINGS.skewMaxDeg).toBe(8);
+		expect(DEFAULT_SETTINGS.seed).toBe(0);
+	});
 });
 ```
 
@@ -469,58 +500,105 @@ In `src/scroller.test.ts`, update every `Settings` literal to the new shape and 
 Lines 16, 24 (the two `loop: false` default-shape literals):
 
 ```ts
-    const s = createScroller(container, entries, { speedPxPerSec: 60, loop: false, rotate: false, rotateMaxDeg: 8, skew: false, skewMaxDeg: 8, seed: 0 });
+const s = createScroller(container, entries, {
+	speedPxPerSec: 60,
+	loop: false,
+	rotate: false,
+	rotateMaxDeg: 8,
+	skew: false,
+	skewMaxDeg: 8,
+	seed: 0
+});
 ```
 
 Line 35 (`loop: true`):
 
 ```ts
-    const s = createScroller(container, entries, { speedPxPerSec: 60, loop: true, rotate: false, rotateMaxDeg: 8, skew: false, skewMaxDeg: 8, seed: 0 });
+const s = createScroller(container, entries, {
+	speedPxPerSec: 60,
+	loop: true,
+	rotate: false,
+	rotateMaxDeg: 8,
+	skew: false,
+	skewMaxDeg: 8,
+	seed: 0
+});
 ```
 
 Line 72 (inside the regression test, with `onFinish`):
 
 ```ts
-      const s = createScroller(container, entries, { speedPxPerSec: 60, loop: false, rotate: false, rotateMaxDeg: 8, skew: false, skewMaxDeg: 8, seed: 0 }, onFinish);
+const s = createScroller(
+	container,
+	entries,
+	{
+		speedPxPerSec: 60,
+		loop: false,
+		rotate: false,
+		rotateMaxDeg: 8,
+		skew: false,
+		skewMaxDeg: 8,
+		seed: 0
+	},
+	onFinish
+);
 ```
 
 Replace the "applies the same skew transform per index" test (currently lines 84-95) with a version that also asserts rotation-only activates the transform path:
 
 ```ts
-  it('applies the same transform per index to both copies when a distortion is on', () => {
-    const s = createScroller(container, entries, {
-      speedPxPerSec: 60, loop: false, rotate: false, rotateMaxDeg: 10, skew: true, skewMaxDeg: 10, seed: 5,
-    });
-    const copies = container.querySelectorAll<HTMLElement>('.scroller-copy');
-    const items0 = copies[0].querySelectorAll<HTMLElement>('.barcode-item');
-    const items1 = copies[1].querySelectorAll<HTMLElement>('.barcode-item');
-    expect(items0[0].style.transform).not.toBe('');
-    expect(items0[0].style.transform).toBe(items1[0].style.transform);
-    expect(items0[1].style.transform).toBe(items1[1].style.transform);
-    s.destroy();
-  });
+it('applies the same transform per index to both copies when a distortion is on', () => {
+	const s = createScroller(container, entries, {
+		speedPxPerSec: 60,
+		loop: false,
+		rotate: false,
+		rotateMaxDeg: 10,
+		skew: true,
+		skewMaxDeg: 10,
+		seed: 5
+	});
+	const copies = container.querySelectorAll<HTMLElement>('.scroller-copy');
+	const items0 = copies[0].querySelectorAll<HTMLElement>('.barcode-item');
+	const items1 = copies[1].querySelectorAll<HTMLElement>('.barcode-item');
+	expect(items0[0].style.transform).not.toBe('');
+	expect(items0[0].style.transform).toBe(items1[0].style.transform);
+	expect(items0[1].style.transform).toBe(items1[1].style.transform);
+	s.destroy();
+});
 
-  it('transforms barcodes when only rotation is on', () => {
-    const s = createScroller(container, entries, {
-      speedPxPerSec: 60, loop: false, rotate: true, rotateMaxDeg: 10, skew: false, skewMaxDeg: 10, seed: 5,
-    });
-    const item = container.querySelector<HTMLElement>('.barcode-item')!;
-    expect(item.style.transform).toMatch(/^rotate\(/);
-    s.destroy();
-  });
+it('transforms barcodes when only rotation is on', () => {
+	const s = createScroller(container, entries, {
+		speedPxPerSec: 60,
+		loop: false,
+		rotate: true,
+		rotateMaxDeg: 10,
+		skew: false,
+		skewMaxDeg: 10,
+		seed: 5
+	});
+	const item = container.querySelector<HTMLElement>('.barcode-item')!;
+	expect(item.style.transform).toMatch(/^rotate\(/);
+	s.destroy();
+});
 ```
 
 Replace the "leaves barcode items untransformed when skew is off" test (currently lines 97-104) with:
 
 ```ts
-  it('leaves barcode items untransformed when both distortions are off', () => {
-    const s = createScroller(container, entries, {
-      speedPxPerSec: 60, loop: false, rotate: false, rotateMaxDeg: 10, skew: false, skewMaxDeg: 10, seed: 5,
-    });
-    const item = container.querySelector<HTMLElement>('.barcode-item')!;
-    expect(item.style.transform).toBe('');
-    s.destroy();
-  });
+it('leaves barcode items untransformed when both distortions are off', () => {
+	const s = createScroller(container, entries, {
+		speedPxPerSec: 60,
+		loop: false,
+		rotate: false,
+		rotateMaxDeg: 10,
+		skew: false,
+		skewMaxDeg: 10,
+		seed: 5
+	});
+	const item = container.querySelector<HTMLElement>('.barcode-item')!;
+	expect(item.style.transform).toBe('');
+	s.destroy();
+});
 ```
 
 - [ ] **Step 9: Update `playView.test.ts`**
@@ -534,13 +612,39 @@ In `src/playView.test.ts`, update both `Settings` literals (lines 22 and 31) to:
 So line 22 becomes:
 
 ```ts
-    mountPlayView(root, entries, { speedPxPerSec: 60, loop: false, rotate: false, rotateMaxDeg: 8, skew: false, skewMaxDeg: 8, seed: 0 }, () => {});
+mountPlayView(
+	root,
+	entries,
+	{
+		speedPxPerSec: 60,
+		loop: false,
+		rotate: false,
+		rotateMaxDeg: 8,
+		skew: false,
+		skewMaxDeg: 8,
+		seed: 0
+	},
+	() => {}
+);
 ```
 
 and line 31 becomes:
 
 ```ts
-    mountPlayView(root, entries, { speedPxPerSec: 60, loop: false, rotate: false, rotateMaxDeg: 8, skew: false, skewMaxDeg: 8, seed: 0 }, onBack);
+mountPlayView(
+	root,
+	entries,
+	{
+		speedPxPerSec: 60,
+		loop: false,
+		rotate: false,
+		rotateMaxDeg: 8,
+		skew: false,
+		skewMaxDeg: 8,
+		seed: 0
+	},
+	onBack
+);
 ```
 
 - [ ] **Step 10: Update `shareUrl.test.ts`**
@@ -552,49 +656,77 @@ import { describe, it, expect } from 'vitest';
 import { encodeShareUrl, decodeShareUrl } from './shareUrl';
 
 describe('shareUrl', () => {
-  it('round-trips codes and settings', () => {
-    const search = encodeShareUrl(['036000291452', '012345678905'], {
-      speedPxPerSec: 120, loop: true, rotate: false, rotateMaxDeg: 8, skew: false, skewMaxDeg: 8, seed: 0,
-    });
-    expect(decodeShareUrl(search)).toEqual({
-      codes: ['036000291452', '012345678905'],
-      settings: { speedPxPerSec: 120, loop: true, rotate: false, rotateMaxDeg: 8, skew: false, skewMaxDeg: 8, seed: 0 },
-    });
-  });
+	it('round-trips codes and settings', () => {
+		const search = encodeShareUrl(['036000291452', '012345678905'], {
+			speedPxPerSec: 120,
+			loop: true,
+			rotate: false,
+			rotateMaxDeg: 8,
+			skew: false,
+			skewMaxDeg: 8,
+			seed: 0
+		});
+		expect(decodeShareUrl(search)).toEqual({
+			codes: ['036000291452', '012345678905'],
+			settings: {
+				speedPxPerSec: 120,
+				loop: true,
+				rotate: false,
+				rotateMaxDeg: 8,
+				skew: false,
+				skewMaxDeg: 8,
+				seed: 0
+			}
+		});
+	});
 
-  it('is lenient per parameter and never throws', () => {
-    expect(decodeShareUrl('')).toEqual({ codes: [], settings: {} });
-    expect(decodeShareUrl('?speed=abc&loop=2')).toEqual({ codes: [], settings: {} });
-    expect(decodeShareUrl('?speed=99999')).toEqual({ codes: [], settings: {} });
-    expect(decodeShareUrl('?loop=1')).toEqual({ codes: [], settings: { loop: true } });
-  });
+	it('is lenient per parameter and never throws', () => {
+		expect(decodeShareUrl('')).toEqual({ codes: [], settings: {} });
+		expect(decodeShareUrl('?speed=abc&loop=2')).toEqual({ codes: [], settings: {} });
+		expect(decodeShareUrl('?speed=99999')).toEqual({ codes: [], settings: {} });
+		expect(decodeShareUrl('?loop=1')).toEqual({ codes: [], settings: { loop: true } });
+	});
 
-  it('accepts speed up to the max (5000) and rejects above it', () => {
-    expect(decodeShareUrl('?speed=5000')).toEqual({ codes: [], settings: { speedPxPerSec: 5000 } });
-    expect(decodeShareUrl('?speed=5001')).toEqual({ codes: [], settings: {} });
-  });
+	it('accepts speed up to the max (5000) and rejects above it', () => {
+		expect(decodeShareUrl('?speed=5000')).toEqual({ codes: [], settings: { speedPxPerSec: 5000 } });
+		expect(decodeShareUrl('?speed=5001')).toEqual({ codes: [], settings: {} });
+	});
 
-  it('round-trips rotation and skew settings', () => {
-    const search = encodeShareUrl(['036000291452'], {
-      speedPxPerSec: 60, loop: false, rotate: true, rotateMaxDeg: 15, skew: true, skewMaxDeg: 12, seed: 123456,
-    });
-    expect(decodeShareUrl(search)).toEqual({
-      codes: ['036000291452'],
-      settings: { speedPxPerSec: 60, loop: false, rotate: true, rotateMaxDeg: 15, skew: true, skewMaxDeg: 12, seed: 123456 },
-    });
-  });
+	it('round-trips rotation and skew settings', () => {
+		const search = encodeShareUrl(['036000291452'], {
+			speedPxPerSec: 60,
+			loop: false,
+			rotate: true,
+			rotateMaxDeg: 15,
+			skew: true,
+			skewMaxDeg: 12,
+			seed: 123456
+		});
+		expect(decodeShareUrl(search)).toEqual({
+			codes: ['036000291452'],
+			settings: {
+				speedPxPerSec: 60,
+				loop: false,
+				rotate: true,
+				rotateMaxDeg: 15,
+				skew: true,
+				skewMaxDeg: 12,
+				seed: 123456
+			}
+		});
+	});
 
-  it('is lenient on rotation, skew, and seed params', () => {
-    expect(decodeShareUrl('?rot=2')).toEqual({ codes: [], settings: {} });
-    expect(decodeShareUrl('?rotmax=99')).toEqual({ codes: [], settings: {} });
-    expect(decodeShareUrl('?skew=2')).toEqual({ codes: [], settings: {} });
-    expect(decodeShareUrl('?skewmax=0')).toEqual({ codes: [], settings: {} });
-    expect(decodeShareUrl('?seed=-1')).toEqual({ codes: [], settings: {} });
-    expect(decodeShareUrl('?rot=1&rotmax=20&skew=1&skewmax=30&seed=0')).toEqual({
-      codes: [],
-      settings: { rotate: true, rotateMaxDeg: 20, skew: true, skewMaxDeg: 30, seed: 0 },
-    });
-  });
+	it('is lenient on rotation, skew, and seed params', () => {
+		expect(decodeShareUrl('?rot=2')).toEqual({ codes: [], settings: {} });
+		expect(decodeShareUrl('?rotmax=99')).toEqual({ codes: [], settings: {} });
+		expect(decodeShareUrl('?skew=2')).toEqual({ codes: [], settings: {} });
+		expect(decodeShareUrl('?skewmax=0')).toEqual({ codes: [], settings: {} });
+		expect(decodeShareUrl('?seed=-1')).toEqual({ codes: [], settings: {} });
+		expect(decodeShareUrl('?rot=1&rotmax=20&skew=1&skewmax=30&seed=0')).toEqual({
+			codes: [],
+			settings: { rotate: true, rotateMaxDeg: 20, skew: true, skewMaxDeg: 30, seed: 0 }
+		});
+	});
 });
 ```
 
@@ -605,23 +737,23 @@ In `src/main.test.ts`, migrate the three seed-related tests from the `skewseed` 
 Line 26-30 test — rename and switch the param. Replace lines 26-30:
 
 ```ts
-  it('preserves a URL-provided seed in the Copy-link URL', () => {
-    startApp(root, '?codes=036000291452&skew=1&seed=424242');
-    (root.querySelector('.copy-link') as HTMLButtonElement).click();
-    expect((root.querySelector('.share-url') as HTMLInputElement).value).toContain('seed=424242');
-  });
+it('preserves a URL-provided seed in the Copy-link URL', () => {
+	startApp(root, '?codes=036000291452&skew=1&seed=424242');
+	(root.querySelector('.copy-link') as HTMLButtonElement).click();
+	expect((root.querySelector('.share-url') as HTMLInputElement).value).toContain('seed=424242');
+});
 ```
 
 Line 40 — replace `skewseed` with `seed`:
 
 ```ts
-      expect(url).toContain(`seed=${expectedSeed}`);
+expect(url).toContain(`seed=${expectedSeed}`);
 ```
 
 Line 58 — use a delimiter-anchored regex so it can't collide with `speed=`:
 
 ```ts
-    expect(url1.match(/[?&]seed=(\d+)/)![1]).not.toBe(url2.match(/[?&]seed=(\d+)/)![1]);
+expect(url1.match(/[?&]seed=(\d+)/)![1]).not.toBe(url2.match(/[?&]seed=(\d+)/)![1]);
 ```
 
 - [ ] **Step 12: Update `setupView.test.ts`**
@@ -631,50 +763,65 @@ In `src/setupView.test.ts`, update the default-shape literal and rewrite the two
 Line 48 — replace with:
 
 ```ts
-    expect(settings).toEqual({ speedPxPerSec: 60, loop: false, rotate: false, rotateMaxDeg: 8, skew: false, skewMaxDeg: 8, seed: 0 });
+expect(settings).toEqual({
+	speedPxPerSec: 60,
+	loop: false,
+	rotate: false,
+	rotateMaxDeg: 8,
+	skew: false,
+	skewMaxDeg: 8,
+	seed: 0
+});
 ```
 
 Replace the "prefills skew controls..." test (currently lines 94-99) and the "carries skew..." test (currently lines 101-113) with:
 
 ```ts
-  it('prefills rotation and skew controls and disables each slider when its toggle is off', () => {
-    mountSetupView(root, {
-      codes: ['036000291452'],
-      settings: { rotate: false, rotateMaxDeg: 20, skew: false, skewMaxDeg: 15, seed: 77 },
-    }, () => {});
-    expect(q<HTMLInputElement>('.rotate-input').checked).toBe(false);
-    expect(q<HTMLInputElement>('.rotate-max-input').value).toBe('20');
-    expect(q<HTMLInputElement>('.rotate-max-input').disabled).toBe(true);
-    expect(q<HTMLInputElement>('.skew-input').checked).toBe(false);
-    expect(q<HTMLInputElement>('.skew-max-input').value).toBe('15');
-    expect(q<HTMLInputElement>('.skew-max-input').disabled).toBe(true);
-  });
+it('prefills rotation and skew controls and disables each slider when its toggle is off', () => {
+	mountSetupView(
+		root,
+		{
+			codes: ['036000291452'],
+			settings: { rotate: false, rotateMaxDeg: 20, skew: false, skewMaxDeg: 15, seed: 77 }
+		},
+		() => {}
+	);
+	expect(q<HTMLInputElement>('.rotate-input').checked).toBe(false);
+	expect(q<HTMLInputElement>('.rotate-max-input').value).toBe('20');
+	expect(q<HTMLInputElement>('.rotate-max-input').disabled).toBe(true);
+	expect(q<HTMLInputElement>('.skew-input').checked).toBe(false);
+	expect(q<HTMLInputElement>('.skew-max-input').value).toBe('15');
+	expect(q<HTMLInputElement>('.skew-max-input').disabled).toBe(true);
+});
 
-  it('enables the rotation slider when its checkbox is checked', () => {
-    mountSetupView(root, { codes: ['036000291452'], settings: { rotate: false } }, () => {});
-    const cb = q<HTMLInputElement>('.rotate-input');
-    const slider = q<HTMLInputElement>('.rotate-max-input');
-    expect(slider.disabled).toBe(true);
-    cb.checked = true;
-    cb.dispatchEvent(new Event('change'));
-    expect(slider.disabled).toBe(false);
-  });
+it('enables the rotation slider when its checkbox is checked', () => {
+	mountSetupView(root, { codes: ['036000291452'], settings: { rotate: false } }, () => {});
+	const cb = q<HTMLInputElement>('.rotate-input');
+	const slider = q<HTMLInputElement>('.rotate-max-input');
+	expect(slider.disabled).toBe(true);
+	cb.checked = true;
+	cb.dispatchEvent(new Event('change'));
+	expect(slider.disabled).toBe(false);
+});
 
-  it('carries rotation, skew, and the seed into onStart', () => {
-    const onStart = vi.fn();
-    mountSetupView(
-      root,
-      { codes: ['036000291452'], settings: { rotate: true, rotateMaxDeg: 25, skew: true, skewMaxDeg: 20, seed: 999 } },
-      onStart,
-    );
-    q<HTMLButtonElement>('.start').click();
-    const [, settings] = onStart.mock.calls[0];
-    expect(settings.rotate).toBe(true);
-    expect(settings.rotateMaxDeg).toBe(25);
-    expect(settings.skew).toBe(true);
-    expect(settings.skewMaxDeg).toBe(20);
-    expect(settings.seed).toBe(999);
-  });
+it('carries rotation, skew, and the seed into onStart', () => {
+	const onStart = vi.fn();
+	mountSetupView(
+		root,
+		{
+			codes: ['036000291452'],
+			settings: { rotate: true, rotateMaxDeg: 25, skew: true, skewMaxDeg: 20, seed: 999 }
+		},
+		onStart
+	);
+	q<HTMLButtonElement>('.start').click();
+	const [, settings] = onStart.mock.calls[0];
+	expect(settings.rotate).toBe(true);
+	expect(settings.rotateMaxDeg).toBe(25);
+	expect(settings.skew).toBe(true);
+	expect(settings.skewMaxDeg).toBe(20);
+	expect(settings.seed).toBe(999);
+});
 ```
 
 - [ ] **Step 13: Verify type-check, full suite, and build are green**
@@ -700,6 +847,7 @@ git commit -m "feat: split rotation out of skew into independent controls"
 ## Self-Review
 
 **Spec coverage:**
+
 - Settings model (rotate/rotateMaxDeg, skew repurposed, seed rename) → Task 2 Step 1. ✓
 - Transform builder with positional draws + enabled-axes composition → Task 1. ✓
 - Scroller activates on `rotate || skew`, applies same array to both copies → Task 2 Step 2. ✓

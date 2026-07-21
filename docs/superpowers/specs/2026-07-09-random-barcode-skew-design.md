@@ -12,27 +12,31 @@ the column looks like imperfect/tilted real-world labels. Tunable in magnitude a
 
 ## Decisions (from brainstorming)
 
-| Decision | Choice |
-|----------|--------|
-| Purpose | Both scanner-robustness testing and visual variety — **tunable** magnitude |
-| Skew style | **Rotation + horizontal shear** (`rotate` + `skewX`), random per barcode |
-| Control | Setup-only: a **checkbox** + a **magnitude slider** (degrees) |
-| Reproducibility | A **seed** in the share URL reproduces the exact skew arrangement |
-| Loop | Same skew per position applied to **both** copies → seam stays seamless |
-| Default | **Off**; default magnitude 8°; scannability degrades at the high end (intended) |
+| Decision        | Choice                                                                          |
+| --------------- | ------------------------------------------------------------------------------- |
+| Purpose         | Both scanner-robustness testing and visual variety — **tunable** magnitude      |
+| Skew style      | **Rotation + horizontal shear** (`rotate` + `skewX`), random per barcode        |
+| Control         | Setup-only: a **checkbox** + a **magnitude slider** (degrees)                   |
+| Reproducibility | A **seed** in the share URL reproduces the exact skew arrangement               |
+| Loop            | Same skew per position applied to **both** copies → seam stays seamless         |
+| Default         | **Off**; default magnitude 8°; scannability degrades at the high end (intended) |
 
 ## Settings (three new fields)
 
 ```ts
 export interface Settings {
-  speedPxPerSec: number;
-  loop: boolean;
-  skew: boolean;        // NEW — enable random skew
-  skewMaxDeg: number;   // NEW — max |degrees| for both rotation and shear (slider 1–30)
-  skewSeed: number;     // NEW — uint32 PRNG seed; makes the arrangement reproducible
+	speedPxPerSec: number;
+	loop: boolean;
+	skew: boolean; // NEW — enable random skew
+	skewMaxDeg: number; // NEW — max |degrees| for both rotation and shear (slider 1–30)
+	skewSeed: number; // NEW — uint32 PRNG seed; makes the arrangement reproducible
 }
 export const DEFAULT_SETTINGS: Settings = {
-  speedPxPerSec: 60, loop: false, skew: false, skewMaxDeg: 8, skewSeed: 0,
+	speedPxPerSec: 60,
+	loop: false,
+	skew: false,
+	skewMaxDeg: 8,
+	skewSeed: 0
 };
 ```
 

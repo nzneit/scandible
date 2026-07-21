@@ -66,7 +66,7 @@ no in-memory handoff.
 - **`/play`:** decodes the same params, parses codes, filters to valid entries.
   **Guard:** if there are no valid codes (e.g. bare `/play`), redirect to `/` carrying
   whatever params were present.
-- **Back (in play):** `goto('/' + encodeShareUrl(...))` with the *current* codes and
+- **Back (in play):** `goto('/' + encodeShareUrl(...))` with the _current_ codes and
   settings, so speed edits made during play survive the return trip (today they are
   silently dropped — deliberate cleanup #2).
 

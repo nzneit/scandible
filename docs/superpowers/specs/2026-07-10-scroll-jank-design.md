@@ -21,7 +21,7 @@ main-thread presentation rather than any one machine's vsync configuration.
 
 Supporting research (deep-research report, 2026-07-10): `transform`/`opacity`
 are the only compositor-only properties, but a compositor-only transform is
-*not* paint-free unless the element is first **promoted to its own layer**;
+_not_ paint-free unless the element is first **promoted to its own layer**;
 once promoted, the compositor moves the finished texture as a whole and
 presents it vsync-locked. A 3D transform value (`translate3d`) and
 `will-change: transform` are both documented layer-promotion triggers.
@@ -35,9 +35,9 @@ scroll transform):
 
 ```css
 .scroller-track {
-  display: flex;
-  flex-direction: column;
-  will-change: transform;
+	display: flex;
+	flex-direction: column;
+	will-change: transform;
 }
 ```
 
@@ -61,7 +61,7 @@ track.style.transform = `translate3d(0, ${-offset}px, 0)`;
 
 ## Out of scope (deliberately)
 
-- **`content-visibility` / `contain` containment.** This targets a *different*
+- **`content-visibility` / `contain` containment.** This targets a _different_
   symptom (tile-rasterization "checkerboard" gaps on very large lists, not
   reported here), and `content-visibility: auto` has uncertain behavior when an
   element's on-screen-ness is driven by a transformed ancestor. It is recorded

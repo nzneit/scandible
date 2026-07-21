@@ -24,11 +24,13 @@
 Change the track's transform to a 3D translate and mark it `will-change: transform`. Add one structural test that guards the 3D form so a future edit can't silently revert to `translateY`.
 
 **Files:**
+
 - Modify: `src/scroller.ts` (the `render()` function)
 - Modify: `src/styles.css` (`.scroller-track` rule)
 - Test: `src/scroller.test.ts`
 
 **Interfaces:**
+
 - Consumes: existing `createScroller(container, entries, settings, onFinish?)` — unchanged signature.
 - Produces: no new interface; the observable change is that `.scroller-track`'s inline `transform` uses the `translate3d(0, …, 0)` form.
 
@@ -37,15 +39,21 @@ Change the track's transform to a 3D translate and mark it `will-change: transfo
 Add this test to `src/scroller.test.ts`, inside the existing `describe('createScroller', () => { ... })` block, before its closing `});`:
 
 ```ts
-  it('drives the track with a 3D translate so it is GPU-layer promoted', () => {
-    const s = createScroller(container, entries, {
-      speedPxPerSec: 60, loop: false, rotate: false, rotateMaxDeg: 8, skew: false, skewMaxDeg: 8, seed: 0,
-    });
-    const track = container.querySelector<HTMLElement>('.scroller-track')!;
-    // Initial render (offset 0) must use the 3D transform form, not translateY.
-    expect(track.style.transform).toBe('translate3d(0, 0px, 0)');
-    s.destroy();
-  });
+it('drives the track with a 3D translate so it is GPU-layer promoted', () => {
+	const s = createScroller(container, entries, {
+		speedPxPerSec: 60,
+		loop: false,
+		rotate: false,
+		rotateMaxDeg: 8,
+		skew: false,
+		skewMaxDeg: 8,
+		seed: 0
+	});
+	const track = container.querySelector<HTMLElement>('.scroller-track')!;
+	// Initial render (offset 0) must use the 3D transform form, not translateY.
+	expect(track.style.transform).toBe('translate3d(0, 0px, 0)');
+	s.destroy();
+});
 ```
 
 - [ ] **Step 2: Run the test to verify it fails**
@@ -58,17 +66,17 @@ Expected: FAIL — received `translateY(0px)` (the current 2D form), expected `t
 In `src/scroller.ts`, replace the `render` function:
 
 ```ts
-  const render = () => {
-    track.style.transform = `translateY(${-offset}px)`;
-  };
+const render = () => {
+	track.style.transform = `translateY(${-offset}px)`;
+};
 ```
 
 with:
 
 ```ts
-  const render = () => {
-    track.style.transform = `translate3d(0, ${-offset}px, 0)`;
-  };
+const render = () => {
+	track.style.transform = `translate3d(0, ${-offset}px, 0)`;
+};
 ```
 
 - [ ] **Step 4: Promote the track in CSS**
@@ -76,13 +84,20 @@ with:
 In `src/styles.css`, replace the `.scroller-track` rule:
 
 ```css
-.scroller-track { display: flex; flex-direction: column; }
+.scroller-track {
+	display: flex;
+	flex-direction: column;
+}
 ```
 
 with:
 
 ```css
-.scroller-track { display: flex; flex-direction: column; will-change: transform; }
+.scroller-track {
+	display: flex;
+	flex-direction: column;
+	will-change: transform;
+}
 ```
 
 - [ ] **Step 5: Run the test to verify it passes**
@@ -117,6 +132,7 @@ Run `npm run dev`, start a run, set speed to 5000 px/s, and confirm the fixed-po
 ## Self-Review
 
 **Spec coverage:**
+
 - 3D `translate3d` transform → Task 1 Step 3 + guard test Step 1. ✓
 - `will-change: transform` on `.scroller-track` (one element only) → Task 1 Step 4. ✓
 - No animation-loop logic changes → only `render()`'s transform string and the CSS rule change; rAF/measure/loop/finish untouched. ✓

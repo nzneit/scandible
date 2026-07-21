@@ -56,18 +56,16 @@ import { encode, renderSVG } from 'uqr';
 
 const QR_DENSE_VERSION = 20; // tunable; higher version = denser = harder to scan phone-to-phone
 
-export type QrResult =
-  | { ok: true; svg: string; dense: boolean }
-  | { ok: false; tooLong: true };
+export type QrResult = { ok: true; svg: string; dense: boolean } | { ok: false; tooLong: true };
 
 export function buildQrSvg(text: string): QrResult {
-  try {
-    const { version } = encode(text, { ecc: 'M' });        // ecc M = robust against screen glare
-    const svg = renderSVG(text, { ecc: 'M', border: 2 });  // border 2 = quiet zone; default white background
-    return { ok: true, svg, dense: version > QR_DENSE_VERSION };
-  } catch {
-    return { ok: false, tooLong: true };                   // over-capacity → fallback, no broken code
-  }
+	try {
+		const { version } = encode(text, { ecc: 'M' }); // ecc M = robust against screen glare
+		const svg = renderSVG(text, { ecc: 'M', border: 2 }); // border 2 = quiet zone; default white background
+		return { ok: true, svg, dense: version > QR_DENSE_VERSION };
+	} catch {
+		return { ok: false, tooLong: true }; // over-capacity → fallback, no broken code
+	}
 }
 ```
 
@@ -105,6 +103,7 @@ The existing clipboard write and the `.url-warning` (>2000 chars) behavior are
 untouched — `.url-warning` and `.qr-status` are independent signals.
 
 Exact copy:
+
 - Dense warning: `QR is dense — hold the phone steady, or use the copied link.`
 - Too-long fallback: `Too many codes for a QR — share the copied link instead.`
 
@@ -118,6 +117,7 @@ Exact copy:
 ## Testing
 
 `src/qr.test.ts` (pure, no DOM):
+
 - Short text → `{ ok: true, dense: false }`, and `svg` is a well-formed string
   containing `<svg` and QR module markup (e.g. a `<path` or `<rect`).
 - A long-but-valid text (enough to push the selected version past
@@ -127,6 +127,7 @@ Exact copy:
 - Determinism: same text → identical `svg`.
 
 `src/setupView.test.ts` (jsdom):
+
 - Clicking **Share link** (the `.copy-link` button) injects an `<svg>` into `.qr-code`.
 - A long code list surfaces the dense warning text in `.qr-status`.
 - An over-capacity code list shows the too-long fallback in `.qr-status` and
@@ -140,5 +141,5 @@ Exact copy:
 - No URL shortening or code-list compression (static site, no backend). If QR
   density becomes a real problem for large lists, compressing the encoded codes
   is a separate future optimization, out of scope here.
-- No QR *scanning* in-app; decoding is handled by the other phone's native
+- No QR _scanning_ in-app; decoding is handled by the other phone's native
   camera app.

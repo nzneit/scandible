@@ -24,23 +24,23 @@ share URL.
 
 ```ts
 interface Settings {
-  speedPxPerSec: number;
-  loop: boolean;
-  rotate: boolean;      // NEW — random per-barcode rotation on/off
-  rotateMaxDeg: number; // NEW — max |degrees| for rotation (slider range 1–30)
-  skew: boolean;        // REPURPOSED — now means skewX (slant) only
-  skewMaxDeg: number;   // max |degrees| for slant (slider range 1–30)
-  seed: number;         // RENAMED from skewSeed — one uint32, drives BOTH axes
+	speedPxPerSec: number;
+	loop: boolean;
+	rotate: boolean; // NEW — random per-barcode rotation on/off
+	rotateMaxDeg: number; // NEW — max |degrees| for rotation (slider range 1–30)
+	skew: boolean; // REPURPOSED — now means skewX (slant) only
+	skewMaxDeg: number; // max |degrees| for slant (slider range 1–30)
+	seed: number; // RENAMED from skewSeed — one uint32, drives BOTH axes
 }
 
 const DEFAULT_SETTINGS: Settings = {
-  speedPxPerSec: 60,
-  loop: false,
-  rotate: false,
-  rotateMaxDeg: 8,
-  skew: false,
-  skewMaxDeg: 8,
-  seed: 0,
+	speedPxPerSec: 60,
+	loop: false,
+	rotate: false,
+	rotateMaxDeg: 8,
+	skew: false,
+	skewMaxDeg: 8,
+	seed: 0
 };
 ```
 
@@ -103,13 +103,13 @@ Random skew
 
 Clean rename (no back-compat needed). Encoded params:
 
-| Param     | Meaning                | Encoding / leniency on decode                     |
-| --------- | ---------------------- | ------------------------------------------------- |
-| `rot`     | rotation on/off        | `1`/`0`; ignored unless exactly `0` or `1`        |
-| `rotmax`  | rotation max degrees   | number; accepted only if finite and in `[1, 30]`  |
-| `skew`    | slant on/off           | `1`/`0`; ignored unless exactly `0` or `1`        |
-| `skewmax` | slant max degrees      | number; accepted only if finite and in `[1, 30]`  |
-| `seed`    | shared uint32 PRNG seed| integer; accepted only if in `[0, 0xffffffff]`    |
+| Param     | Meaning                 | Encoding / leniency on decode                    |
+| --------- | ----------------------- | ------------------------------------------------ |
+| `rot`     | rotation on/off         | `1`/`0`; ignored unless exactly `0` or `1`       |
+| `rotmax`  | rotation max degrees    | number; accepted only if finite and in `[1, 30]` |
+| `skew`    | slant on/off            | `1`/`0`; ignored unless exactly `0` or `1`       |
+| `skewmax` | slant max degrees       | number; accepted only if finite and in `[1, 30]` |
+| `seed`    | shared uint32 PRNG seed | integer; accepted only if in `[0, 0xffffffff]`   |
 
 Decode remains per-parameter lenient and never throws; unrecognized or
 out-of-range values fall back to `DEFAULT_SETTINGS`.
@@ -155,7 +155,7 @@ Seed lifecycle (`main.ts`), unchanged in spirit, renamed field:
 
 - Adjusting rotation/skew during playback (they remain setup-only, like today).
 - Fixed/uniform rotation of the whole display or a uniform per-barcode tilt
-  (this feature is specifically about splitting the existing *random*
+  (this feature is specifically about splitting the existing _random_
   distortion into two axes).
 - Per-axis independent re-rolling (rejected: separate seeds add params and UI
   for no requested benefit).

@@ -27,18 +27,18 @@ several hard requirements:
 
 Settled during brainstorming and fixed for this spec:
 
-| Decision | Choice |
-|----------|--------|
-| Use case | Feed a physical barcode scanner off the screen |
-| Motion model | Continuous smooth scroll at a customizable speed |
-| Input methods | Textarea paste **+** file upload (`.txt`/`.csv`) **+** URL parameter |
-| Barcode symbology | UPC-A only, **lenient** — render what JsBarcode accepts, flag the rest |
-| Playback controls | Play/pause, speed control, restart/jump-to-top, loop-at-end |
-| App layout | Two modes: setup screen → distraction-free fullscreen play view |
-| Invalid codes | Flagged in setup; **skipped** in the scroll (only valid barcodes render) |
-| Non-loop end | Show a **"Finished scrolling {N} barcodes in {X} seconds"** summary screen |
-| Stack | Vite + vanilla TypeScript, JsBarcode for barcodes |
-| Deployment | GitHub Actions builds on push to `main` → `actions/deploy-pages` |
+| Decision          | Choice                                                                     |
+| ----------------- | -------------------------------------------------------------------------- |
+| Use case          | Feed a physical barcode scanner off the screen                             |
+| Motion model      | Continuous smooth scroll at a customizable speed                           |
+| Input methods     | Textarea paste **+** file upload (`.txt`/`.csv`) **+** URL parameter       |
+| Barcode symbology | UPC-A only, **lenient** — render what JsBarcode accepts, flag the rest     |
+| Playback controls | Play/pause, speed control, restart/jump-to-top, loop-at-end                |
+| App layout        | Two modes: setup screen → distraction-free fullscreen play view            |
+| Invalid codes     | Flagged in setup; **skipped** in the scroll (only valid barcodes render)   |
+| Non-loop end      | Show a **"Finished scrolling {N} barcodes in {X} seconds"** summary screen |
+| Stack             | Vite + vanilla TypeScript, JsBarcode for barcodes                          |
+| Deployment        | GitHub Actions builds on push to `main` → `actions/deploy-pages`           |
 
 ## Tech Stack & Project Files (versions pinned)
 
@@ -122,6 +122,7 @@ cycle. `contentHeight` is remeasured on window resize.
 
 **Frame timing.** The rAF loop derives `deltaMs` as the difference between consecutive rAF
 timestamps. To stay robust:
+
 - **First frame:** there is no previous timestamp, so `deltaMs = 0` (no movement that
   frame); the baseline is set on the first frame.
 - **Backgrounded-tab / long-stall spikes:** `deltaMs` is **clamped to a 100 ms maximum**
@@ -147,18 +148,19 @@ Small, single-responsibility modules. Interfaces are concrete signatures so task
 written against them.
 
 ### `src/types.ts`
+
 ```ts
 /** One parsed input entry. */
 export interface UpcEntry {
-  raw: string;    // original token exactly as entered
-  value: string;  // normalized: raw.trim() with all internal whitespace removed
-  valid: boolean; // isRenderableUpc(value) — whether JsBarcode renders it as UPC
+	raw: string; // original token exactly as entered
+	value: string; // normalized: raw.trim() with all internal whitespace removed
+	valid: boolean; // isRenderableUpc(value) — whether JsBarcode renders it as UPC
 }
 
 /** Playback settings, round-tripped through the share URL. */
 export interface Settings {
-  speedPxPerSec: number; // scroll speed in CSS px per second
-  loop: boolean;         // wrap at end vs. stop
+	speedPxPerSec: number; // scroll speed in CSS px per second
+	loop: boolean; // wrap at end vs. stop
 }
 
 /** Single source of truth for defaults; used to fill Partial<Settings>. */
@@ -166,6 +168,7 @@ export const DEFAULT_SETTINGS: Settings = { speedPxPerSec: 60, loop: false };
 ```
 
 ### `src/upc.ts` — input parsing
+
 ```ts
 /** Split raw text (textarea or file) into cleaned tokens: split on newlines AND
  *  commas, trim each, drop empty tokens. Order and duplicates are preserved. */
@@ -175,10 +178,12 @@ export function tokenizeUpcInput(raw: string): string[];
  *  internal whitespace removed; valid = isRenderableUpc(value). */
 export function parseUpcList(raw: string): UpcEntry[];
 ```
+
 `parseUpcList` is the single consumer that sets `UpcEntry.valid`, and it does so by calling
 `isRenderableUpc` from `barcode.ts` — this is the only validation predicate.
 
 ### `src/barcode.ts` — JsBarcode wrapper
+
 ```ts
 /** Predicate: does JsBarcode accept this value as UPC? Renders into a DETACHED,
  *  namespaced <svg> with displayValue:false, wrapped in try/catch (a bare JsBarcode
@@ -195,11 +200,13 @@ export function isRenderableUpc(value: string): boolean;
  *  the setup list flags them as text), so there is no placeholder branch. */
 export function renderBarcodeSvg(entry: UpcEntry): SVGElement;
 ```
+
 JsBarcode display options: `format: "upc"`, `displayValue: true`, `lineColor: "#000"`,
 `background: "#fff"`, generous `width` (bar module width) and `height`, sensible `margin`
 for quiet zones.
 
 ### `src/fileInput.ts` — file reading
+
 ```ts
 /** Read an uploaded .txt/.csv File as text via FileReader. Rejects on read error.
  *  Returned text is fed to upc.tokenizeUpcInput — CSV is treated as plain
@@ -208,6 +215,7 @@ export function readUpcFile(file: File): Promise<string>;
 ```
 
 ### `src/shareUrl.ts` — URL round-trip
+
 ```ts
 /** Build "?codes=...&speed=...&loop=..." from raw code strings + settings.
  *  codes are joined with "\n" and encodeURIComponent-wrapped as one value, so
@@ -220,11 +228,13 @@ export function encodeShareUrl(codes: string[], settings: Settings): string;
  *  is used only if exactly "0" or "1", else omitted. */
 export function decodeShareUrl(search: string): { codes: string[]; settings: Partial<Settings> };
 ```
+
 The "Copy link" button passes `entries.map(e => e.raw)` (all entries, valid and invalid, for
 round-trip fidelity) plus current settings. If the resulting URL exceeds ~2000 characters,
 setup shows a non-blocking warning that some browsers/servers may truncate it.
 
 ### `src/scrollMath.ts` — pure motion math
+
 ```ts
 /** Advance the scroll offset by one frame. Pure — no DOM, no time source.
  *  deltaMs is MILLISECONDS (already clamped by the caller).
@@ -232,11 +242,11 @@ setup shows a non-blocking warning that some browsers/servers may truncate it.
  *  - loop:  return (offset + delta) % contentHeight    (seamless wrap)
  *  - !loop: return min(offset + delta, contentHeight)  (clamp at end) */
 export function advanceOffset(
-  offset: number,
-  speedPxPerSec: number,
-  deltaMs: number,
-  contentHeight: number,
-  loop: boolean,
+	offset: number,
+	speedPxPerSec: number,
+	deltaMs: number,
+	contentHeight: number,
+	loop: boolean
 ): number;
 
 /** True when a non-looping scroll has reached the end (offset >= contentHeight).
@@ -245,32 +255,35 @@ export function isAtEnd(offset: number, contentHeight: number, loop: boolean): b
 ```
 
 ### `src/scroller.ts` — scroll engine
+
 Renders **only the valid entries** (`entries.filter(e => e.valid)`) as a barcode column,
 built twice (copy 2 hidden unless loop on), measures `contentHeight` as the repeat period
 (see Scroll Engine), runs the rAF loop with clamped `deltaMs`, tracks `elapsedMs`, and
 exposes controls:
+
 ```ts
 export interface Scroller {
-  play(): void;
-  pause(): void;
-  toggle(): void;
-  restart(): void;               // offset → 0, elapsedMs → 0, clears finished flag, resumes playing
-  setSpeed(pxPerSec: number): void;
-  setLoop(loop: boolean): void;  // toggles copy-2 visibility + wrap/clamp branch
-  isPlaying(): boolean;
-  destroy(): void;               // cancel rAF, remove resize listener
+	play(): void;
+	pause(): void;
+	toggle(): void;
+	restart(): void; // offset → 0, elapsedMs → 0, clears finished flag, resumes playing
+	setSpeed(pxPerSec: number): void;
+	setLoop(loop: boolean): void; // toggles copy-2 visibility + wrap/clamp branch
+	isPlaying(): boolean;
+	destroy(): void; // cancel rAF, remove resize listener
 }
 
 /** Mount a scroller into `container` for the given entries + settings.
  *  Only valid entries are rendered. onFinish fires once when a non-looping scroll
  *  reaches the end. */
 export function createScroller(
-  container: HTMLElement,
-  entries: UpcEntry[],
-  settings: Settings,
-  onFinish?: (summary: { count: number; seconds: number }) => void,
+	container: HTMLElement,
+	entries: UpcEntry[],
+	settings: Settings,
+	onFinish?: (summary: { count: number; seconds: number }) => void
 ): Scroller;
 ```
+
 The rAF loop computes `deltaMs` (first frame 0; clamped ≤100 ms), accumulates `elapsedMs`
 on advancing frames, calls `advanceOffset`, applies `transform: translateY(-offset)`, and
 (when loop is off) stops when `isAtEnd` is true — firing `onFinish({ count, seconds })`
@@ -280,34 +293,39 @@ remeasured and the offset renormalized (`offset % contentHeight` when looping;
 `min(offset, contentHeight)` otherwise) so it stays valid.
 
 ### `src/setupView.ts` — setup screen
+
 Renders the textarea, file picker, speed control, loop toggle, live validation list (each
 entry marked valid/invalid), "Copy link" button (with the long-URL warning), and **Start**
 (enabled only when the list has ≥1 **valid** entry). Pre-fills the textarea from
 `initial.codes` by joining with `"\n"`.
+
 ```ts
 export function mountSetupView(
-  root: HTMLElement,
-  initial: { codes: string[]; settings: Partial<Settings> },
-  onStart: (entries: UpcEntry[], settings: Settings) => void,
+	root: HTMLElement,
+	initial: { codes: string[]; settings: Partial<Settings> },
+	onStart: (entries: UpcEntry[], settings: Settings) => void
 ): void;
 ```
 
 ### `src/playView.ts` — play screen
+
 Mounts the scroller full-screen plus an **auto-hiding overlay** (fades out after ~2 s idle,
 reappears on pointer move / tap) with play-pause, speed slider, restart, and back. It passes
 an `onFinish` handler to `createScroller` that shows a persistent **finish screen** —
 "Finished scrolling {count} barcodes in {seconds} seconds" with **Restart**
 (`scroller.restart()`, which hides the finish screen and resumes) and **Back** (`onBack`).
+
 ```ts
 export function mountPlayView(
-  root: HTMLElement,
-  entries: UpcEntry[],   // scroller renders only the valid subset
-  settings: Settings,
-  onBack: () => void,
+	root: HTMLElement,
+	entries: UpcEntry[], // scroller renders only the valid subset
+	settings: Settings,
+	onBack: () => void
 ): void;
 ```
 
 ### `src/main.ts` — entry point
+
 Decodes the URL, merges settings over defaults
 (`{ ...DEFAULT_SETTINGS, ...decoded.settings }`), holds the mode flag + current
 `UpcEntry[]` + `Settings`, and swaps between `mountSetupView` and `mountPlayView`. On Start
@@ -315,6 +333,7 @@ Decodes the URL, merges settings over defaults
 the same list and settings are preserved.
 
 ### `src/styles.css`
+
 High-contrast theme, large centered barcodes (`max-width: min(90vw, 640px)`), and
 **seam-uniform vertical rhythm**: inter-barcode spacing is applied as equal top+bottom
 padding per barcode (or a single container `gap`) — never a `margin-bottom` on only the last
@@ -360,15 +379,15 @@ in the scan zone at once. Also styles the auto-hiding overlay.
 
 ## Error Handling & Edge Cases
 
-| Situation | Behavior |
-|-----------|----------|
-| Empty / all-invalid list | **Start** disabled, hint shown |
-| Unrenderable code | Flagged in setup validation list; **skipped** in the scroll |
-| File read failure | Inline error message in setup; existing list untouched |
-| Malformed URL param | Per-param leniency; app opens with whatever parsed (never throws) |
-| Very long share URL (>~2000 chars) | Non-blocking truncation warning on Copy link |
-| Window resize during play | `contentHeight` remeasured **and offset renormalized** |
-| Backgrounded tab / stall | `deltaMs` clamped ≤100 ms so no teleport jump |
+| Situation                          | Behavior                                                          |
+| ---------------------------------- | ----------------------------------------------------------------- |
+| Empty / all-invalid list           | **Start** disabled, hint shown                                    |
+| Unrenderable code                  | Flagged in setup validation list; **skipped** in the scroll       |
+| File read failure                  | Inline error message in setup; existing list untouched            |
+| Malformed URL param                | Per-param leniency; app opens with whatever parsed (never throws) |
+| Very long share URL (>~2000 chars) | Non-blocking truncation warning on Copy link                      |
+| Window resize during play          | `contentHeight` remeasured **and offset renormalized**            |
+| Backgrounded tab / stall           | `deltaMs` clamped ≤100 ms so no teleport jump                     |
 
 ## Testing Strategy (Vitest, jsdom)
 

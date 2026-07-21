@@ -21,7 +21,7 @@ one at a time, so you can point a scanner at the screen and let it read the whol
 - **Continuous smooth scroll** — GPU-composited motion with a live speed control
   (10–5000 px/s).
 - **Loop or finish** — loop seamlessly, or run once and show a
-  *"Finished scrolling N barcodes in X seconds"* summary.
+  _"Finished scrolling N barcodes in X seconds"_ summary.
 - **Shareable links** — copy a URL that reproduces the exact list and settings.
 - **Distraction-free playback** — fullscreen column with an auto-hiding control overlay
   (play/pause, speed, restart, back).

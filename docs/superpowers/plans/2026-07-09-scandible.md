@@ -35,36 +35,38 @@ These apply to every task; exact values copied from the spec.
 Establishes the toolchain (Vite build, Vitest+jsdom test runner, canvas stub) and the shared domain types. Deliverable: `npm install`, `npm run build`, and `npm test` all succeed with a passing types test.
 
 **Files:**
+
 - Create: `package.json`, `tsconfig.json`, `index.html`, `vite.config.ts`, `vitest.setup.ts`, `.gitignore`
 - Create: `src/types.ts`, `src/main.ts` (stub, completed in Task 10)
 - Test: `src/types.test.ts`
 
 **Interfaces:**
+
 - Produces: `UpcEntry { raw: string; value: string; valid: boolean }`, `Settings { speedPxPerSec: number; loop: boolean }`, `const DEFAULT_SETTINGS: Settings`.
 
 - [ ] **Step 1: Create `package.json`**
 
 ```json
 {
-  "name": "scandible",
-  "version": "0.1.0",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
-    "test": "vitest run"
-  },
-  "dependencies": {
-    "jsbarcode": "^3.11.6"
-  },
-  "devDependencies": {
-    "jsdom": "^24.0.0",
-    "typescript": "^5.4.0",
-    "vite": "^5.2.0",
-    "vitest": "^1.6.0"
-  }
+	"name": "scandible",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "vite",
+		"build": "vite build",
+		"preview": "vite preview",
+		"test": "vitest run"
+	},
+	"dependencies": {
+		"jsbarcode": "^3.11.6"
+	},
+	"devDependencies": {
+		"jsdom": "^24.0.0",
+		"typescript": "^5.4.0",
+		"vite": "^5.2.0",
+		"vitest": "^1.6.0"
+	}
 }
 ```
 
@@ -72,18 +74,18 @@ Establishes the toolchain (Vite build, Vitest+jsdom test runner, canvas stub) an
 
 ```json
 {
-  "compilerOptions": {
-    "target": "ES2020",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
-    "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "skipLibCheck": true,
-    "types": []
-  },
-  "include": ["src", "vite.config.ts", "vitest.setup.ts"]
+	"compilerOptions": {
+		"target": "ES2020",
+		"module": "ESNext",
+		"moduleResolution": "bundler",
+		"lib": ["ES2020", "DOM", "DOM.Iterable"],
+		"strict": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"skipLibCheck": true,
+		"types": []
+	},
+	"include": ["src", "vite.config.ts", "vitest.setup.ts"]
 }
 ```
 
@@ -92,15 +94,15 @@ Establishes the toolchain (Vite build, Vitest+jsdom test runner, canvas stub) an
 ```html
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>scandible</title>
-  </head>
-  <body>
-    <div id="app"></div>
-    <script type="module" src="/src/main.ts"></script>
-  </body>
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>scandible</title>
+	</head>
+	<body>
+		<div id="app"></div>
+		<script type="module" src="/src/main.ts"></script>
+	</body>
 </html>
 ```
 
@@ -110,11 +112,11 @@ Establishes the toolchain (Vite build, Vitest+jsdom test runner, canvas stub) an
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
-  base: '/scandible/',
-  test: {
-    environment: 'jsdom',
-    setupFiles: ['./vitest.setup.ts'],
-  },
+	base: '/scandible/',
+	test: {
+		environment: 'jsdom',
+		setupFiles: ['./vitest.setup.ts']
+	}
 });
 ```
 
@@ -127,22 +129,22 @@ export default defineConfig({
 // correctness is verified in the browser — but rendering no longer throws, so structural
 // tests can run.
 const stub = {
-  font: '',
-  fillStyle: '',
-  textAlign: '',
-  textBaseline: '',
-  fillRect: () => {},
-  fillText: () => {},
-  measureText: () => ({ width: 0 }),
-  beginPath: () => {},
-  moveTo: () => {},
-  lineTo: () => {},
-  stroke: () => {},
-  fill: () => {},
-  save: () => {},
-  restore: () => {},
-  translate: () => {},
-  scale: () => {},
+	font: '',
+	fillStyle: '',
+	textAlign: '',
+	textBaseline: '',
+	fillRect: () => {},
+	fillText: () => {},
+	measureText: () => ({ width: 0 }),
+	beginPath: () => {},
+	moveTo: () => {},
+	lineTo: () => {},
+	stroke: () => {},
+	fill: () => {},
+	save: () => {},
+	restore: () => {},
+	translate: () => {},
+	scale: () => {}
 };
 // @ts-expect-error – deliberately overriding for the test environment
 HTMLCanvasElement.prototype.getContext = () => stub;
@@ -170,10 +172,10 @@ import { describe, it, expect } from 'vitest';
 import { DEFAULT_SETTINGS } from './types';
 
 describe('DEFAULT_SETTINGS', () => {
-  it('defaults to 60 px/s and loop off', () => {
-    expect(DEFAULT_SETTINGS.speedPxPerSec).toBe(60);
-    expect(DEFAULT_SETTINGS.loop).toBe(false);
-  });
+	it('defaults to 60 px/s and loop off', () => {
+		expect(DEFAULT_SETTINGS.speedPxPerSec).toBe(60);
+		expect(DEFAULT_SETTINGS.loop).toBe(false);
+	});
 });
 ```
 
@@ -187,15 +189,15 @@ Expected: FAIL — `Failed to resolve import "./types"` (file does not exist yet
 ```ts
 /** One parsed input entry. */
 export interface UpcEntry {
-  raw: string; // original token exactly as entered (post-trim)
-  value: string; // normalized: raw.trim() with all internal whitespace removed
-  valid: boolean; // isRenderableUpc(value) — whether JsBarcode renders it as UPC
+	raw: string; // original token exactly as entered (post-trim)
+	value: string; // normalized: raw.trim() with all internal whitespace removed
+	valid: boolean; // isRenderableUpc(value) — whether JsBarcode renders it as UPC
 }
 
 /** Playback settings, round-tripped through the share URL. */
 export interface Settings {
-  speedPxPerSec: number; // scroll speed in CSS px per second
-  loop: boolean; // wrap at end vs. stop
+	speedPxPerSec: number; // scroll speed in CSS px per second
+	loop: boolean; // wrap at end vs. stop
 }
 
 /** Single source of truth for defaults; used to fill Partial<Settings>. */
@@ -226,10 +228,12 @@ git commit -m "chore: scaffold Vite+TS+Vitest project and add domain types"
 UPC validity predicate + SVG renderer wrapping JsBarcode.
 
 **Files:**
+
 - Create: `src/barcode.ts`, `src/jsbarcode.d.ts`
 - Test: `src/barcode.test.ts`
 
 **Interfaces:**
+
 - Consumes: `UpcEntry` from `./types`.
 - Produces: `isRenderableUpc(value: string): boolean`, `renderBarcodeSvg(entry: UpcEntry): SVGElement`.
 
@@ -237,12 +241,8 @@ UPC validity predicate + SVG renderer wrapping JsBarcode.
 
 ```ts
 declare module 'jsbarcode' {
-  const JsBarcode: (
-    element: unknown,
-    data: string,
-    options?: Record<string, unknown>,
-  ) => void;
-  export default JsBarcode;
+	const JsBarcode: (element: unknown, data: string, options?: Record<string, unknown>) => void;
+	export default JsBarcode;
 }
 ```
 
@@ -253,21 +253,21 @@ import { describe, it, expect } from 'vitest';
 import { isRenderableUpc, renderBarcodeSvg } from './barcode';
 
 describe('isRenderableUpc', () => {
-  it('accepts a valid 12-digit UPC-A', () => {
-    expect(isRenderableUpc('036000291452')).toBe(true);
-  });
-  it('rejects too-short and non-numeric input', () => {
-    expect(isRenderableUpc('12345')).toBe(false);
-    expect(isRenderableUpc('notacode')).toBe(false);
-  });
+	it('accepts a valid 12-digit UPC-A', () => {
+		expect(isRenderableUpc('036000291452')).toBe(true);
+	});
+	it('rejects too-short and non-numeric input', () => {
+		expect(isRenderableUpc('12345')).toBe(false);
+		expect(isRenderableUpc('notacode')).toBe(false);
+	});
 });
 
 describe('renderBarcodeSvg', () => {
-  it('returns an SVG element containing bar rects for a valid entry', () => {
-    const svg = renderBarcodeSvg({ raw: '036000291452', value: '036000291452', valid: true });
-    expect(svg.namespaceURI).toBe('http://www.w3.org/2000/svg');
-    expect(svg.querySelectorAll('rect').length).toBeGreaterThan(0);
-  });
+	it('returns an SVG element containing bar rects for a valid entry', () => {
+		const svg = renderBarcodeSvg({ raw: '036000291452', value: '036000291452', valid: true });
+		expect(svg.namespaceURI).toBe('http://www.w3.org/2000/svg');
+		expect(svg.querySelectorAll('rect').length).toBeGreaterThan(0);
+	});
 });
 ```
 
@@ -288,30 +288,30 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
  *  displayValue:false (a bare JsBarcode call throws on invalid input). Returns
  *  false on throw. displayValue:false avoids the text-measurement path. */
 export function isRenderableUpc(value: string): boolean {
-  const svg = document.createElementNS(SVG_NS, 'svg');
-  try {
-    JsBarcode(svg, value, { format: 'upc', displayValue: false });
-    return true;
-  } catch {
-    return false;
-  }
+	const svg = document.createElementNS(SVG_NS, 'svg');
+	try {
+		JsBarcode(svg, value, { format: 'upc', displayValue: false });
+		return true;
+	} catch {
+		return false;
+	}
 }
 
 /** Render one VALID entry into a fresh SVG element (createElementNS, not
  *  createElement, to get the correct namespace). Draws the barcode with the
  *  human-readable number. Only ever called for entries where entry.valid === true. */
 export function renderBarcodeSvg(entry: UpcEntry): SVGElement {
-  const svg = document.createElementNS(SVG_NS, 'svg');
-  JsBarcode(svg, entry.value, {
-    format: 'upc',
-    displayValue: true,
-    lineColor: '#000',
-    background: '#fff',
-    width: 3,
-    height: 160,
-    margin: 16,
-  });
-  return svg;
+	const svg = document.createElementNS(SVG_NS, 'svg');
+	JsBarcode(svg, entry.value, {
+		format: 'upc',
+		displayValue: true,
+		lineColor: '#000',
+		background: '#fff',
+		width: 3,
+		height: 160,
+		margin: 16
+	});
+	return svg;
 }
 ```
 
@@ -334,10 +334,12 @@ git commit -m "feat: add UPC validity predicate and SVG barcode renderer"
 Tokenize raw text into normalized, validated entries.
 
 **Files:**
+
 - Create: `src/upc.ts`
 - Test: `src/upc.test.ts`
 
 **Interfaces:**
+
 - Consumes: `isRenderableUpc` from `./barcode`, `UpcEntry` from `./types`.
 - Produces: `tokenizeUpcInput(raw: string): string[]`, `parseUpcList(raw: string): UpcEntry[]`.
 
@@ -348,18 +350,18 @@ import { describe, it, expect } from 'vitest';
 import { tokenizeUpcInput, parseUpcList } from './upc';
 
 describe('tokenizeUpcInput', () => {
-  it('splits on newlines and commas, trims, drops empties, keeps order + duplicates', () => {
-    expect(tokenizeUpcInput(' a , b\n\nc ,,\nb ')).toEqual(['a', 'b', 'c', 'b']);
-  });
+	it('splits on newlines and commas, trims, drops empties, keeps order + duplicates', () => {
+		expect(tokenizeUpcInput(' a , b\n\nc ,,\nb ')).toEqual(['a', 'b', 'c', 'b']);
+	});
 });
 
 describe('parseUpcList', () => {
-  it('normalizes internal whitespace into value and flags validity', () => {
-    const entries = parseUpcList('0360 0029 1452\n12345');
-    expect(entries).toHaveLength(2);
-    expect(entries[0]).toEqual({ raw: '0360 0029 1452', value: '036000291452', valid: true });
-    expect(entries[1].valid).toBe(false);
-  });
+	it('normalizes internal whitespace into value and flags validity', () => {
+		const entries = parseUpcList('0360 0029 1452\n12345');
+		expect(entries).toHaveLength(2);
+		expect(entries[0]).toEqual({ raw: '0360 0029 1452', value: '036000291452', valid: true });
+		expect(entries[1].valid).toBe(false);
+	});
 });
 ```
 
@@ -377,22 +379,22 @@ import type { UpcEntry } from './types';
 /** Split raw text into cleaned tokens: split on newlines AND commas, trim each,
  *  drop empties. Order and duplicates preserved. */
 export function tokenizeUpcInput(raw: string): string[] {
-  return raw
-    .split(/[\n,]/)
-    .map((t) => t.trim())
-    .filter((t) => t.length > 0);
+	return raw
+		.split(/[\n,]/)
+		.map((t) => t.trim())
+		.filter((t) => t.length > 0);
 }
 
 function normalize(token: string): string {
-  return token.trim().replace(/\s+/g, '');
+	return token.trim().replace(/\s+/g, '');
 }
 
 /** Tokenize + normalize + validate each token. */
 export function parseUpcList(raw: string): UpcEntry[] {
-  return tokenizeUpcInput(raw).map((token) => {
-    const value = normalize(token);
-    return { raw: token, value, valid: isRenderableUpc(value) };
-  });
+	return tokenizeUpcInput(raw).map((token) => {
+		const value = normalize(token);
+		return { raw: token, value, valid: isRenderableUpc(value) };
+	});
 }
 ```
 
@@ -415,10 +417,12 @@ git commit -m "feat: add UPC tokenizer and list parser"
 Read an uploaded `.txt`/`.csv` file to text.
 
 **Files:**
+
 - Create: `src/fileInput.ts`
 - Test: `src/fileInput.test.ts`
 
 **Interfaces:**
+
 - Produces: `readUpcFile(file: File): Promise<string>`.
 
 - [ ] **Step 1: Write the failing test** — `src/fileInput.test.ts`
@@ -428,10 +432,10 @@ import { describe, it, expect } from 'vitest';
 import { readUpcFile } from './fileInput';
 
 describe('readUpcFile', () => {
-  it('resolves with the file text', async () => {
-    const file = new File(['036000291452\n012345678905'], 'codes.txt', { type: 'text/plain' });
-    await expect(readUpcFile(file)).resolves.toBe('036000291452\n012345678905');
-  });
+	it('resolves with the file text', async () => {
+		const file = new File(['036000291452\n012345678905'], 'codes.txt', { type: 'text/plain' });
+		await expect(readUpcFile(file)).resolves.toBe('036000291452\n012345678905');
+	});
 });
 ```
 
@@ -447,12 +451,12 @@ Expected: FAIL — `Failed to resolve import "./fileInput"`.
  *  The returned text is fed to upc.tokenizeUpcInput — CSV is treated as plain
  *  comma/newline-separated tokens (no column semantics). */
 export function readUpcFile(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result ?? ''));
-    reader.onerror = () => reject(reader.error ?? new Error('File read failed'));
-    reader.readAsText(file);
-  });
+	return new Promise((resolve, reject) => {
+		const reader = new FileReader();
+		reader.onload = () => resolve(String(reader.result ?? ''));
+		reader.onerror = () => reject(reader.error ?? new Error('File read failed'));
+		reader.readAsText(file);
+	});
 }
 ```
 
@@ -475,10 +479,12 @@ git commit -m "feat: add uploaded-file reader"
 Encode/decode the code list + settings to/from the query string.
 
 **Files:**
+
 - Create: `src/shareUrl.ts`
 - Test: `src/shareUrl.test.ts`
 
 **Interfaces:**
+
 - Consumes: `Settings` from `./types`.
 - Produces: `encodeShareUrl(codes: string[], settings: Settings): string`, `decodeShareUrl(search: string): { codes: string[]; settings: Partial<Settings> }`.
 
@@ -489,20 +495,23 @@ import { describe, it, expect } from 'vitest';
 import { encodeShareUrl, decodeShareUrl } from './shareUrl';
 
 describe('shareUrl', () => {
-  it('round-trips codes and settings', () => {
-    const search = encodeShareUrl(['036000291452', '012345678905'], { speedPxPerSec: 120, loop: true });
-    expect(decodeShareUrl(search)).toEqual({
-      codes: ['036000291452', '012345678905'],
-      settings: { speedPxPerSec: 120, loop: true },
-    });
-  });
+	it('round-trips codes and settings', () => {
+		const search = encodeShareUrl(['036000291452', '012345678905'], {
+			speedPxPerSec: 120,
+			loop: true
+		});
+		expect(decodeShareUrl(search)).toEqual({
+			codes: ['036000291452', '012345678905'],
+			settings: { speedPxPerSec: 120, loop: true }
+		});
+	});
 
-  it('is lenient per parameter and never throws', () => {
-    expect(decodeShareUrl('')).toEqual({ codes: [], settings: {} });
-    expect(decodeShareUrl('?speed=abc&loop=2')).toEqual({ codes: [], settings: {} });
-    expect(decodeShareUrl('?speed=99999')).toEqual({ codes: [], settings: {} });
-    expect(decodeShareUrl('?loop=1')).toEqual({ codes: [], settings: { loop: true } });
-  });
+	it('is lenient per parameter and never throws', () => {
+		expect(decodeShareUrl('')).toEqual({ codes: [], settings: {} });
+		expect(decodeShareUrl('?speed=abc&loop=2')).toEqual({ codes: [], settings: {} });
+		expect(decodeShareUrl('?speed=99999')).toEqual({ codes: [], settings: {} });
+		expect(decodeShareUrl('?loop=1')).toEqual({ codes: [], settings: { loop: true } });
+	});
 });
 ```
 
@@ -522,35 +531,38 @@ const SPEED_MAX = 5000;
 /** Build "?codes=...&speed=...&loop=..." from raw code strings + settings. codes are
  *  joined with "\n" so internal commas/whitespace survive URLSearchParams encoding. */
 export function encodeShareUrl(codes: string[], settings: Settings): string {
-  const params = new URLSearchParams();
-  params.set('codes', codes.join('\n'));
-  params.set('speed', String(settings.speedPxPerSec));
-  params.set('loop', settings.loop ? '1' : '0');
-  return '?' + params.toString();
+	const params = new URLSearchParams();
+	params.set('codes', codes.join('\n'));
+	params.set('speed', String(settings.speedPxPerSec));
+	params.set('loop', settings.loop ? '1' : '0');
+	return '?' + params.toString();
 }
 
 /** Parse location.search into codes + partial settings. Per-parameter leniency,
  *  never throws. */
 export function decodeShareUrl(search: string): { codes: string[]; settings: Partial<Settings> } {
-  const params = new URLSearchParams(search);
-  const codesRaw = params.get('codes');
-  const codes = codesRaw
-    ? codesRaw.split('\n').map((c) => c.trim()).filter((c) => c.length > 0)
-    : [];
+	const params = new URLSearchParams(search);
+	const codesRaw = params.get('codes');
+	const codes = codesRaw
+		? codesRaw
+				.split('\n')
+				.map((c) => c.trim())
+				.filter((c) => c.length > 0)
+		: [];
 
-  const settings: Partial<Settings> = {};
-  const speedRaw = params.get('speed');
-  if (speedRaw !== null) {
-    const speed = Number(speedRaw);
-    if (Number.isFinite(speed) && speed >= SPEED_MIN && speed <= SPEED_MAX) {
-      settings.speedPxPerSec = speed;
-    }
-  }
-  const loopRaw = params.get('loop');
-  if (loopRaw === '0' || loopRaw === '1') {
-    settings.loop = loopRaw === '1';
-  }
-  return { codes, settings };
+	const settings: Partial<Settings> = {};
+	const speedRaw = params.get('speed');
+	if (speedRaw !== null) {
+		const speed = Number(speedRaw);
+		if (Number.isFinite(speed) && speed >= SPEED_MIN && speed <= SPEED_MAX) {
+			settings.speedPxPerSec = speed;
+		}
+	}
+	const loopRaw = params.get('loop');
+	if (loopRaw === '0' || loopRaw === '1') {
+		settings.loop = loopRaw === '1';
+	}
+	return { codes, settings };
 }
 ```
 
@@ -573,10 +585,12 @@ git commit -m "feat: add shareable-URL encode/decode"
 Frame-advance and end-detection math, DOM-free and fully unit-testable.
 
 **Files:**
+
 - Create: `src/scrollMath.ts`
 - Test: `src/scrollMath.test.ts`
 
 **Interfaces:**
+
 - Produces: `advanceOffset(offset, speedPxPerSec, deltaMs, contentHeight, loop): number`, `isAtEnd(offset, contentHeight, loop): boolean`.
 
 - [ ] **Step 1: Write the failing test** — `src/scrollMath.test.ts`
@@ -586,26 +600,26 @@ import { describe, it, expect } from 'vitest';
 import { advanceOffset, isAtEnd } from './scrollMath';
 
 describe('advanceOffset', () => {
-  it('advances by speed × seconds', () => {
-    expect(advanceOffset(0, 100, 500, 1000, false)).toBe(50); // 100px/s * 0.5s
-  });
-  it('does not move when deltaMs is 0 (paused)', () => {
-    expect(advanceOffset(42, 100, 0, 1000, false)).toBe(42);
-  });
-  it('wraps modulo contentHeight when looping', () => {
-    expect(advanceOffset(450, 100, 1000, 500, true)).toBe(50); // 550 % 500
-  });
-  it('clamps at contentHeight when not looping', () => {
-    expect(advanceOffset(450, 100, 1000, 500, false)).toBe(500); // min(550, 500)
-  });
+	it('advances by speed × seconds', () => {
+		expect(advanceOffset(0, 100, 500, 1000, false)).toBe(50); // 100px/s * 0.5s
+	});
+	it('does not move when deltaMs is 0 (paused)', () => {
+		expect(advanceOffset(42, 100, 0, 1000, false)).toBe(42);
+	});
+	it('wraps modulo contentHeight when looping', () => {
+		expect(advanceOffset(450, 100, 1000, 500, true)).toBe(50); // 550 % 500
+	});
+	it('clamps at contentHeight when not looping', () => {
+		expect(advanceOffset(450, 100, 1000, 500, false)).toBe(500); // min(550, 500)
+	});
 });
 
 describe('isAtEnd', () => {
-  it('is true only for a non-looping scroll at/after contentHeight', () => {
-    expect(isAtEnd(500, 500, false)).toBe(true);
-    expect(isAtEnd(499, 500, false)).toBe(false);
-    expect(isAtEnd(500, 500, true)).toBe(false);
-  });
+	it('is true only for a non-looping scroll at/after contentHeight', () => {
+		expect(isAtEnd(500, 500, false)).toBe(true);
+		expect(isAtEnd(499, 500, false)).toBe(false);
+		expect(isAtEnd(500, 500, true)).toBe(false);
+	});
 });
 ```
 
@@ -620,23 +634,23 @@ Expected: FAIL — `Failed to resolve import "./scrollMath"`.
 /** Advance the scroll offset by one frame. Pure — no DOM, no time source.
  *  deltaMs is MILLISECONDS (already clamped by the caller). */
 export function advanceOffset(
-  offset: number,
-  speedPxPerSec: number,
-  deltaMs: number,
-  contentHeight: number,
-  loop: boolean,
+	offset: number,
+	speedPxPerSec: number,
+	deltaMs: number,
+	contentHeight: number,
+	loop: boolean
 ): number {
-  const delta = speedPxPerSec * (deltaMs / 1000);
-  const next = offset + delta;
-  if (loop) {
-    return contentHeight > 0 ? next % contentHeight : 0;
-  }
-  return Math.min(next, contentHeight);
+	const delta = speedPxPerSec * (deltaMs / 1000);
+	const next = offset + delta;
+	if (loop) {
+		return contentHeight > 0 ? next % contentHeight : 0;
+	}
+	return Math.min(next, contentHeight);
 }
 
 /** True when a non-looping scroll has reached the end (offset >= contentHeight). */
 export function isAtEnd(offset: number, contentHeight: number, loop: boolean): boolean {
-  return !loop && offset >= contentHeight;
+	return !loop && offset >= contentHeight;
 }
 ```
 
@@ -659,10 +673,12 @@ git commit -m "feat: add pure scroll-offset math"
 Builds the two-copy barcode column, runs the rAF loop, exposes playback controls, fires `onFinish`.
 
 **Files:**
+
 - Create: `src/scroller.ts`
 - Test: `src/scroller.test.ts`
 
 **Interfaces:**
+
 - Consumes: `advanceOffset`, `isAtEnd` from `./scrollMath`; `renderBarcodeSvg` from `./barcode`; `Settings`, `UpcEntry` from `./types`.
 - Produces: `interface Scroller { play(); pause(); toggle(); restart(); setSpeed(pxPerSec: number); setLoop(loop: boolean); isPlaying(): boolean; destroy(); }`, `createScroller(container: HTMLElement, entries: UpcEntry[], settings: Settings, onFinish?: (s: { count: number; seconds: number }) => void): Scroller`. Renders only valid entries; the column DOM is `.scroller-track > .scroller-copy > .barcode-item > svg`; copy 2 is `display:none` unless loop is on. Starts **paused**.
 
@@ -674,42 +690,46 @@ import { createScroller } from './scroller';
 import type { UpcEntry } from './types';
 
 const entry = (value: string, valid: boolean): UpcEntry => ({ raw: value, value, valid });
-const entries: UpcEntry[] = [entry('036000291452', true), entry('bad', false), entry('012345678905', true)];
+const entries: UpcEntry[] = [
+	entry('036000291452', true),
+	entry('bad', false),
+	entry('012345678905', true)
+];
 
 let container: HTMLElement;
 beforeEach(() => {
-  container = document.createElement('div');
-  document.body.appendChild(container);
+	container = document.createElement('div');
+	document.body.appendChild(container);
 });
 
 describe('createScroller', () => {
-  it('renders two copies of the valid entries only, and starts paused', () => {
-    const s = createScroller(container, entries, { speedPxPerSec: 60, loop: false });
-    // 2 valid entries × 2 copies = 4 barcode items
-    expect(container.querySelectorAll('.barcode-item').length).toBe(4);
-    expect(s.isPlaying()).toBe(false);
-    s.destroy();
-  });
+	it('renders two copies of the valid entries only, and starts paused', () => {
+		const s = createScroller(container, entries, { speedPxPerSec: 60, loop: false });
+		// 2 valid entries × 2 copies = 4 barcode items
+		expect(container.querySelectorAll('.barcode-item').length).toBe(4);
+		expect(s.isPlaying()).toBe(false);
+		s.destroy();
+	});
 
-  it('hides copy 2 when loop is off and shows it when on', () => {
-    const s = createScroller(container, entries, { speedPxPerSec: 60, loop: false });
-    const copies = container.querySelectorAll<HTMLElement>('.scroller-copy');
-    expect(copies[1].style.display).toBe('none');
-    s.setLoop(true);
-    expect(copies[1].style.display).toBe('');
-    s.setLoop(false);
-    expect(copies[1].style.display).toBe('none');
-    s.destroy();
-  });
+	it('hides copy 2 when loop is off and shows it when on', () => {
+		const s = createScroller(container, entries, { speedPxPerSec: 60, loop: false });
+		const copies = container.querySelectorAll<HTMLElement>('.scroller-copy');
+		expect(copies[1].style.display).toBe('none');
+		s.setLoop(true);
+		expect(copies[1].style.display).toBe('');
+		s.setLoop(false);
+		expect(copies[1].style.display).toBe('none');
+		s.destroy();
+	});
 
-  it('play() and pause() flip the playing state', () => {
-    const s = createScroller(container, entries, { speedPxPerSec: 60, loop: true });
-    s.play();
-    expect(s.isPlaying()).toBe(true);
-    s.pause();
-    expect(s.isPlaying()).toBe(false);
-    s.destroy();
-  });
+	it('play() and pause() flip the playing state', () => {
+		const s = createScroller(container, entries, { speedPxPerSec: 60, loop: true });
+		s.play();
+		expect(s.isPlaying()).toBe(true);
+		s.pause();
+		expect(s.isPlaying()).toBe(false);
+		s.destroy();
+	});
 });
 ```
 
@@ -728,144 +748,144 @@ import type { Settings, UpcEntry } from './types';
 const MAX_DELTA_MS = 100;
 
 export interface Scroller {
-  play(): void;
-  pause(): void;
-  toggle(): void;
-  restart(): void;
-  setSpeed(pxPerSec: number): void;
-  setLoop(loop: boolean): void;
-  isPlaying(): boolean;
-  destroy(): void;
+	play(): void;
+	pause(): void;
+	toggle(): void;
+	restart(): void;
+	setSpeed(pxPerSec: number): void;
+	setLoop(loop: boolean): void;
+	isPlaying(): boolean;
+	destroy(): void;
 }
 
 export function createScroller(
-  container: HTMLElement,
-  entries: UpcEntry[],
-  settings: Settings,
-  onFinish?: (summary: { count: number; seconds: number }) => void,
+	container: HTMLElement,
+	entries: UpcEntry[],
+	settings: Settings,
+	onFinish?: (summary: { count: number; seconds: number }) => void
 ): Scroller {
-  const valid = entries.filter((e) => e.valid);
-  const count = valid.length;
+	const valid = entries.filter((e) => e.valid);
+	const count = valid.length;
 
-  const buildCopy = (): HTMLElement => {
-    const copy = document.createElement('div');
-    copy.className = 'scroller-copy';
-    for (const e of valid) {
-      const item = document.createElement('div');
-      item.className = 'barcode-item';
-      item.appendChild(renderBarcodeSvg(e));
-      copy.appendChild(item);
-    }
-    return copy;
-  };
+	const buildCopy = (): HTMLElement => {
+		const copy = document.createElement('div');
+		copy.className = 'scroller-copy';
+		for (const e of valid) {
+			const item = document.createElement('div');
+			item.className = 'barcode-item';
+			item.appendChild(renderBarcodeSvg(e));
+			copy.appendChild(item);
+		}
+		return copy;
+	};
 
-  const track = document.createElement('div');
-  track.className = 'scroller-track';
-  const copy1 = buildCopy();
-  const copy2 = buildCopy();
-  track.appendChild(copy1);
-  track.appendChild(copy2);
-  container.innerHTML = '';
-  container.appendChild(track);
+	const track = document.createElement('div');
+	track.className = 'scroller-track';
+	const copy1 = buildCopy();
+	const copy2 = buildCopy();
+	track.appendChild(copy1);
+	track.appendChild(copy2);
+	container.innerHTML = '';
+	container.appendChild(track);
 
-  let speed = settings.speedPxPerSec;
-  let loop = settings.loop;
-  let offset = 0;
-  let elapsedMs = 0;
-  let playing = false;
-  let rafId: number | null = null;
-  let lastTs: number | null = null;
-  let contentHeight = 0;
+	let speed = settings.speedPxPerSec;
+	let loop = settings.loop;
+	let offset = 0;
+	let elapsedMs = 0;
+	let playing = false;
+	let rafId: number | null = null;
+	let lastTs: number | null = null;
+	let contentHeight = 0;
 
-  const applyLoopVisibility = () => {
-    copy2.style.display = loop ? '' : 'none';
-  };
-  const render = () => {
-    track.style.transform = `translateY(${-offset}px)`;
-  };
-  const measure = () => {
-    const a = copy1.firstElementChild as HTMLElement | null;
-    const b = copy2.firstElementChild as HTMLElement | null;
-    if (a && b) {
-      contentHeight = b.getBoundingClientRect().top - a.getBoundingClientRect().top;
-    }
-  };
+	const applyLoopVisibility = () => {
+		copy2.style.display = loop ? '' : 'none';
+	};
+	const render = () => {
+		track.style.transform = `translateY(${-offset}px)`;
+	};
+	const measure = () => {
+		const a = copy1.firstElementChild as HTMLElement | null;
+		const b = copy2.firstElementChild as HTMLElement | null;
+		if (a && b) {
+			contentHeight = b.getBoundingClientRect().top - a.getBoundingClientRect().top;
+		}
+	};
 
-  const stop = () => {
-    playing = false;
-    if (rafId !== null) cancelAnimationFrame(rafId);
-    rafId = null;
-  };
-  const frame = (ts: number) => {
-    if (!playing) return;
-    let deltaMs = lastTs === null ? 0 : ts - lastTs;
-    lastTs = ts;
-    if (deltaMs > MAX_DELTA_MS) deltaMs = MAX_DELTA_MS;
-    if (deltaMs > 0) {
-      offset = advanceOffset(offset, speed, deltaMs, contentHeight, loop);
-      elapsedMs += deltaMs;
-      render();
-    }
-    if (isAtEnd(offset, contentHeight, loop)) {
-      stop();
-      onFinish?.({ count, seconds: Math.round((elapsedMs / 1000) * 10) / 10 });
-      return;
-    }
-    rafId = requestAnimationFrame(frame);
-  };
-  const start = () => {
-    if (playing) return;
-    playing = true;
-    lastTs = null;
-    rafId = requestAnimationFrame(frame);
-  };
+	const stop = () => {
+		playing = false;
+		if (rafId !== null) cancelAnimationFrame(rafId);
+		rafId = null;
+	};
+	const frame = (ts: number) => {
+		if (!playing) return;
+		let deltaMs = lastTs === null ? 0 : ts - lastTs;
+		lastTs = ts;
+		if (deltaMs > MAX_DELTA_MS) deltaMs = MAX_DELTA_MS;
+		if (deltaMs > 0) {
+			offset = advanceOffset(offset, speed, deltaMs, contentHeight, loop);
+			elapsedMs += deltaMs;
+			render();
+		}
+		if (isAtEnd(offset, contentHeight, loop)) {
+			stop();
+			onFinish?.({ count, seconds: Math.round((elapsedMs / 1000) * 10) / 10 });
+			return;
+		}
+		rafId = requestAnimationFrame(frame);
+	};
+	const start = () => {
+		if (playing) return;
+		playing = true;
+		lastTs = null;
+		rafId = requestAnimationFrame(frame);
+	};
 
-  const onResize = () => {
-    measure();
-    offset = loop
-      ? contentHeight > 0
-        ? offset % contentHeight
-        : 0
-      : Math.min(offset, contentHeight);
-    render();
-  };
-  window.addEventListener('resize', onResize);
+	const onResize = () => {
+		measure();
+		offset = loop
+			? contentHeight > 0
+				? offset % contentHeight
+				: 0
+			: Math.min(offset, contentHeight);
+		render();
+	};
+	window.addEventListener('resize', onResize);
 
-  applyLoopVisibility();
-  measure();
-  render();
+	applyLoopVisibility();
+	measure();
+	render();
 
-  return {
-    play: start,
-    pause: stop,
-    toggle() {
-      if (playing) stop();
-      else start();
-    },
-    restart() {
-      offset = 0;
-      elapsedMs = 0;
-      render();
-      stop();
-      start();
-    },
-    setSpeed(pxPerSec) {
-      speed = pxPerSec;
-    },
-    setLoop(next) {
-      loop = next;
-      applyLoopVisibility();
-      if (loop && contentHeight > 0) offset = offset % contentHeight;
-      render();
-    },
-    isPlaying() {
-      return playing;
-    },
-    destroy() {
-      stop();
-      window.removeEventListener('resize', onResize);
-    },
-  };
+	return {
+		play: start,
+		pause: stop,
+		toggle() {
+			if (playing) stop();
+			else start();
+		},
+		restart() {
+			offset = 0;
+			elapsedMs = 0;
+			render();
+			stop();
+			start();
+		},
+		setSpeed(pxPerSec) {
+			speed = pxPerSec;
+		},
+		setLoop(next) {
+			loop = next;
+			applyLoopVisibility();
+			if (loop && contentHeight > 0) offset = offset % contentHeight;
+			render();
+		},
+		isPlaying() {
+			return playing;
+		},
+		destroy() {
+			stop();
+			window.removeEventListener('resize', onResize);
+		}
+	};
 }
 ```
 
@@ -888,10 +908,12 @@ git commit -m "feat: add continuous-scroll engine with loop and finish"
 The setup screen: input, validation list, settings, share link, Start.
 
 **Files:**
+
 - Create: `src/setupView.ts`
 - Test: `src/setupView.test.ts`
 
 **Interfaces:**
+
 - Consumes: `parseUpcList` from `./upc`; `readUpcFile` from `./fileInput`; `encodeShareUrl` from `./shareUrl`; `DEFAULT_SETTINGS`, `Settings`, `UpcEntry` from `./types`.
 - Produces: `mountSetupView(root: HTMLElement, initial: { codes: string[]; settings: Partial<Settings> }, onStart: (entries: UpcEntry[], settings: Settings) => void): void`. DOM contains `.upc-input` (textarea), `.file-input`, `.speed-input`, `.loop-input`, `.validation-list`, `.copy-link`, `.share-url`, `.url-warning`, `.start`.
 
@@ -903,53 +925,65 @@ import { mountSetupView } from './setupView';
 
 let root: HTMLElement;
 beforeEach(() => {
-  root = document.createElement('div');
-  document.body.appendChild(root);
+	root = document.createElement('div');
+	document.body.appendChild(root);
 });
 
 const q = <T extends Element>(sel: string) => root.querySelector(sel) as T;
 
 describe('mountSetupView', () => {
-  it('prefills the textarea and settings from initial state', () => {
-    mountSetupView(root, { codes: ['036000291452'], settings: { speedPxPerSec: 120, loop: true } }, () => {});
-    expect(q<HTMLTextAreaElement>('.upc-input').value).toBe('036000291452');
-    expect(q<HTMLInputElement>('.speed-input').value).toBe('120');
-    expect(q<HTMLInputElement>('.loop-input').checked).toBe(true);
-  });
+	it('prefills the textarea and settings from initial state', () => {
+		mountSetupView(
+			root,
+			{ codes: ['036000291452'], settings: { speedPxPerSec: 120, loop: true } },
+			() => {}
+		);
+		expect(q<HTMLTextAreaElement>('.upc-input').value).toBe('036000291452');
+		expect(q<HTMLInputElement>('.speed-input').value).toBe('120');
+		expect(q<HTMLInputElement>('.loop-input').checked).toBe(true);
+	});
 
-  it('flags invalid entries and disables Start until there is a valid one', () => {
-    mountSetupView(root, { codes: [], settings: {} }, () => {});
-    const input = q<HTMLTextAreaElement>('.upc-input');
-    const start = q<HTMLButtonElement>('.start');
-    expect(start.disabled).toBe(true);
+	it('flags invalid entries and disables Start until there is a valid one', () => {
+		mountSetupView(root, { codes: [], settings: {} }, () => {});
+		const input = q<HTMLTextAreaElement>('.upc-input');
+		const start = q<HTMLButtonElement>('.start');
+		expect(start.disabled).toBe(true);
 
-    input.value = 'bad';
-    input.dispatchEvent(new Event('input'));
-    expect(root.querySelectorAll('.validation-list li').length).toBe(1);
-    expect(root.querySelector('.validation-list li')?.classList.contains('invalid')).toBe(true);
-    expect(start.disabled).toBe(true);
+		input.value = 'bad';
+		input.dispatchEvent(new Event('input'));
+		expect(root.querySelectorAll('.validation-list li').length).toBe(1);
+		expect(root.querySelector('.validation-list li')?.classList.contains('invalid')).toBe(true);
+		expect(start.disabled).toBe(true);
 
-    input.value = 'bad\n036000291452';
-    input.dispatchEvent(new Event('input'));
-    expect(start.disabled).toBe(false);
-  });
+		input.value = 'bad\n036000291452';
+		input.dispatchEvent(new Event('input'));
+		expect(start.disabled).toBe(false);
+	});
 
-  it('calls onStart with parsed entries and current settings', () => {
-    const onStart = vi.fn();
-    mountSetupView(root, { codes: ['036000291452'], settings: { speedPxPerSec: 60, loop: false } }, onStart);
-    q<HTMLButtonElement>('.start').click();
-    expect(onStart).toHaveBeenCalledTimes(1);
-    const [entries, settings] = onStart.mock.calls[0];
-    expect(entries).toHaveLength(1);
-    expect(entries[0].valid).toBe(true);
-    expect(settings).toEqual({ speedPxPerSec: 60, loop: false });
-  });
+	it('calls onStart with parsed entries and current settings', () => {
+		const onStart = vi.fn();
+		mountSetupView(
+			root,
+			{ codes: ['036000291452'], settings: { speedPxPerSec: 60, loop: false } },
+			onStart
+		);
+		q<HTMLButtonElement>('.start').click();
+		expect(onStart).toHaveBeenCalledTimes(1);
+		const [entries, settings] = onStart.mock.calls[0];
+		expect(entries).toHaveLength(1);
+		expect(entries[0].valid).toBe(true);
+		expect(settings).toEqual({ speedPxPerSec: 60, loop: false });
+	});
 
-  it('builds a share URL into .share-url on Copy link', () => {
-    mountSetupView(root, { codes: ['036000291452'], settings: { speedPxPerSec: 60, loop: false } }, () => {});
-    q<HTMLButtonElement>('.copy-link').click();
-    expect(q<HTMLInputElement>('.share-url').value).toContain('codes=036000291452');
-  });
+	it('builds a share URL into .share-url on Copy link', () => {
+		mountSetupView(
+			root,
+			{ codes: ['036000291452'], settings: { speedPxPerSec: 60, loop: false } },
+			() => {}
+		);
+		q<HTMLButtonElement>('.copy-link').click();
+		expect(q<HTMLInputElement>('.share-url').value).toContain('codes=036000291452');
+	});
 });
 ```
 
@@ -969,13 +1003,13 @@ import { DEFAULT_SETTINGS, type Settings, type UpcEntry } from './types';
 const URL_WARN_LENGTH = 2000;
 
 export function mountSetupView(
-  root: HTMLElement,
-  initial: { codes: string[]; settings: Partial<Settings> },
-  onStart: (entries: UpcEntry[], settings: Settings) => void,
+	root: HTMLElement,
+	initial: { codes: string[]; settings: Partial<Settings> },
+	onStart: (entries: UpcEntry[], settings: Settings) => void
 ): void {
-  const settings: Settings = { ...DEFAULT_SETTINGS, ...initial.settings };
+	const settings: Settings = { ...DEFAULT_SETTINGS, ...initial.settings };
 
-  root.innerHTML = `
+	root.innerHTML = `
     <div class="setup">
       <h1>scandible</h1>
       <textarea class="upc-input" rows="8" placeholder="Paste UPC codes, one per line"></textarea>
@@ -996,66 +1030,71 @@ export function mountSetupView(
     </div>
   `;
 
-  const input = root.querySelector('.upc-input') as HTMLTextAreaElement;
-  const fileInput = root.querySelector('.file-input') as HTMLInputElement;
-  const speedInput = root.querySelector('.speed-input') as HTMLInputElement;
-  const loopInput = root.querySelector('.loop-input') as HTMLInputElement;
-  const list = root.querySelector('.validation-list') as HTMLUListElement;
-  const copyLink = root.querySelector('.copy-link') as HTMLButtonElement;
-  const shareUrl = root.querySelector('.share-url') as HTMLInputElement;
-  const urlWarning = root.querySelector('.url-warning') as HTMLElement;
-  const start = root.querySelector('.start') as HTMLButtonElement;
+	const input = root.querySelector('.upc-input') as HTMLTextAreaElement;
+	const fileInput = root.querySelector('.file-input') as HTMLInputElement;
+	const speedInput = root.querySelector('.speed-input') as HTMLInputElement;
+	const loopInput = root.querySelector('.loop-input') as HTMLInputElement;
+	const list = root.querySelector('.validation-list') as HTMLUListElement;
+	const copyLink = root.querySelector('.copy-link') as HTMLButtonElement;
+	const shareUrl = root.querySelector('.share-url') as HTMLInputElement;
+	const urlWarning = root.querySelector('.url-warning') as HTMLElement;
+	const start = root.querySelector('.start') as HTMLButtonElement;
 
-  input.value = initial.codes.join('\n');
-  speedInput.value = String(settings.speedPxPerSec);
-  loopInput.checked = settings.loop;
+	input.value = initial.codes.join('\n');
+	speedInput.value = String(settings.speedPxPerSec);
+	loopInput.checked = settings.loop;
 
-  let entries: UpcEntry[] = [];
+	let entries: UpcEntry[] = [];
 
-  const currentSettings = (): Settings => ({
-    speedPxPerSec: Number(speedInput.value),
-    loop: loopInput.checked,
-  });
+	const currentSettings = (): Settings => ({
+		speedPxPerSec: Number(speedInput.value),
+		loop: loopInput.checked
+	});
 
-  const refresh = () => {
-    entries = parseUpcList(input.value);
-    list.innerHTML = '';
-    for (const e of entries) {
-      const li = document.createElement('li');
-      li.className = e.valid ? 'valid' : 'invalid';
-      li.textContent = `${e.raw} ${e.valid ? '✓' : '✗ invalid'}`;
-      list.appendChild(li);
-    }
-    start.disabled = !entries.some((e) => e.valid);
-  };
+	const refresh = () => {
+		entries = parseUpcList(input.value);
+		list.innerHTML = '';
+		for (const e of entries) {
+			const li = document.createElement('li');
+			li.className = e.valid ? 'valid' : 'invalid';
+			li.textContent = `${e.raw} ${e.valid ? '✓' : '✗ invalid'}`;
+			list.appendChild(li);
+		}
+		start.disabled = !entries.some((e) => e.valid);
+	};
 
-  input.addEventListener('input', refresh);
+	input.addEventListener('input', refresh);
 
-  fileInput.addEventListener('change', async () => {
-    const file = fileInput.files?.[0];
-    if (!file) return;
-    try {
-      input.value = await readUpcFile(file);
-      refresh();
-    } catch {
-      list.innerHTML = '<li class="invalid">Could not read file</li>';
-    }
-  });
+	fileInput.addEventListener('change', async () => {
+		const file = fileInput.files?.[0];
+		if (!file) return;
+		try {
+			input.value = await readUpcFile(file);
+			refresh();
+		} catch {
+			list.innerHTML = '<li class="invalid">Could not read file</li>';
+		}
+	});
 
-  copyLink.addEventListener('click', () => {
-    const url =
-      location.origin + location.pathname + encodeShareUrl(entries.map((e) => e.raw), currentSettings());
-    shareUrl.value = url;
-    urlWarning.hidden = url.length <= URL_WARN_LENGTH;
-    void navigator.clipboard?.writeText(url).catch(() => {});
-  });
+	copyLink.addEventListener('click', () => {
+		const url =
+			location.origin +
+			location.pathname +
+			encodeShareUrl(
+				entries.map((e) => e.raw),
+				currentSettings()
+			);
+		shareUrl.value = url;
+		urlWarning.hidden = url.length <= URL_WARN_LENGTH;
+		void navigator.clipboard?.writeText(url).catch(() => {});
+	});
 
-  start.addEventListener('click', () => {
-    if (start.disabled) return;
-    onStart(entries, currentSettings());
-  });
+	start.addEventListener('click', () => {
+		if (start.disabled) return;
+		onStart(entries, currentSettings());
+	});
 
-  refresh();
+	refresh();
 }
 ```
 
@@ -1078,10 +1117,12 @@ git commit -m "feat: add setup view with validation, share link, and start"
 Fullscreen scroller + auto-hiding overlay + finish screen.
 
 **Files:**
+
 - Create: `src/playView.ts`
 - Test: `src/playView.test.ts`
 
 **Interfaces:**
+
 - Consumes: `createScroller` from `./scroller`; `Settings`, `UpcEntry` from `./types`.
 - Produces: `formatFinishMessage(count: number, seconds: number): string`, `mountPlayView(root: HTMLElement, entries: UpcEntry[], settings: Settings, onBack: () => void): void`. Overlay controls: `.ctl-playpause`, `.ctl-speed`, `.ctl-restart`, `.ctl-back`; finish screen `.finish-screen` (starts `hidden`) with `.finish-text` and `.finish-restart` / `.finish-back`.
 
@@ -1093,35 +1134,39 @@ import { mountPlayView, formatFinishMessage } from './playView';
 import type { UpcEntry } from './types';
 
 const entry = (value: string, valid: boolean): UpcEntry => ({ raw: value, value, valid });
-const entries: UpcEntry[] = [entry('036000291452', true), entry('bad', false), entry('012345678905', true)];
+const entries: UpcEntry[] = [
+	entry('036000291452', true),
+	entry('bad', false),
+	entry('012345678905', true)
+];
 
 let root: HTMLElement;
 beforeEach(() => {
-  root = document.createElement('div');
-  document.body.appendChild(root);
+	root = document.createElement('div');
+	document.body.appendChild(root);
 });
 
 describe('formatFinishMessage', () => {
-  it('formats the finish copy exactly', () => {
-    expect(formatFinishMessage(3, 12.4)).toBe('Finished scrolling 3 barcodes in 12.4 seconds');
-  });
+	it('formats the finish copy exactly', () => {
+		expect(formatFinishMessage(3, 12.4)).toBe('Finished scrolling 3 barcodes in 12.4 seconds');
+	});
 });
 
 describe('mountPlayView', () => {
-  it('renders the scroller column and overlay controls, finish hidden', () => {
-    mountPlayView(root, entries, { speedPxPerSec: 60, loop: false }, () => {});
-    expect(root.querySelectorAll('.barcode-item').length).toBe(4); // 2 valid × 2 copies
-    expect(root.querySelector('.ctl-playpause')).not.toBeNull();
-    expect(root.querySelector('.ctl-speed')).not.toBeNull();
-    expect((root.querySelector('.finish-screen') as HTMLElement).hidden).toBe(true);
-  });
+	it('renders the scroller column and overlay controls, finish hidden', () => {
+		mountPlayView(root, entries, { speedPxPerSec: 60, loop: false }, () => {});
+		expect(root.querySelectorAll('.barcode-item').length).toBe(4); // 2 valid × 2 copies
+		expect(root.querySelector('.ctl-playpause')).not.toBeNull();
+		expect(root.querySelector('.ctl-speed')).not.toBeNull();
+		expect((root.querySelector('.finish-screen') as HTMLElement).hidden).toBe(true);
+	});
 
-  it('calls onBack when the back button is clicked', () => {
-    const onBack = vi.fn();
-    mountPlayView(root, entries, { speedPxPerSec: 60, loop: false }, onBack);
-    (root.querySelector('.ctl-back') as HTMLButtonElement).click();
-    expect(onBack).toHaveBeenCalledTimes(1);
-  });
+	it('calls onBack when the back button is clicked', () => {
+		const onBack = vi.fn();
+		mountPlayView(root, entries, { speedPxPerSec: 60, loop: false }, onBack);
+		(root.querySelector('.ctl-back') as HTMLButtonElement).click();
+		expect(onBack).toHaveBeenCalledTimes(1);
+	});
 });
 ```
 
@@ -1139,16 +1184,16 @@ import type { Settings, UpcEntry } from './types';
 const OVERLAY_IDLE_MS = 2000;
 
 export function formatFinishMessage(count: number, seconds: number): string {
-  return `Finished scrolling ${count} barcodes in ${seconds} seconds`;
+	return `Finished scrolling ${count} barcodes in ${seconds} seconds`;
 }
 
 export function mountPlayView(
-  root: HTMLElement,
-  entries: UpcEntry[],
-  settings: Settings,
-  onBack: () => void,
+	root: HTMLElement,
+	entries: UpcEntry[],
+	settings: Settings,
+	onBack: () => void
 ): void {
-  root.innerHTML = `
+	root.innerHTML = `
     <div class="play">
       <div class="scroll-column"></div>
       <div class="overlay">
@@ -1165,56 +1210,56 @@ export function mountPlayView(
     </div>
   `;
 
-  const column = root.querySelector('.scroll-column') as HTMLElement;
-  const overlay = root.querySelector('.overlay') as HTMLElement;
-  const playpause = root.querySelector('.ctl-playpause') as HTMLButtonElement;
-  const speed = root.querySelector('.ctl-speed') as HTMLInputElement;
-  const restart = root.querySelector('.ctl-restart') as HTMLButtonElement;
-  const back = root.querySelector('.ctl-back') as HTMLButtonElement;
-  const finish = root.querySelector('.finish-screen') as HTMLElement;
-  const finishText = root.querySelector('.finish-text') as HTMLElement;
-  const finishRestart = root.querySelector('.finish-restart') as HTMLButtonElement;
-  const finishBack = root.querySelector('.finish-back') as HTMLButtonElement;
+	const column = root.querySelector('.scroll-column') as HTMLElement;
+	const overlay = root.querySelector('.overlay') as HTMLElement;
+	const playpause = root.querySelector('.ctl-playpause') as HTMLButtonElement;
+	const speed = root.querySelector('.ctl-speed') as HTMLInputElement;
+	const restart = root.querySelector('.ctl-restart') as HTMLButtonElement;
+	const back = root.querySelector('.ctl-back') as HTMLButtonElement;
+	const finish = root.querySelector('.finish-screen') as HTMLElement;
+	const finishText = root.querySelector('.finish-text') as HTMLElement;
+	const finishRestart = root.querySelector('.finish-restart') as HTMLButtonElement;
+	const finishBack = root.querySelector('.finish-back') as HTMLButtonElement;
 
-  speed.value = String(settings.speedPxPerSec);
+	speed.value = String(settings.speedPxPerSec);
 
-  const scroller = createScroller(column, entries, settings, ({ count, seconds }) => {
-    finishText.textContent = formatFinishMessage(count, seconds);
-    finish.hidden = false;
-  });
+	const scroller = createScroller(column, entries, settings, ({ count, seconds }) => {
+		finishText.textContent = formatFinishMessage(count, seconds);
+		finish.hidden = false;
+	});
 
-  const syncPlayLabel = () => {
-    playpause.textContent = scroller.isPlaying() ? 'Pause' : 'Play';
-  };
+	const syncPlayLabel = () => {
+		playpause.textContent = scroller.isPlaying() ? 'Pause' : 'Play';
+	};
 
-  playpause.addEventListener('click', () => {
-    scroller.toggle();
-    syncPlayLabel();
-  });
-  speed.addEventListener('input', () => scroller.setSpeed(Number(speed.value)));
-  const doRestart = () => {
-    finish.hidden = true;
-    scroller.restart();
-    syncPlayLabel();
-  };
-  restart.addEventListener('click', doRestart);
-  finishRestart.addEventListener('click', doRestart);
-  back.addEventListener('click', onBack);
-  finishBack.addEventListener('click', onBack);
+	playpause.addEventListener('click', () => {
+		scroller.toggle();
+		syncPlayLabel();
+	});
+	speed.addEventListener('input', () => scroller.setSpeed(Number(speed.value)));
+	const doRestart = () => {
+		finish.hidden = true;
+		scroller.restart();
+		syncPlayLabel();
+	};
+	restart.addEventListener('click', doRestart);
+	finishRestart.addEventListener('click', doRestart);
+	back.addEventListener('click', onBack);
+	finishBack.addEventListener('click', onBack);
 
-  // Auto-hide overlay after idle; reappear on interaction.
-  let idleTimer: ReturnType<typeof setTimeout>;
-  const showOverlay = () => {
-    overlay.classList.remove('hidden');
-    clearTimeout(idleTimer);
-    idleTimer = setTimeout(() => overlay.classList.add('hidden'), OVERLAY_IDLE_MS);
-  };
-  root.addEventListener('pointermove', showOverlay);
-  root.addEventListener('pointerdown', showOverlay);
+	// Auto-hide overlay after idle; reappear on interaction.
+	let idleTimer: ReturnType<typeof setTimeout>;
+	const showOverlay = () => {
+		overlay.classList.remove('hidden');
+		clearTimeout(idleTimer);
+		idleTimer = setTimeout(() => overlay.classList.add('hidden'), OVERLAY_IDLE_MS);
+	};
+	root.addEventListener('pointermove', showOverlay);
+	root.addEventListener('pointerdown', showOverlay);
 
-  scroller.play();
-  syncPlayLabel();
-  showOverlay();
+	scroller.play();
+	syncPlayLabel();
+	showOverlay();
 }
 ```
 
@@ -1237,11 +1282,13 @@ git commit -m "feat: add fullscreen play view with overlay and finish screen"
 Mode switching, URL bootstrap, and the stylesheet.
 
 **Files:**
+
 - Modify: `src/main.ts` (replace the Task 1 stub)
 - Create: `src/styles.css`
 - Test: `src/main.test.ts`
 
 **Interfaces:**
+
 - Consumes: `decodeShareUrl` from `./shareUrl`; `parseUpcList` from `./upc`; `mountSetupView` from `./setupView`; `mountPlayView` from `./playView`; `DEFAULT_SETTINGS`, `Settings`, `UpcEntry` from `./types`.
 - Produces: `startApp(root: HTMLElement, search: string): void` (exported for tests; also invoked on load).
 
@@ -1253,25 +1300,25 @@ import { startApp } from './main';
 
 let root: HTMLElement;
 beforeEach(() => {
-  root = document.createElement('div');
-  document.body.appendChild(root);
+	root = document.createElement('div');
+	document.body.appendChild(root);
 });
 
 describe('startApp', () => {
-  it('opens setup prefilled from the URL', () => {
-    startApp(root, '?codes=036000291452&speed=120&loop=1');
-    const ta = root.querySelector('.upc-input') as HTMLTextAreaElement;
-    expect(ta.value).toBe('036000291452');
-    expect((root.querySelector('.speed-input') as HTMLInputElement).value).toBe('120');
-  });
+	it('opens setup prefilled from the URL', () => {
+		startApp(root, '?codes=036000291452&speed=120&loop=1');
+		const ta = root.querySelector('.upc-input') as HTMLTextAreaElement;
+		expect(ta.value).toBe('036000291452');
+		expect((root.querySelector('.speed-input') as HTMLInputElement).value).toBe('120');
+	});
 
-  it('switches to play mode on Start and back on Back', () => {
-    startApp(root, '?codes=036000291452');
-    (root.querySelector('.start') as HTMLButtonElement).click();
-    expect(root.querySelector('.play')).not.toBeNull();
-    (root.querySelector('.ctl-back') as HTMLButtonElement).click();
-    expect(root.querySelector('.setup')).not.toBeNull();
-  });
+	it('switches to play mode on Start and back on Back', () => {
+		startApp(root, '?codes=036000291452');
+		(root.querySelector('.start') as HTMLButtonElement).click();
+		expect(root.querySelector('.play')).not.toBeNull();
+		(root.querySelector('.ctl-back') as HTMLButtonElement).click();
+		expect(root.querySelector('.setup')).not.toBeNull();
+	});
 });
 ```
 
@@ -1291,22 +1338,22 @@ import { mountPlayView } from './playView';
 import { DEFAULT_SETTINGS, type Settings, type UpcEntry } from './types';
 
 export function startApp(root: HTMLElement, search: string): void {
-  const decoded = decodeShareUrl(search);
-  let entries: UpcEntry[] = parseUpcList(decoded.codes.join('\n'));
-  let settings: Settings = { ...DEFAULT_SETTINGS, ...decoded.settings };
+	const decoded = decodeShareUrl(search);
+	let entries: UpcEntry[] = parseUpcList(decoded.codes.join('\n'));
+	let settings: Settings = { ...DEFAULT_SETTINGS, ...decoded.settings };
 
-  const showSetup = () => {
-    mountSetupView(root, { codes: entries.map((e) => e.raw), settings }, (e, s) => {
-      entries = e;
-      settings = s;
-      showPlay();
-    });
-  };
-  const showPlay = () => {
-    mountPlayView(root, entries, settings, showSetup);
-  };
+	const showSetup = () => {
+		mountSetupView(root, { codes: entries.map((e) => e.raw), settings }, (e, s) => {
+			entries = e;
+			settings = s;
+			showPlay();
+		});
+	};
+	const showPlay = () => {
+		mountPlayView(root, entries, settings, showSetup);
+	};
 
-  showSetup();
+	showSetup();
 }
 
 const appRoot = document.getElementById('app');
@@ -1316,50 +1363,126 @@ if (appRoot) startApp(appRoot, location.search);
 - [ ] **Step 4: Create `src/styles.css`**
 
 ```css
-* { box-sizing: border-box; }
-html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
-#app { min-height: 100%; }
+* {
+	box-sizing: border-box;
+}
+html,
+body {
+	margin: 0;
+	height: 100%;
+	font-family: system-ui, sans-serif;
+}
+#app {
+	min-height: 100%;
+}
 
 /* Setup */
-.setup { max-width: 640px; margin: 0 auto; padding: 24px; display: flex; flex-direction: column; gap: 12px; }
-.upc-input { width: 100%; font-family: monospace; }
-.validation-list { list-style: none; padding: 0; margin: 0; max-height: 200px; overflow: auto; }
-.validation-list .valid { color: #0a0; }
-.validation-list .invalid { color: #c00; }
-.share-url { flex: 1; font-family: monospace; }
-.start { padding: 12px; font-size: 1.1rem; }
-.start:disabled { opacity: 0.5; }
+.setup {
+	max-width: 640px;
+	margin: 0 auto;
+	padding: 24px;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+.upc-input {
+	width: 100%;
+	font-family: monospace;
+}
+.validation-list {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+	max-height: 200px;
+	overflow: auto;
+}
+.validation-list .valid {
+	color: #0a0;
+}
+.validation-list .invalid {
+	color: #c00;
+}
+.share-url {
+	flex: 1;
+	font-family: monospace;
+}
+.start {
+	padding: 12px;
+	font-size: 1.1rem;
+}
+.start:disabled {
+	opacity: 0.5;
+}
 
 /* Play */
-.play { position: fixed; inset: 0; background: #fff; overflow: hidden; }
-.scroll-column { position: absolute; inset: 0; display: flex; justify-content: center; }
+.play {
+	position: fixed;
+	inset: 0;
+	background: #fff;
+	overflow: hidden;
+}
+.scroll-column {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	justify-content: center;
+}
 /* Seam-uniform rhythm: equal top+bottom padding per barcode, no last-item margin,
    no collapsing margins — so the copy1/copy2 gap equals the internal gap. */
-.scroller-track { display: flex; flex-direction: column; }
-.scroller-copy { display: flex; flex-direction: column; }
-.barcode-item {
-  display: flex;
-  justify-content: center;
-  padding: 40vh 0; /* generous: isolates one barcode in the scan zone */
+.scroller-track {
+	display: flex;
+	flex-direction: column;
 }
-.barcode-item svg { max-width: min(90vw, 640px); height: auto; }
+.scroller-copy {
+	display: flex;
+	flex-direction: column;
+}
+.barcode-item {
+	display: flex;
+	justify-content: center;
+	padding: 40vh 0; /* generous: isolates one barcode in the scan zone */
+}
+.barcode-item svg {
+	max-width: min(90vw, 640px);
+	height: auto;
+}
 
 /* Overlay */
 .overlay {
-  position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
-  display: flex; gap: 12px; align-items: center;
-  background: rgba(0, 0, 0, 0.7); color: #fff; padding: 10px 16px; border-radius: 8px;
-  transition: opacity 0.3s; opacity: 1;
+	position: fixed;
+	bottom: 16px;
+	left: 50%;
+	transform: translateX(-50%);
+	display: flex;
+	gap: 12px;
+	align-items: center;
+	background: rgba(0, 0, 0, 0.7);
+	color: #fff;
+	padding: 10px 16px;
+	border-radius: 8px;
+	transition: opacity 0.3s;
+	opacity: 1;
 }
-.overlay.hidden { opacity: 0; pointer-events: none; }
+.overlay.hidden {
+	opacity: 0;
+	pointer-events: none;
+}
 
 /* Finish */
 .finish-screen {
-  position: fixed; inset: 0; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 16px;
-  background: #fff; font-size: 1.5rem;
+	position: fixed;
+	inset: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 16px;
+	background: #fff;
+	font-size: 1.5rem;
 }
-.finish-screen[hidden] { display: none; }
+.finish-screen[hidden] {
+	display: none;
+}
 ```
 
 - [ ] **Step 5: Run the test to verify it passes**
@@ -1386,6 +1509,7 @@ git commit -m "feat: wire setup/play mode switching, URL bootstrap, and styles"
 CI that tests, builds, and deploys to GitHub Pages on push to `main`.
 
 **Files:**
+
 - Create: `.github/workflows/deploy.yml`
 
 **Interfaces:** none (infrastructure).
@@ -1502,6 +1626,7 @@ If every check passes, the implementation is complete. If any fails, open a focu
 ## Self-Review
 
 **1. Spec coverage:**
+
 - Two modes (setup → play): Tasks 8, 9, 10. ✓
 - Continuous scroll, adjustable speed, rAF+transform, two-copy seamless loop, copy-2 hidden when loop off, repeat-period `contentHeight`, delta clamp/first-frame: Tasks 6, 7 (+ browser check Task 12). ✓
 - Input via textarea + file + URL: Tasks 3, 4, 5, 8, 10. ✓
