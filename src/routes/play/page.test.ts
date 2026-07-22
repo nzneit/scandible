@@ -61,4 +61,17 @@ describe('play page', () => {
 		expect(container.querySelector('.play')).toBeNull();
 		expect(goto).toHaveBeenCalledWith('/?codes=bad', { replaceState: true });
 	});
+
+	it('decodes fmt and renders that format', () => {
+		mockPage.url = new URL('http://localhost/play?codes=HELLO&fmt=code39&seed=7');
+		const { container } = render(PlayPage);
+		expect(container.querySelectorAll('.barcode-item').length).toBe(2); // 1 valid × 2 copies
+	});
+
+	it('carries fmt in the Back URL', async () => {
+		mockPage.url = new URL('http://localhost/play?codes=HELLO&fmt=code39&seed=7');
+		const { container } = render(PlayPage);
+		await fireEvent.click(q(container, '.ctl-back'));
+		expect(goto.mock.calls[0][0]).toContain('fmt=code39');
+	});
 });

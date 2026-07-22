@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createScroller } from './scroller';
-import type { UpcEntry } from './types';
+import type { CodeEntry } from './types';
 
-const entry = (value: string, valid: boolean): UpcEntry => ({ raw: value, value, valid });
-const entries: UpcEntry[] = [
+const entry = (value: string, valid: boolean): CodeEntry => ({ raw: value, value, valid });
+const entries: CodeEntry[] = [
 	entry('036000291452', true),
 	entry('bad', false),
 	entry('012345678905', true)
@@ -24,7 +24,8 @@ describe('createScroller', () => {
 			rotateMaxDeg: 8,
 			skew: false,
 			skewMaxDeg: 8,
-			seed: 0
+			seed: 0,
+			format: 'upc'
 		});
 		// 2 valid entries × 2 copies = 4 barcode items
 		expect(container.querySelectorAll('.barcode-item').length).toBe(4);
@@ -40,7 +41,8 @@ describe('createScroller', () => {
 			rotateMaxDeg: 8,
 			skew: false,
 			skewMaxDeg: 8,
-			seed: 0
+			seed: 0,
+			format: 'upc'
 		});
 		const copies = container.querySelectorAll<HTMLElement>('.scroller-copy');
 		expect(copies[1].style.display).toBe('none');
@@ -59,7 +61,8 @@ describe('createScroller', () => {
 			rotateMaxDeg: 8,
 			skew: false,
 			skewMaxDeg: 8,
-			seed: 0
+			seed: 0,
+			format: 'upc'
 		});
 		s.play();
 		expect(s.isPlaying()).toBe(true);
@@ -107,7 +110,8 @@ describe('createScroller', () => {
 					rotateMaxDeg: 8,
 					skew: false,
 					skewMaxDeg: 8,
-					seed: 0
+					seed: 0,
+					format: 'upc'
 				},
 				onFinish
 			);
@@ -130,7 +134,8 @@ describe('createScroller', () => {
 			rotateMaxDeg: 10,
 			skew: true,
 			skewMaxDeg: 10,
-			seed: 5
+			seed: 5,
+			format: 'upc'
 		});
 		const copies = container.querySelectorAll<HTMLElement>('.scroller-copy');
 		const items0 = copies[0].querySelectorAll<HTMLElement>('.barcode-item');
@@ -149,7 +154,8 @@ describe('createScroller', () => {
 			rotateMaxDeg: 10,
 			skew: false,
 			skewMaxDeg: 10,
-			seed: 5
+			seed: 5,
+			format: 'upc'
 		});
 		const item = container.querySelector<HTMLElement>('.barcode-item')!;
 		expect(item.style.transform).toMatch(/^rotate\(/);
@@ -164,7 +170,8 @@ describe('createScroller', () => {
 			rotateMaxDeg: 8,
 			skew: false,
 			skewMaxDeg: 8,
-			seed: 0
+			seed: 0,
+			format: 'upc'
 		});
 		const track = container.querySelector<HTMLElement>('.scroller-track')!;
 		// Initial render (offset 0) must use the 3D transform form, not translateY.
@@ -180,7 +187,8 @@ describe('createScroller', () => {
 			rotateMaxDeg: 10,
 			skew: false,
 			skewMaxDeg: 10,
-			seed: 5
+			seed: 5,
+			format: 'upc'
 		});
 		const item = container.querySelector<HTMLElement>('.barcode-item')!;
 		expect(item.style.transform).toBe('');

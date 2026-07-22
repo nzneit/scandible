@@ -3,9 +3,9 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import { parseUpcList } from '$lib/upc';
+	import { parseCodeList } from '$lib/codes';
 	import { decodeShareUrl, encodeShareUrl } from '$lib/shareUrl';
-	import { formatFinishMessage } from '$lib/format';
+	import { formatFinishMessage } from '$lib/finish';
 	import { DEFAULT_SETTINGS, type Settings } from '$lib/types';
 	import ScrollColumn, { type ScrollColumnHandle } from '$lib/components/ScrollColumn.svelte';
 
@@ -16,7 +16,7 @@
 	if (decoded.settings.seed === undefined) {
 		settings.seed = Math.floor(Math.random() * 0x100000000) >>> 0;
 	}
-	const entries = parseUpcList(decoded.codes.join('\n'));
+	const entries = parseCodeList(decoded.codes.join('\n'), settings.format);
 	const hasValid = entries.some((e) => e.valid);
 
 	let column: ScrollColumnHandle | undefined = $state();

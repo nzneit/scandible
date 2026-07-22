@@ -2,22 +2,24 @@
 
 **▶ Live app: https://nzneit.github.io/scandible/**
 
-scandible turns a list of UPC codes into barcodes stacked in a vertical column and scrolls
+scandible turns a list of codes into barcodes stacked in a vertical column and scrolls
 them continuously past the screen at an adjustable speed — so a **physical barcode scanner**
 can read each one off the display in sequence.
 
 ## Why
 
-Feeding a hardware scanner a long list of UPCs by hand is tedious. scandible renders each
-code as a crisp, high-contrast **UPC-A** barcode and auto-scrolls them through a scan zone
+Feeding a hardware scanner a long list of codes by hand is tedious. scandible renders each
+code as a crisp, high-contrast barcode in your chosen format and auto-scrolls them through a scan zone
 one at a time, so you can point a scanner at the screen and let it read the whole list.
 
 ## Features
 
 - **Three ways to enter codes** — paste into a textarea, upload a `.txt`/`.csv` file, or
   pass them in the URL.
-- **Lenient UPC-A validation** — unrenderable codes are flagged in the setup list and
-  **skipped** in the scroll, so only real barcodes appear.
+- **21 barcode formats** — every format JsBarcode documents (CODE128 incl. force modes,
+  EAN/UPC family, CODE39, CODE93, ITF, MSI variants, Pharmacode, Codabar), selected per
+  list; unrenderable codes are flagged and skipped, and the list shows the exact value your
+  scanner will read when the encoder adds check digits or normalizes input.
 - **Continuous smooth scroll** — GPU-composited motion with a live speed control
   (10–5000 px/s).
 - **Loop or finish** — loop seamlessly, or run once and show a
@@ -29,8 +31,8 @@ one at a time, so you can point a scanner at the screen and let it read the whol
 ## Using it
 
 1. Open **https://nzneit.github.io/scandible/**.
-2. Paste or upload your UPC-A codes (one per line, or comma-separated). Invalid entries are
-   flagged.
+2. Pick a barcode format, then paste or upload your codes (one per line, or
+   comma-separated). Invalid entries are flagged.
 3. Set the scroll speed and whether to loop, then press **Start**.
 4. Point your scanner at the centered barcodes as they scroll by. Lower the speed if the
    scanner needs more time to lock on.
@@ -58,7 +60,7 @@ subpath, adapter-static emits the site to `dist/`, and the repo's Pages source i
 ## Tech stack
 
 - **SvelteKit** + **Svelte 5** (static-adapter SPA, TypeScript)
-- **JsBarcode** for UPC-A barcode rendering (inline SVG)
+- **JsBarcode** for barcode rendering (inline SVG)
 - **Vitest** + **@testing-library/svelte** (jsdom) for unit tests
 
 ## License

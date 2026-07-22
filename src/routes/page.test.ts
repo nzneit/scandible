@@ -1,14 +1,14 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, fireEvent } from '@testing-library/svelte';
 import SetupPage from './+page.svelte';
-import { readUpcFile } from '$lib/fileInput';
+import { readCodesFile } from '$lib/fileInput';
 
 const mockPage = vi.hoisted(() => ({ url: new URL('http://localhost/') }));
 const goto = vi.hoisted(() => vi.fn());
 vi.mock('$app/state', () => ({ page: mockPage }));
 vi.mock('$app/navigation', () => ({ goto }));
 vi.mock('$app/paths', () => ({ resolve: (id: string) => id }));
-vi.mock('$lib/fileInput', () => ({ readUpcFile: vi.fn() }));
+vi.mock('$lib/fileInput', () => ({ readCodesFile: vi.fn() }));
 
 const q = <T extends Element>(c: Element, sel: string) => c.querySelector(sel) as T;
 
@@ -21,14 +21,14 @@ describe('setup page', () => {
 	it('prefills the textarea and settings from the URL', () => {
 		mockPage.url = new URL('http://localhost/?codes=036000291452&speed=120&loop=1');
 		const { container } = render(SetupPage);
-		expect(q<HTMLTextAreaElement>(container, '.upc-input').value).toBe('036000291452');
+		expect(q<HTMLTextAreaElement>(container, '.code-input').value).toBe('036000291452');
 		expect(q<HTMLInputElement>(container, '.speed-input').value).toBe('120');
 		expect(q<HTMLInputElement>(container, '.loop-input').checked).toBe(true);
 	});
 
 	it('flags invalid entries and disables Start until there is a valid one', async () => {
 		const { container } = render(SetupPage);
-		const input = q<HTMLTextAreaElement>(container, '.upc-input');
+		const input = q<HTMLTextAreaElement>(container, '.code-input');
 		const start = q<HTMLButtonElement>(container, '.start');
 		expect(start.disabled).toBe(true);
 
@@ -48,7 +48,7 @@ describe('setup page', () => {
 		const { container } = render(SetupPage);
 		await fireEvent.click(q(container, '.start'));
 		expect(goto).toHaveBeenCalledWith(
-			'/play?codes=036000291452&speed=60&loop=0&rot=0&rotmax=8&skew=0&skewmax=8&seed=0'
+			'/play?codes=036000291452&speed=60&loop=0&rot=0&rotmax=8&skew=0&skewmax=8&seed=0&fmt=upc'
 		);
 	});
 
@@ -142,7 +142,7 @@ describe('setup page', () => {
 		const { container } = render(SetupPage);
 		await fireEvent.click(q(container, '.copy-link'));
 		expect(q<HTMLElement>(container, '.qr-code').querySelector('svg')).not.toBeNull();
-		await fireEvent.input(q(container, '.upc-input'), { target: { value: '012345678905' } });
+		await fireEvent.input(q(container, '.code-input'), { target: { value: '012345678905' } });
 		const qr = q<HTMLElement>(container, '.qr-code');
 		expect(qr.hidden).toBe(true);
 		expect(qr.querySelector('svg')).toBeNull();
@@ -157,15 +157,24 @@ describe('setup page', () => {
 		expect(q<HTMLElement>(container, '.qr-code').hidden).toBe(true);
 	});
 
+	it('clears a rendered QR when the format is switched afterwards', async () => {
+		mockPage.url = new URL('http://localhost/?codes=036000291452');
+		const { container } = render(SetupPage);
+		await fireEvent.click(q(container, '.copy-link'));
+		expect(q<HTMLElement>(container, '.qr-code').querySelector('svg')).not.toBeNull();
+		await fireEvent.change(q(container, '.format-input'), { target: { value: 'code39' } });
+		expect(q<HTMLElement>(container, '.qr-code').hidden).toBe(true);
+	});
+
 	it('loads codes from a file into the textarea', async () => {
 		const { container } = render(SetupPage);
-		vi.mocked(readUpcFile).mockResolvedValueOnce('036000291452\n012345678905');
+		vi.mocked(readCodesFile).mockResolvedValueOnce('036000291452\n012345678905');
 		const fileInput = q<HTMLInputElement>(container, '.file-input');
 		const file = new File(['x'], 'codes.txt', { type: 'text/plain' });
 		Object.defineProperty(fileInput, 'files', { value: [file], configurable: true });
 		await fireEvent.change(fileInput);
 		await vi.waitFor(() =>
-			expect(q<HTMLTextAreaElement>(container, '.upc-input').value).toBe(
+			expect(q<HTMLTextAreaElement>(container, '.code-input').value).toBe(
 				'036000291452\n012345678905'
 			)
 		);
@@ -179,7 +188,7 @@ describe('setup page', () => {
 		const originalFirst = container.querySelector('.validation-list li')?.textContent;
 		expect(originalCount).toBeGreaterThan(0);
 
-		vi.mocked(readUpcFile).mockRejectedValueOnce(new Error('boom'));
+		vi.mocked(readCodesFile).mockRejectedValueOnce(new Error('boom'));
 		const fileInput = q<HTMLInputElement>(container, '.file-input');
 		const file = new File(['x'], 'codes.txt', { type: 'text/plain' });
 		Object.defineProperty(fileInput, 'files', { value: [file], configurable: true });
@@ -190,5 +199,53 @@ describe('setup page', () => {
 		expect(fileError.textContent).toBeTruthy();
 		expect(container.querySelectorAll('.validation-list li').length).toBe(originalCount);
 		expect(container.querySelector('.validation-list li')?.textContent).toBe(originalFirst);
+	});
+
+	it('renders the grouped format dropdown with 21 options', () => {
+		const { container } = render(SetupPage);
+		expect(container.querySelectorAll('.format-input optgroup').length).toBe(6);
+		expect(container.querySelectorAll('.format-input option').length).toBe(21);
+		expect(q<HTMLSelectElement>(container, '.format-input').value).toBe('upc');
+	});
+
+	it('revalidates on format switch: HELLO flips invalid→valid and enables Start', async () => {
+		const { container } = render(SetupPage);
+		await fireEvent.input(q(container, '.code-input'), { target: { value: 'HELLO' } });
+		expect(q<HTMLButtonElement>(container, '.start').disabled).toBe(true);
+		await fireEvent.change(q(container, '.format-input'), { target: { value: 'code39' } });
+		expect(container.querySelector('.validation-list li')?.classList.contains('valid')).toBe(true);
+		expect(q<HTMLButtonElement>(container, '.start').disabled).toBe(false);
+	});
+
+	it('switches the placeholder between the numeric and text copy', async () => {
+		const { container } = render(SetupPage);
+		const input = q<HTMLTextAreaElement>(container, '.code-input');
+		expect(input.placeholder).toBe('Paste codes — one per line, or comma-separated');
+		await fireEvent.change(q(container, '.format-input'), { target: { value: 'code128' } });
+		expect(input.placeholder).toBe('Paste codes — one per line');
+	});
+
+	it('shows exact arrow rows for encoder mutations, numeric and text', async () => {
+		mockPage.url = new URL('http://localhost/?codes=590123412345&fmt=ean13');
+		const { container } = render(SetupPage);
+		expect(container.querySelector('.validation-list li')?.textContent).toBe(
+			'590123412345 ✓ → 5901234123457'
+		);
+		await fireEvent.change(q(container, '.format-input'), { target: { value: 'code39' } });
+		await fireEvent.input(q(container, '.code-input'), { target: { value: 'hello' } });
+		expect(container.querySelector('.validation-list li')?.textContent).toBe('hello ✓ → HELLO');
+	});
+
+	it('shows no arrow for app-side whitespace stripping', async () => {
+		const { container } = render(SetupPage);
+		await fireEvent.input(q(container, '.code-input'), { target: { value: '0360 00291452' } });
+		expect(container.querySelector('.validation-list li')?.textContent).toBe('0360 00291452 ✓');
+	});
+
+	it('carries a non-default format into the Start URL', async () => {
+		mockPage.url = new URL('http://localhost/?codes=HELLO&fmt=code39&seed=0');
+		const { container } = render(SetupPage);
+		await fireEvent.click(q(container, '.start'));
+		expect(goto.mock.calls[0][0]).toContain('fmt=code39');
 	});
 });

@@ -1,12 +1,20 @@
 <script lang="ts">
-	import type { UpcEntry } from '$lib/types';
+	import type { CodeEntry } from '$lib/types';
 
-	let { entries }: { entries: UpcEntry[] } = $props();
+	let { entries }: { entries: CodeEntry[] } = $props();
+
+	// Single expression per row so exact-textContent tests stay byte-stable.
+	const rowText = (entry: CodeEntry): string =>
+		entry.valid
+			? entry.encoded !== undefined && entry.encoded !== entry.value
+				? `${entry.raw} ✓ → ${entry.encoded}`
+				: `${entry.raw} ✓`
+			: `${entry.raw} ✗ invalid`;
 </script>
 
 <ul class="validation-list">
 	{#each entries as entry, i (i)}
-		<li class={entry.valid ? 'valid' : 'invalid'}>{entry.raw} {entry.valid ? '✓' : '✗ invalid'}</li>
+		<li class={entry.valid ? 'valid' : 'invalid'}>{rowText(entry)}</li>
 	{/each}
 </ul>
 

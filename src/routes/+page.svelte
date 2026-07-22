@@ -2,10 +2,11 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import { parseUpcList } from '$lib/upc';
-	import { readUpcFile } from '$lib/fileInput';
+	import { parseCodeList } from '$lib/codes';
+	import { FORMAT_BY_ID, FORMAT_GROUPS } from '$lib/formats';
+	import { readCodesFile } from '$lib/fileInput';
 	import { decodeShareUrl, encodeShareUrl } from '$lib/shareUrl';
-	import { DEFAULT_SETTINGS, type Settings, type UpcEntry } from '$lib/types';
+	import { DEFAULT_SETTINGS, type Settings, type CodeEntry } from '$lib/types';
 	import ValidationList from '$lib/components/ValidationList.svelte';
 	import ShareLink from '$lib/components/ShareLink.svelte';
 
@@ -20,11 +21,17 @@
 	let rotateMaxDeg = $state(initial.rotateMaxDeg);
 	let skew = $state(initial.skew);
 	let skewMaxDeg = $state(initial.skewMaxDeg);
+	let format = $state(initial.format);
 	let fileError = $state('');
 
-	const entries: UpcEntry[] = $derived(parseUpcList(text));
+	const entries: CodeEntry[] = $derived(parseCodeList(text, format));
 	const rawCodes: string[] = $derived(entries.map((e) => e.raw));
 	const canStart: boolean = $derived(entries.some((e) => e.valid));
+	const placeholder: string = $derived(
+		FORMAT_BY_ID.get(format)?.numeric
+			? 'Paste codes — one per line, or comma-separated'
+			: 'Paste codes — one per line'
+	);
 	const settings: Settings = $derived({
 		speedPxPerSec,
 		loop,
@@ -32,7 +39,8 @@
 		rotateMaxDeg,
 		skew,
 		skewMaxDeg,
-		seed
+		seed,
+		format
 	});
 
 	async function onFileChange(e: Event): Promise<void> {
@@ -40,7 +48,7 @@
 		const file = input.files?.[0];
 		if (!file) return;
 		try {
-			text = await readUpcFile(file);
+			text = await readCodesFile(file);
 			fileError = '';
 		} catch {
 			// Inline error only; the existing validation list is left untouched.
@@ -57,14 +65,26 @@
 <div class="setup">
 	<h1>scandible</h1>
 	<textarea
-		class="upc-input"
+		class="code-input"
 		rows="8"
-		placeholder="Paste UPC codes, one per line"
+		{placeholder}
 		bind:value={text}
 		oninput={() => (fileError = '')}></textarea>
 	<input type="file" class="file-input" accept=".txt,.csv" onchange={onFileChange} />
 	<p class="file-error" hidden={!fileError}>{fileError}</p>
 	<div class="settings-row">
+		<label class="field"
+			>Format
+			<select class="format-input" bind:value={format}>
+				{#each FORMAT_GROUPS as { group, formats } (group)}
+					<optgroup label={group}>
+						{#each formats as f (f.id)}
+							<option value={f.id}>{f.label}</option>
+						{/each}
+					</optgroup>
+				{/each}
+			</select>
+		</label>
 		<label class="field"
 			>Speed
 			<input
@@ -121,7 +141,7 @@
 		flex-direction: column;
 		gap: 12px;
 	}
-	.upc-input {
+	.code-input {
 		width: 100%;
 		font-family: monospace;
 	}

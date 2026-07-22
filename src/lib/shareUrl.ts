@@ -1,4 +1,5 @@
 import type { Settings } from './types';
+import { isFormatId } from './formats';
 
 const SPEED_MIN = 10;
 const SPEED_MAX = 5000;
@@ -18,6 +19,7 @@ export function encodeShareUrl(codes: string[], settings: Settings): string {
 	params.set('skew', settings.skew ? '1' : '0');
 	params.set('skewmax', String(settings.skewMaxDeg));
 	params.set('seed', String(settings.seed));
+	params.set('fmt', settings.format);
 	return '?' + params.toString();
 }
 
@@ -73,6 +75,10 @@ export function decodeShareUrl(search: string): { codes: string[]; settings: Par
 		if (Number.isInteger(v) && v >= 0 && v <= SEED_MAX) {
 			settings.seed = v;
 		}
+	}
+	const fmtRaw = params.get('fmt');
+	if (fmtRaw !== null && isFormatId(fmtRaw)) {
+		settings.format = fmtRaw;
 	}
 	return { codes, settings };
 }

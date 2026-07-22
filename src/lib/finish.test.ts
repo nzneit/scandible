@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatFinishMessage } from './format';
+import { formatFinishMessage } from './finish';
 
 describe('formatFinishMessage', () => {
 	it('formats the finish copy exactly', () => {

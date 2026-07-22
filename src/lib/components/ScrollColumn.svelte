@@ -10,14 +10,14 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { createScroller, type Scroller } from '$lib/scroller';
-	import type { Settings, UpcEntry } from '$lib/types';
+	import type { Settings, CodeEntry } from '$lib/types';
 
 	let {
 		entries,
 		settings,
 		onFinish
 	}: {
-		entries: UpcEntry[];
+		entries: CodeEntry[];
 		settings: Settings;
 		onFinish?: (summary: { count: number; seconds: number }) => void;
 	} = $props();
@@ -25,6 +25,8 @@
 	let container: HTMLDivElement | undefined;
 	let scroller: Scroller | undefined;
 
+	// The scroller snapshots settings (including format) at mount; format is immutable
+	// during a play session by design — live format switching would require a remount.
 	onMount(() => {
 		if (!container) return;
 		scroller = createScroller(container, entries, settings, onFinish);

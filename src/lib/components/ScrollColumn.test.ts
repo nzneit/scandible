@@ -1,10 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render } from '@testing-library/svelte';
 import ScrollColumn from './ScrollColumn.svelte';
-import { DEFAULT_SETTINGS, type Settings, type UpcEntry } from '$lib/types';
+import { DEFAULT_SETTINGS, type Settings, type CodeEntry } from '$lib/types';
 
-const entry = (value: string, valid: boolean): UpcEntry => ({ raw: value, value, valid });
-const entries: UpcEntry[] = [
+const entry = (value: string, valid: boolean): CodeEntry => ({ raw: value, value, valid });
+const entries: CodeEntry[] = [
 	entry('036000291452', true),
 	entry('bad', false),
 	entry('012345678905', true)

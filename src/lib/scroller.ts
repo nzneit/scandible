@@ -1,7 +1,7 @@
 import { advanceOffset, isAtEnd } from './scrollMath';
 import { renderBarcodeSvg } from './barcode';
 import { buildTransforms } from './transforms';
-import type { Settings, UpcEntry } from './types';
+import type { Settings, CodeEntry } from './types';
 
 const MAX_DELTA_MS = 100;
 
@@ -18,7 +18,7 @@ export interface Scroller {
 
 export function createScroller(
 	container: HTMLElement,
-	entries: UpcEntry[],
+	entries: CodeEntry[],
 	settings: Settings,
 	onFinish?: (summary: { count: number; seconds: number }) => void
 ): Scroller {
@@ -46,7 +46,7 @@ export function createScroller(
 			const item = document.createElement('div');
 			item.className = 'barcode-item';
 			if (transforms) item.style.transform = transforms[i];
-			item.appendChild(renderBarcodeSvg(e));
+			item.appendChild(renderBarcodeSvg(e, settings.format));
 			copy.appendChild(item);
 		});
 		return copy;
