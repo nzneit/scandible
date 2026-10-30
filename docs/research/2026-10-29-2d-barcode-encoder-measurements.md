@@ -328,3 +328,21 @@ Other facts established by the review run:
   one 3,000-char Aztec 238 ms; one 2,331-char QR 63 ms.
 - GitHub Pages (Varnish) returns HTTP 414 for a query string between 8,100 and 9,000 characters;
   a 64,000-character fragment returns 200.
+
+## Appendix C: coherence-review probe (bwip-js 4.11.4, bun, 2026-10-30)
+
+Run after the spec's internal coherence review flagged two fixtures as derived rather than
+measured. Same method as Appendix A (`bwip-js/browser` named encoders, `drawingSVG()` with
+`init` overridden, `scale: 1`, `padding: 8`; `init` receives the size without padding).
+
+| payload       | encoder | options                      | init size | modules                 | result                                                                        |
+| ------------- | ------- | ---------------------------- | --------- | ----------------------- | ----------------------------------------------------------------------------- |
+| `` (empty)    | qrcode  | default                      | —         | —                       | `ReferenceError: bwip-js: bar code text not specified.`                       |
+| `x` × 2000    | qrcode  | eclevel L, fixedeclevel true | 298×298   | 149×149                 | encodes                                                                       |
+| `x` × 2000    | qrcode  | eclevel M, fixedeclevel true | 338×338   | 169×169                 | encodes                                                                       |
+| `x` × 2000    | qrcode  | eclevel H, fixedeclevel true | —         | —                       | `bwipp.qrcodeNoValidSymbol#27542: Maximum length exceeded or invalid content` |
+| `x` × 900     | pdf417  | eclevel 8, fixedeclevel true | 375×162   | 375 X-modules × 54 rows | 18 data columns by (375 − 69) / 17                                            |
+| `hello world` | qrcode  | eclevel M, fixedeclevel true | 42×42     | 21×21                   | encodes                                                                       |
+
+The `#27542` line number differs from Appendix A's `#27236` for the same error name: BWIPP
+raises `qrcodeNoValidSymbol` from more than one site. Matching on the name only is required.

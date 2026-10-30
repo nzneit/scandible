@@ -3,7 +3,8 @@
 **Date:** 2026-10-30
 **Status:** Approved design, pre-implementation. Spec 1 of a three-spec series (see _Series_).
 Hardened by a five-lens review (codebase fit, adapter verification against the pinned bwip-js,
-ambiguity and testability, forward compatibility and URL state, scanning domain and UX).
+ambiguity and testability, forward compatibility and URL state, scanning domain and UX) and an
+internal coherence review of the revised text.
 **Research:** [`docs/research/2026-10-29-2d-barcode-encoder-evaluation.md`](../../research/2026-10-29-2d-barcode-encoder-evaluation.md)
 decides the encoder. [`docs/research/2026-10-29-2d-barcode-encoder-measurements.md`](../../research/2026-10-29-2d-barcode-encoder-measurements.md)
 ("the measurements file") supplies every fixture value quoted below.
@@ -18,7 +19,7 @@ plainly when the share link no longer fits a QR code and why.
 
 ## Series
 
-The brainstorm decomposed the work into three specs, each with its own plan, in this order:
+The work is decomposed into three specs, each with its own plan, in this order:
 
 1. **This spec — 2D formats.** New encoder, four symbologies, registry generalised past
    JsBarcode, per-entry facts, list-level error correction, share state moved to the URL
@@ -43,10 +44,11 @@ This spec builds these seams for spec 3 and otherwise leaves it alone:
   future symbology with overlapping choice values can never inherit another format's level.
 - **`buildEntry` is the per-row entry point.** It owns cleanup, resolution and validation
   for one token; `parseCodeList` only splits and delegates.
-- **URLs are never rebuilt from entries.** Start, Back and Share link encode the decoded
-  share state (plus live settings), not `CodeEntry`, which is a derived view. ShareLink takes
-  the already-encoded fragment, not the code list, so spec 3's tagged records change one
-  encoder and nothing else.
+- **URLs never read resolved entry state.** Start and Share link encode `rawCodes` (each
+  entry's `raw`, the user's own tokens) plus the live settings; Back encodes the decoded share
+  state plus the live speed. None of them reads `value`, `format`, `options` or `facts` from a
+  `CodeEntry`, which is a derived view. ShareLink takes the already-encoded fragment, not the
+  code list, so spec 3's tagged records change one encoder and nothing else.
 - **The URL codec stays list-level and grows additively.** `codes`, `fmt` and the new `ecc`
   describe one format for the whole list. Spec 3 adds a tagged-record param beside them and
   a `records` field on the decoder's result; the decoder will accept both. Nothing here
@@ -67,8 +69,9 @@ This spec builds these seams for spec 3 and otherwise leaves it alone:
 - **One payload per line, as today.** 2D formats are text formats: newline split only,
   commas are data, newlines inside a payload are not expressible. Multi-line payloads are
   spec 3.
-- **One format per list in textarea mode,** as the July formats spec decided. Spec 3
-  deliberately reverses this for structured mode only.
+- **One format per list in textarea mode,** as the
+  [July formats spec](2026-07-21-barcode-formats-design.md) decided. Spec 3 deliberately
+  reverses this for structured mode only.
 - **Error correction: two honest controls.** A list-level setting whose choices and default
   come from the selected format's descriptor, carried in the URL and applied to rendering
   and validation; and a separate, component-local level selector for the share QR that
@@ -82,8 +85,11 @@ This spec builds these seams for spec 3 and otherwise leaves it alone:
   once the query string passes about 8 KB (measured: 8,100 characters served, 9,000 refused);
   a 64 KB fragment is served because fragments never leave the browser. The decoder keeps
   reading legacy query strings, so every link ever issued keeps working. No length cap and no
-  length warning: Chrome accepts URLs to 2 MB and Firefox to 1,048,576 characters (sourced in
-  the review); other apps may still mangle very long links, which the app cannot detect.
+  length warning: Chrome accepts URLs to 2 MB (Chromium
+  `docs/security/url_display_guidelines/url_display_guidelines.md`) and Firefox to 1,048,576
+  characters (the `network.standard-url.max-length` default in
+  `modules/libpref/init/StaticPrefList.yaml`); other apps may still mangle very long links,
+  which the app cannot detect.
 - **No URL compression.** Measured deflate ratios (12–57 % of URL-encoded size depending on
   entropy) are recorded here for a future spec. Decoding would be async and URLs opaque.
 - **Data Matrix is square**, bwip-js's default. No shape option. PDF417 data-column and row
@@ -91,12 +97,16 @@ This spec builds these seams for spec 3 and otherwise leaves it alone:
 - **No caption under 2D symbols.** Payloads can be long; the validation list already shows
   them. Consequence for testers (no on-screen ordinal) is noted in the README.
 - **Density is a per-descriptor threshold in module columns**, chosen so that a symbol at the
-  threshold has about 3 or more screen pixels per module at the format's width cap on a
-  640-px-class display. Same spirit as the share QR's existing `dense` flag.
-- **Validation memoises encodes.** Every keystroke re-derives the whole list; without a cache
-  a 100-line QR list costs about 260 ms per keystroke (measured, Node). The adapter caches
-  encode results so a keystroke re-encodes only the edited line, and playback reuses the
-  same cache.
+  threshold gets about 3 or more screen pixels per module at its format's width cap: about
+  6 px for matrix codes at 640 px (about 4 px at the 460 px that a 768 px tall viewport's
+  height cap allows) and about 3 px for PDF417 at 960 px (see _Rendering_). Same spirit as the
+  share QR's existing `dense` flag.
+- **Validation memoises encodes, failures included.** Every keystroke re-derives the whole
+  list; without a cache a 100-line QR list costs about 260 ms per keystroke and one
+  over-capacity 3,000-character Aztec attempt about 240 ms (measured, Node). The adapter
+  caches each encode's result or its thrown error, so a keystroke re-encodes only the edited
+  line, valid or not, except on the keystroke after the cache reaches `CACHE_MAX` and is
+  cleared. Playback reuses the same cache.
 - **Known limitation, recorded not mitigated:** on viewports narrower than about 560 px with
   rotation or skew near their 30° maximum, the corners of a 2D symbol can leave the viewport
   (`.play` is `overflow: hidden`). 1D symbols already clip slightly in the same conditions.
@@ -118,7 +128,7 @@ export type FormatId =
 	| 'aztec';
 
 export interface EccChoice {
-	value: string; // stored in Settings.ecc and the `ecc` URL param
+	value: string; // stored in Settings.ecc (see _Entries, options and facts_) and the `ecc` URL param
 	label: string; // short; used in the validation row: "too long for QR Code (level H)"
 	note?: string; // appended to the <option> text in parentheses
 }
@@ -134,6 +144,8 @@ interface DescriptorBase {
 	group: string; // optgroup label
 	numeric: boolean; // true → comma-split + whitespace-strip cleanup default
 	normalize?: (token: string) => string;
+	ecc?: EccOption; // present only when the symbology offers a choice; no jsbarcode row sets it.
+	// Lives on the base so `d.ecc` reads on the union without narrowing.
 }
 
 export interface JsBarcodeDescriptor extends DescriptorBase {
@@ -147,7 +159,6 @@ export interface BwipDescriptor extends DescriptorBase {
 	bcid: 'qrcode' | 'datamatrix' | 'pdf417' | 'azteccode';
 	modulePx: { x: number; y: number }; // px per module at scale 1 (from the BWIPP source)
 	denseAbove: number; // module columns above which facts.dense is true
-	ecc?: EccOption; // present only when the symbology offers a choice
 }
 
 export type FormatDescriptor = JsBarcodeDescriptor | BwipDescriptor;
@@ -168,7 +179,7 @@ All four are `numeric: false`. Error-correction choices, in order:
 | format | value → label (note)                                                                                                                               |
 | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | qr     | `L` → `level L` (`~7% recovery`); `M` → `level M` (`~15% recovery, default`); `Q` → `level Q` (`~25% recovery`); `H` → `level H` (`~30% recovery`) |
-| pdf417 | `auto` → `automatic level` (`recommended`); `0` → `level 0` (`detection only`); `1`…`8` → `level 1`…`level 8`                                      |
+| pdf417 | `auto` → `automatic level` (`recommended, default`); `0` → `level 0` (`detection only`); `1`…`8` → `level 1`…`level 8`                             |
 | aztec  | `10` → `≥10% error correction`; `23` → `≥23% error correction` (`default`); `36` → `≥36% error correction`; `50` → `≥50% error correction`         |
 
 Aztec's number is the share of the symbol reserved for check codewords (ISO recommends 23 %);
@@ -181,8 +192,9 @@ these.
 `FORMAT_GROUPS` renders seven optgroups. `isFormatId` is unchanged. New helpers:
 
 ```ts
-export function isEccChoice(d: FormatDescriptor, value: string): boolean; // d has ecc and value ∈ choices
-export function eccChoice(d: FormatDescriptor, value: string): EccChoice | undefined;
+// `undefined` (an entry's unset `options.ecc`) yields false / undefined.
+export function isEccChoice(d: FormatDescriptor, value: string | undefined): boolean; // d has ecc and value ∈ choices
+export function eccChoice(d: FormatDescriptor, value: string | undefined): EccChoice | undefined;
 ```
 
 **bwip-js import path and types.** Import from the `bwip-js/browser` subpath, whose export entry
@@ -190,30 +202,38 @@ carries its own `types`; verified to type-check under the project's generated ts
 `customConditions` (the bare `bwip-js` specifier does not). The named `raw` export is **not**
 the raw-data API (it is BWIPP's "raw" symbology; its typing is wrong) and must not be used.
 Symbology-specific options (`eclevel`, `fixedeclevel`, `columns`, `version`, `format`, …) are
-untyped in bwip-js; `scale`, `padding` and `includetext` are typed. The adapter builds the
+untyped in bwip-js; `scale` and `padding` are typed. The adapter builds the
 untyped ones in a `Record<string, unknown>` and spreads it, which compiles where an object
 literal fails the excess-property check. `bcid` is required by the `RenderOptions` type and
 ignored at runtime by the named encoders; pass it anyway.
 
 ## Engines — `src/lib/engines/`
 
-Both adapters export the same two functions and `codes.ts` / `barcode.ts` switch on
-`descriptor.engine`:
+Each adapter exports `check` and `render` for its own descriptor type, plus
+`engine: Engine<D> = { check, render }` so the contract is type-checked. `codes.ts` and
+`barcode.ts` narrow on `descriptor.engine` first and call the matching module:
 
 ```ts
 // src/lib/engines/types.ts
+import type { FormatDescriptor } from '$lib/formats';
+import type { SymbolFacts, SymbolOptions } from '$lib/types'; // see _Entries, options and facts_
+
 export type CheckResult =
 	{ valid: true; encoded?: string; facts?: SymbolFacts } | { valid: false; reason?: 'too-long' };
 
-export function check(d: FormatDescriptor, value: string, options: SymbolOptions): CheckResult;
-export function render(d: FormatDescriptor, value: string, options: SymbolOptions): SVGElement;
+/** What every engine module exports, for its own descriptor type. */
+export interface Engine<D extends FormatDescriptor> {
+	check(d: D, value: string, options: SymbolOptions): CheckResult;
+	render(d: D, value: string, options: SymbolOptions): SVGElement;
+}
 ```
 
-- **`src/lib/engines/jsbarcode.ts`** — `check` and `render` are today's `checkCode` body
-  (encoder classes from `jsbarcode/bin/barcodes`, `encoded` transparency, CODE128 sentinel
-  fallback) and today's `renderBarcodeSvg` body, moved. They ignore `options` and return no
-  `facts`. The empty-string guard stays in `codes.ts` (MSI checksum encoders accept `''`).
-- **`src/lib/engines/bwipjs.ts`:**
+- **`src/lib/engines/jsbarcode.ts`** (`Engine<JsBarcodeDescriptor>`) — `check` and `render` are
+  today's `checkCode` body (encoder classes from `jsbarcode/bin/barcodes`, `encoded`
+  transparency, CODE128 sentinel fallback) and today's `renderBarcodeSvg` body, moved. They
+  ignore `options` and return no `facts`. The empty-string guard stays in `codes.ts` (MSI
+  checksum encoders accept `''`).
+- **`src/lib/engines/bwipjs.ts`** (`Engine<BwipDescriptor>`):
 
 ```ts
 import { qrcode, datamatrix, pdf417, azteccode, drawingSVG } from 'bwip-js/browser';
@@ -265,18 +285,31 @@ interface Encoded {
 	rows: number;
 }
 
-const cache = new Map<string, Encoded>();
+type CacheEntry = { ok: true; result: Encoded } | { ok: false; error: unknown };
 
-/** One encode, memoised by bcid + ecc + value. `init(width, height)` on the drawing receives the
- *  symbol's pixel size WITHOUT padding (measured), so module counts are width/modulePx.x and
- *  height/modulePx.y. Spreading drawingSVG() and overriding init is the measured,
- *  tree-shake-friendly way to learn the size; the default export's raw() would pull in every
- *  encoder. drawingSVG's methods are own closure properties, so the spread keeps them working.
- *  Throws whatever bwip-js throws. */
+const cache = new Map<string, CacheEntry>();
+
+/** One encode, memoised by bcid + ecc + value, failures included: an over-capacity line must
+ *  not re-encode on every keystroke. Rethrows the cached error on a hit. The clear at
+ *  CACHE_MAX is crude on purpose: the next keystroke re-encodes the list once. */
 function encode(d: BwipDescriptor, value: string, options: SymbolOptions): Encoded {
 	const key = `${d.bcid}\u0000${options.ecc ?? ''}\u0000${value}`;
-	const hit = cache.get(key);
-	if (hit) return hit;
+	let entry = cache.get(key);
+	if (entry === undefined) {
+		entry = tryEncode(d, value, options);
+		if (cache.size >= CACHE_MAX) cache.clear();
+		cache.set(key, entry);
+	}
+	if (entry.ok) return entry.result;
+	throw entry.error;
+}
+
+/** `init(width, height)` on the drawing receives the symbol's pixel size WITHOUT padding
+ *  (measured), so module counts are width/modulePx.x and height/modulePx.y. Spreading
+ *  drawingSVG() and overriding init is the measured, tree-shake-friendly way to learn the size;
+ *  the default export's raw() would pull in every encoder. drawingSVG's methods are own closure
+ *  properties, so the spread keeps them working. Captures whatever bwip-js throws. */
+function tryEncode(d: BwipDescriptor, value: string, options: SymbolOptions): CacheEntry {
 	let w = 0;
 	let h = 0;
 	const base = drawingSVG();
@@ -290,15 +323,16 @@ function encode(d: BwipDescriptor, value: string, options: SymbolOptions): Encod
 	};
 	const extra: Record<string, unknown> =
 		d.ecc && options.ecc !== undefined ? ECC_OPTIONS[d.bcid](options.ecc) : {};
-	// `...extra` first: the fixed keys below must win over anything the ecc mapping returns.
-	const svg = ENCODERS[d.bcid](
-		{ ...extra, bcid: d.bcid, text: value, scale: 1, padding: QUIET_ZONE_PX },
-		drawing
-	);
-	const result = { svg, cols: w / d.modulePx.x, rows: h / d.modulePx.y };
-	if (cache.size >= CACHE_MAX) cache.clear();
-	cache.set(key, result);
-	return result;
+	try {
+		// `...extra` first: the fixed keys below must win over anything the ecc mapping returns.
+		const svg = ENCODERS[d.bcid](
+			{ ...extra, bcid: d.bcid, text: value, scale: 1, padding: QUIET_ZONE_PX },
+			drawing
+		);
+		return { ok: true, result: { svg, cols: w / d.modulePx.x, rows: h / d.modulePx.y } };
+	} catch (error) {
+		return { ok: false, error };
+	}
 }
 
 function summary(d: BwipDescriptor, cols: number, rows: number): string {
@@ -336,6 +370,8 @@ export function render(d: BwipDescriptor, value: string, options: SymbolOptions)
 	el.setAttribute('height', String(Math.round(vh * k)));
 	return el;
 }
+
+export const engine: Engine<BwipDescriptor> = { check, render };
 ```
 
 Behaviour pinned by tests (see _Testing_): bwip-js throws synchronously and never returns an
@@ -433,21 +469,20 @@ export function parseCodeList(raw: string, format: FormatId, ecc = ''): CodeEntr
   not churn with each spec.
 - **Accepted consequence:** if a descriptor's default ever changes, old links without `ecc`
   render at the new default.
-- **Setup page.** When the selected descriptor has `ecc`, a field renders directly under the
-  Format field:
+- **Setup page.** The page declares `const descriptor = $derived(FORMAT_BY_ID.get(format))`
+  (the existing placeholder lookup reuses it) and `let ecc = $state(initial.ecc)`. When the
+  selected descriptor has `ecc`, a field renders directly under the Format field:
 
 ```svelte
-{#if descriptor.ecc}
+{#if descriptor?.ecc}
+	{@const opt = descriptor.ecc}
 	<label class="field ecc-field"
 		>Error correction
 		<select
 			class="ecc-input"
-			bind:value={
-				() => ecc || descriptor.ecc.defaultValue,
-				(v) => (ecc = v === descriptor.ecc.defaultValue ? '' : v)
-			}
+			bind:value={() => ecc || opt.defaultValue, (v) => (ecc = v === opt.defaultValue ? '' : v)}
 		>
-			{#each descriptor.ecc.choices as c (c.value)}
+			{#each opt.choices as c (c.value)}
 				<option value={c.value}>{c.note ? `${c.label} (${c.note})` : c.label}</option>
 			{/each}
 		</select>
@@ -456,10 +491,12 @@ export function parseCodeList(raw: string, format: FormatId, ecc = ''): CodeEntr
 ```
 
 The field is rendered conditionally, not toggled with `hidden`, because `.field` sets
-`display: flex`, which defeats the UA `[hidden]` rule. The Svelte 5 function binding keeps
-`ecc` canonical. The Format select's binding setter resets `ecc` to `''` when the new format
-does not accept the current value, so the derived settings never transiently pair a format
-with a foreign `ecc`. No `$effect` writes setup state.
+`display: flex`, which defeats the UA `[hidden]` rule. `{@const opt}` exists because a narrowed
+property path (`descriptor.ecc`) does not stay narrowed inside the binding's getter and setter
+arrows. The Svelte 5 function binding keeps `ecc` canonical. The Format select's binding setter
+resets `ecc` to `''` when the new format does not accept the current value or the value is the
+new format's default, so the derived settings never transiently pair a format with a foreign
+or explicit-default `ecc`. No `$effect` writes setup state.
 
 - **Effect.** `ecc` is a field of the `$derived` settings object (so Start and Share URLs carry
   it) and the third argument of `parseCodeList`, so it changes both rendering and the
@@ -468,11 +505,14 @@ with a foreign `ecc`. No `$effect` writes setup state.
 
 ## Validation list — `src/lib/components/ValidationList.svelte`
 
-Rows are a single expression so exact-`textContent` tests stay byte-stable; rows are tested top
-to bottom and the first match wins. `raw` always prints in full (an `…` below abbreviates a
-long payload in this document only). Separator is `' · '` (U+00B7 with single spaces); the
-size glyph is `×` (U+00D7). `label` and `eccChoice` come from `FORMAT_BY_ID.get(entry.format)`
-and `eccChoice(descriptor, entry.options.ecc)`; the component takes no format prop.
+Each row is `<span class="raw">{raw}</span><span class="verdict">{verdict}</span>`, where
+`verdict` is one string expression that starts with a space, so the row's `textContent` is
+exactly the text in the table and exact-`textContent` tests stay byte-stable. The split lets a
+long payload be ellipsised without hiding the verdict. Conditions are tested top to bottom and
+the first match wins. `raw` always prints in full (an `…` below abbreviates a long payload in
+this document only). Separator is `' · '` (U+00B7 with single spaces); the size glyph is `×`
+(U+00D7). `label` and `eccChoice` come from `FORMAT_BY_ID.get(entry.format)` and
+`eccChoice(descriptor, entry.options.ecc)`; the component takes no format prop.
 
 | condition                                                     | text                                                  |
 | ------------------------------------------------------------- | ----------------------------------------------------- |
@@ -483,20 +523,22 @@ and `eccChoice(descriptor, entry.options.ecc)`; the component takes no format pr
 | invalid, `reason === 'too-long'`, no `ecc`                    | `${raw} ✗ too long for ${label}`                      |
 | invalid otherwise                                             | `${raw} ✗ invalid` (unchanged)                        |
 
-`${bytes}` is `1 byte` or `N bytes`. Suffixes, in this order, each present only when true:
-`· UTF-8, no ECI` when `facts.bytes !== value.length`; `· dense` when `facts.dense`. Examples:
+`${bytes}` is `1 byte` or `N bytes`, with `N` printed plainly, no grouping separator
+(`2000 bytes`). Suffixes, in this order, each present only when true and each with its leading
+space: `' · UTF-8, no ECI'` when `facts.bytes !== value.length`; `' · dense'` when `facts.dense`.
+Examples:
 `hello world ✓ · 21×21 modules · 11 bytes`; `hello world ✓ · 2 columns × 8 rows · 11 bytes`;
 `héllo → 日本 ✓ · 25×25 modules · 17 bytes · UTF-8, no ECI`;
 `xxxx… ✗ too long for QR Code (level H)`; `xxxx… ✗ too long for Aztec (≥23% error correction)`;
 `xxxx… ✗ too long for Data Matrix`.
 
 Below the list, `<p class="dense-hint">` with exactly
-`Dense: more than 100 modules across (PDF417: 300), so each module is small on screen. If the scanner misses these, lower error correction, shorten the payload, or go full screen.`
-is rendered when any entry has `facts.dense`, otherwise absent (conditional block).
+`Dense: more than 100 modules across (PDF417: 300), so each module is small on screen. If the scanner misses these, shorten the payload, lower error correction if the format offers it, or go full screen.`
+is rendered when any entry has `facts.dense`, otherwise absent (conditional block). "If the
+format offers it" is there because Data Matrix has no level to lower.
 
-Presentation only, textContent unchanged: each row renders `raw` in one span and the verdict
-and facts in a sibling span so long payloads can be ellipsised without hiding the verdict.
-Row colours change to meet 4.5:1 contrast: valid `#007700` (was `#0a0`); invalid `#c00` stays.
+Presentation only, untested: row colours change to meet 4.5:1 contrast, valid `#007700`
+(was `#0a0`); invalid `#c00` stays.
 
 The arrow row never appears for 2D entries: the bwip-js adapter never sets `encoded`.
 
@@ -515,7 +557,8 @@ export function decodeShareUrl(url: URL): { codes: string[]; settings: Partial<S
   query, and a fragment with `codes` wins over a stale query. Per-parameter leniency is
   unchanged.
 - **Routes.** Both pages call `decodeShareUrl(page.url)` once at init, as today. Start, Back and
-  Share link emit fragment URLs: Start navigates to `resolve('/play') + shareHash`; Back to
+  Share link emit fragment URLs: Start navigates to `resolve('/play') + shareHash` (see
+  _Share link_); Back to
   `resolve('/') + encodeShareUrl(decoded.codes, { ...settings, speedPxPerSec: speed })`, i.e.
   from the decoded share state and the live speed, never from entries. The play page's
   no-valid-codes bounce preserves whichever form it received:
@@ -526,7 +569,7 @@ export function decodeShareUrl(url: URL): { codes: string[]; settings: Partial<S
   path, or editing the fragment in the address bar, is a same-document navigation: SvelteKit
   updates `page.url` but does not remount, and both pages decode once. Each page therefore adds
   a `hashchange` listener in `onMount` that calls `location.reload()`, removed on destroy. Our
-  own `goto` calls use `pushState`, which fires no `hashchange`.
+  own `goto` calls use `pushState` or `replaceState`, neither of which fires `hashchange`.
 - **Removed.** `URL_WARN_LENGTH`, the `.url-warning` element and its copy
   ("Link is long; it may be truncated by some browsers.") are deleted, not reworded.
 - **Known edge, checked in the plan:** SvelteKit runs `decodeURIComponent` on the fragment
@@ -572,11 +615,11 @@ ShareLink:
 - Exact copy, numbers formatted with `new Intl.NumberFormat('en-US')`; `${ecc}` is the share
   level:
   - dense: `This link makes a dense QR code. Hold the phone steady, or share the link itself.`
-  - too long, level is not `L` and `length ≤ QR_CAPACITY_BYTES.L`:
+  - too long, level is not `L` and `length ≤ QR_CAPACITY_BYTES.L` (so level L would hold it):
     `Too long for a QR code at level ${ecc}: this link is ${length} characters and level ${ecc} holds at most ${capacity}. Choose level L, or shorten the list. The link itself still works.`
-  - too long otherwise:
+    e.g. `Too long for a QR code at level M: this link is 2,412 characters and level M holds at most 2,331. Choose level L, or shorten the list. The link itself still works.`
+  - too long otherwise (level `L`, or longer than level L holds):
     `Too long for a QR code: this link is ${length} characters and a QR holds at most 2,953. Shorten the list to share it as a QR. The link itself still works.`
-    e.g. `Too long for a QR code at level M: this link is 3,412 characters and level M holds at most 2,331. Choose level L, or shorten the list. The link itself still works.`
 - The old post-click messages (`QR is dense — …`, `Too many codes for a QR — …`) are gone.
 
 `length` is the share URL's character count; the URL is ASCII after encoding, so characters
@@ -653,29 +696,32 @@ recorded limitation in _Decisions_.
 
 ## Testing
 
-**Fixtures** are measured values from the measurements file (Appendix A and B) at bwip-js
-4.11.4. If a first run disagrees with any of them, implementation stops for a human decision;
-an expected value is never edited to match the code.
+**Fixtures** are measured values from the measurements file (the bwip-js notes in section 2,
+Appendix A, Appendix B and Appendix C) at bwip-js 4.11.4. If a first run disagrees with any of
+them, implementation stops for a human decision; an expected value is never edited to match
+the code.
 
-| payload            | format     | ecc           | expected                                            |
-| ------------------ | ---------- | ------------- | --------------------------------------------------- |
-| `hello world`      | qr         | M             | cols 21, rows 21, bytes 11, `21×21 modules`         |
-| `hello world`      | qr         | H             | cols 25, rows 25                                    |
-| `hello world`      | datamatrix | —             | cols 16, rows 16, `16×16 modules`                   |
-| `hello world`      | aztec      | 23            | cols 19, rows 19                                    |
-| `hello world`      | pdf417     | auto          | cols 103, rows 8, `2 columns × 8 rows`              |
-| `x` × 16           | qr         | L / M / Q / H | cols 21 / 25 / 25 / 29                              |
-| `héllo → 日本`     | qr         | M             | valid, bytes 17, cols 25                            |
-| `line1\nline2`     | qr         | M             | valid, cols 21                                      |
-| `x` × 900          | pdf417     | 8             | valid, cols 375, rows 54 (fixedeclevel honoured)    |
-| `x` × 900          | pdf417     | 0             | valid, cols 273, rows 38                            |
-| `x` × 5000, × 8000 | qr         | M             | invalid, `reason: 'too-long'` (two error names)     |
-| `x` × 3000, × 3200 | datamatrix | —             | invalid, `reason: 'too-long'` (two error names)     |
-| `x` × 1900, × 3000 | pdf417     | auto          | invalid, `reason: 'too-long'` (two error names)     |
-| `x` × 3500, × 5000 | aztec      | 23            | invalid, `reason: 'too-long'` (two error names)     |
-| `x`                | qr         | `X` (direct)  | invalid, no `reason` (`qrcodeInvalidEClevel`)       |
-| `a\uD800b`         | qr         | M             | invalid, no `reason` (`URIError`)                   |
-| `x` × 2000         | aztec      | 23            | valid (lower-case text compacts; not over capacity) |
+| payload            | format     | ecc           | expected                                                                        |
+| ------------------ | ---------- | ------------- | ------------------------------------------------------------------------------- |
+| `` (empty)         | qr         | M             | invalid, no `reason` (`ReferenceError`; `check` called directly)                |
+| `hello world`      | qr         | M             | cols 21, rows 21, bytes 11, `21×21 modules`, not dense                          |
+| `hello world`      | qr         | H             | cols 25, rows 25                                                                |
+| `hello world`      | datamatrix | —             | cols 16, rows 16, `16×16 modules`                                               |
+| `hello world`      | aztec      | 23            | cols 19, rows 19                                                                |
+| `hello world`      | pdf417     | auto          | cols 103, rows 8, `2 columns × 8 rows`                                          |
+| `x` × 16           | qr         | L / M / Q / H | cols 21 / 25 / 25 / 29                                                          |
+| `héllo → 日本`     | qr         | M             | valid, bytes 17, cols 25                                                        |
+| `line1\nline2`     | qr         | M             | valid, cols 21                                                                  |
+| `x` × 900          | pdf417     | 8             | valid, cols 375, rows 54, `18 columns × 54 rows`, dense (fixedeclevel honoured) |
+| `x` × 900          | pdf417     | 0             | valid, cols 273, rows 38                                                        |
+| `x` × 2000         | qr         | L / H         | L: valid, cols 149; H: invalid, `reason: 'too-long'` (`qrcodeNoValidSymbol`)    |
+| `x` × 5000, × 8000 | qr         | M             | invalid, `reason: 'too-long'` (two error names)                                 |
+| `x` × 3000, × 3200 | datamatrix | —             | invalid, `reason: 'too-long'` (two error names)                                 |
+| `x` × 1900, × 3000 | pdf417     | auto          | invalid, `reason: 'too-long'` (two error names)                                 |
+| `x` × 3500, × 5000 | aztec      | 23            | invalid, `reason: 'too-long'` (two error names)                                 |
+| `x`                | qr         | `X` (direct)  | invalid, no `reason` (`qrcodeInvalidEClevel`)                                   |
+| `a\uD800b`         | qr         | M             | invalid, no `reason` (`URIError`)                                               |
+| `x` × 2000         | aztec      | 23            | valid (lower-case text compacts; not over capacity)                             |
 
 - **`engines/bwipjs.test.ts`:** every fixture above through `check`; `render` for `hello world`
   at each format returns an element whose `nodeName` is `svg`, whose `viewBox` is `0 0 58 58`
@@ -684,7 +730,9 @@ an expected value is never edited to match the code.
   `fill=rule`); `bwippErrorName` strips `#NNNNN` and returns `undefined` for a non-BWIPP
   message; `TOO_LONG` contains all twelve names; memoisation — with `bwip-js/browser` mocked
   via `importOriginal` and the encoders wrapped in `vi.fn`, `check` then `render` of the same
-  input calls the encoder once; the uqr cross-check (below); one Vitest file snapshot per
+  input calls the encoder once, and `check` twice on an over-capacity input calls it once; the
+  mocked-encoder tests (parsererror, memoisation) use payloads no other test in the file uses,
+  because the module-level cache persists across tests; the uqr cross-check (below); one Vitest file snapshot per
   format of `render(d, 'hello world', resolveOptions(d, { format: d.id, ecc: '' })).outerHTML`,
   guarding against upstream regressions such as 4.11.3's malformed `fill-rule`.
 - **uqr cross-check (requirement it guards: the eclevel mapping and `fixedeclevel` never make
@@ -705,7 +753,8 @@ an expected value is never edited to match the code.
   returns `{ ecc: '23' }` (list level does not cross formats); `buildEntry('0360 00291452', 'upc', …)`
   gives `raw` unchanged and `value` `036000291452`; `parseCodeList` stamps `format` and
   `options` on every entry; `'x'.repeat(2000)` under `qr` is valid at `L` and `too-long` at `H`;
-  2D tokenisation is newline-only with commas kept; `DEFAULT_SETTINGS.ecc === ''`.
+  2D tokenisation is newline-only with commas kept.
+- **`types.test.ts`:** `DEFAULT_SETTINGS.ecc === ''`.
 - **`shareUrl.test.ts`:** encode starts with `#`; `ecc` appears after `fmt` only for a valid,
   non-default value (`{ format: 'qr', ecc: 'H' }` emits `ecc=H`; `{ format: 'qr', ecc: 'M' }`,
   `{ format: 'aztec', ecc: 'H' }` and `{ format: 'upc', ecc: 'H' }` emit none); decode reads the
@@ -713,54 +762,65 @@ an expected value is never edited to match the code.
   `['b']`; `?codes=1#` → `['1']`); `ecc=H&fmt=qr` round-trips; `ecc=M&fmt=qr`,
   `ecc=auto&fmt=pdf417`, `ecc=H&fmt=upc` and `ecc=Z&fmt=qr` decode with no `ecc` key.
 - **`qr.test.ts`:** `qrStatus` returns `fits`, `dense`, and `too-long` with `ecc`, `length` and
-  `capacity` from the table; `buildQrSvg('x'.repeat(16), 'H')` is a 29-module symbol and `'L'`
-  21; `buildQrSvg` returns `null` over capacity.
+  `capacity` from the table; `buildQrSvg('x'.repeat(16), 'H')` is a 29-module symbol (viewBox
+  33, since uqr's `border: 2` adds two modules per side) and `'L'` 21 (viewBox 25);
+  `buildQrSvg` returns `null` over capacity.
 - **`ShareLink.test.ts`:** the dense and too-long texts, exact, with the expected `length`
   computed from `location.origin + location.pathname + hash` (never hard-coded; jsdom's origin
-  differs from the mocked page URL); `.qr-status` is empty for a one-code list; changing the
-  level select changes the capacity number and the "Choose level L" clause disappears at `L`;
-  too-long click copies but renders no SVG; a level change after a click clears the QR;
-  `.share-url` shows the live URL before any click; no `.url-warning` element exists.
+  differs from the mocked page URL); `.qr-status` is empty for a one-code list and has
+  `role="status"`; the level select's option texts are `L (most capacity)`, `M (default)`, `Q`,
+  `H`; changing the level select changes the capacity number and the "Choose level L" clause
+  disappears at `L`; too-long click copies but renders no SVG; a level change after a click
+  clears the QR; `.share-url` shows the live URL before any click; no `.url-warning` element
+  exists.
 - **`ValidationList.test.ts`:** every row shape in the table above, exact `textContent`,
   including `1 byte`, `· UTF-8, no ECI` and `· dense`; dense hint present/absent; fixtures
   without `encoded` render no arrow.
 - **Route tests, setup:** selecting `qr` validates `hello world` with the facts row, renders
-  `.ecc-input`, and `.ecc-input` is absent for `upc` and `datamatrix`; the select shows
+  `.ecc-input`, and `.ecc-input` is absent for `upc` and `datamatrix`; the placeholder for `qr`
+  is `Paste codes — one per line`; the select shows
   `level M (~15% recovery, default)` when `ecc` is `''`; choosing `level H` then `level M` again
   removes `ecc` from the Start URL; switching from `qr` with `H` to `aztec` resets to the Aztec
   default; the exact Start URL assertion becomes
   `/play#codes=036000291452&speed=60&loop=0&rot=0&rotmax=8&skew=0&skewmax=8&seed=0&fmt=upc`
   and a `qr` + `H` variant ends `&fmt=qr&ecc=H`; the grouped dropdown has 7 optgroups and
   25 options; the setup page prefills from a `#codes=` URL and still from a legacy `?codes=`
-  URL; a dispatched `hashchange` calls `location.reload` (mocked).
+  URL; a dispatched `hashchange` calls `location.reload` (mocked), and not after unmount.
 - **Route tests, play:** a `qr` list renders items with `barcode-item--2d` and
   `barcode-item--qr`, a `upc` list renders neither; Back URL starts with `/#codes=` and is built
   from the decoded codes; `/play#codes=bad` bounces to `/#codes=bad`; the existing
-  `/?codes=bad` → `/?codes=bad` bounce stays; `fmt=qr&ecc=H` with a payload that fits only at
-  `L` bounces; a legacy `?codes=` URL still plays; `hashchange` reloads.
-- **Mechanical-edit inventory (the back-compat gate),** from the line-level review:
+  `/play?codes=bad` → `/?codes=bad` bounce stays; `fmt=qr&ecc=H` with a payload that fits only
+  at `L` bounces; a legacy `?codes=` URL still plays; `hashchange` reloads.
+- **Not tested** (implementation detail or presentation, checked in review instead): the
+  `CACHE_MAX` clear, the valid-row colour, and the exact `"bwip-js": "4.11.4"` pin.
+- **Mechanical-edit inventory (the back-compat gate):**
   - `CodeEntry` fixtures gain `format` and `options: {}`: `ValidationList.test.ts:6,29,39`
     (`'upc'`); `scroller.test.ts:5` and `ScrollColumn.test.ts:6` (`'upc'`); `barcode.test.ts:7`
     (`'upc'`) and `:15` (`'code128'`). These four files are the only constructors of `CodeEntry`.
   - `renderBarcodeSvg` drops its second argument: `scroller.ts:49`, `barcode.test.ts:6,15`.
     `barcode.test.ts` stays as the dispatcher test and adds one `qr` case.
-  - Inline `Settings` literals gain `ecc: ''`: `scroller.test.ts` (eight literals),
-    `shareUrl.test.ts:7,45`, the `+page.svelte` `$derived`. The **expected decoded** settings in
-    `shareUrl.test.ts` do **not** gain `ecc` (the decoder emits no key for the default).
+  - Inline `Settings` literals gain `ecc: ''`: `scroller.test.ts` (eight literals) and
+    `shareUrl.test.ts:7,45`; the `+page.svelte` `$derived` settings object gains the `ecc` state
+    variable (initialised from `initial.ecc`), not a literal. The **expected decoded** settings
+    in `shareUrl.test.ts` do **not** gain `ecc` (the decoder emits no key for the default).
   - `decodeShareUrl` takes a `URL`: `+page.svelte:13`, `play/+page.svelte:14`, and every call in
     `shareUrl.test.ts`.
-  - `formats.test.ts:23-34,38,44-49` narrow on `engine` before reading `jsbarcodeFormat` /
-    `renderOptions`; `:53` `MATRIX` becomes `Partial<Record<FormatId, …>>` or gains the four ids;
-    `:144-147` narrow on `res.valid` before reading `encoded`.
-  - `page.test.ts:51` exact Start URL as above; `:204-209` → 7 optgroups / 25 options;
-    `ShareLink.test.ts:23-36` (two `.url-warning` tests) deleted; `:46-54` and `:56-66` rewritten
-    for the exact dense and too-long texts.
+  - `formats.test.ts:9-19` becomes 25 ids across seven groups (`2D` last); `:23-34,38,44-49`
+    narrow on `engine` before reading `jsbarcodeFormat` / `renderOptions`; `:53` `MATRIX` becomes
+    `Partial<Record<FormatId, …>>` or gains the four ids; `:144-147` narrow on `res.valid` before
+    reading `encoded`.
+  - `page.test.ts:51` exact Start URL as above; `:204-209` → 7 optgroups / 25 options.
+  - `ShareLink.test.ts`: every `render(ShareLink, { codes, settings })` (`:11,16,25,32,39,48,57,69,83`)
+    becomes `render(ShareLink, { hash: encodeShareUrl(codes, SETTINGS) })`; `:23-36` (two
+    `.url-warning` tests) deleted; `:46-54` and `:56-66` rewritten for the exact dense and
+    too-long texts; `:68-91` (the two `rerender` tests) become one test that rerenders with a
+    different `hash`, asserting `.qr-status` `textContent === ''` instead of `hidden` at `:79`.
   - `play/page.test.ts`: Back is computed with `encodeShareUrl`, so no edit for `#`; `:62`
     `'/?codes=bad'` stays; `PLAY_URL` switches to a fragment URL and one legacy `?` case is kept.
   - `qr.test.ts`: `dense` assertions move to `qrStatus`; `buildQrSvg` cases take `ecc` and
     expect `string | null`.
-  - Plain 1D rows, UPC cleanup, scroll maths and transforms keep their existing tests green
-    untouched.
+  - Plain 1D rows, UPC cleanup, scroll maths and transforms keep their existing assertions
+    unchanged apart from the fixture and literal edits above.
 
 ## Verification that fails closed
 
@@ -795,5 +855,6 @@ ratios recorded above). Replacing JsBarcode with bwip-js (future spec; needs an 
 normaliser with parity tests, see the research note). Data Matrix rectangular shape; PDF417
 data-column and row control; GS1/FNC1 variants; Micro QR and rMQR; ECI selection for non-ASCII
 payloads; captions or ordinals under 2D symbols; per-item distortion-aware size caps;
-automatic share-QR level fallback (the reviewed alternative to the share-level select);
+automatic share-QR level fallback (considered and rejected in favour of the share-level
+select, which keeps the level visible);
 automated decode round-trips (no in-tree rasteriser or decoder).
