@@ -231,8 +231,9 @@ export interface Engine<D extends FormatDescriptor> {
 - **`src/lib/engines/jsbarcode.ts`** (`Engine<JsBarcodeDescriptor>`) — `check` and `render` are
   today's `checkCode` body (encoder classes from `jsbarcode/bin/barcodes`, `encoded`
   transparency, CODE128 sentinel fallback) and today's `renderBarcodeSvg` body, moved. They
-  ignore `options` and return no `facts`. The empty-string guard stays in `codes.ts` (MSI
-  checksum encoders accept `''`).
+  ignore `options` and omit the parameter (`noUnusedParameters` is on; a shorter parameter
+  list still satisfies `Engine<D>`, and callers go through the `engine` object), and return no
+  `facts`. The empty-string guard stays in `codes.ts` (MSI checksum encoders accept `''`).
 - **`src/lib/engines/bwipjs.ts`** (`Engine<BwipDescriptor>`):
 
 ```ts
@@ -519,8 +520,8 @@ this document only). Separator is `' · '` (U+00B7 with single spaces); the size
 | valid, no facts, `encoded !== undefined && encoded !== value` | `${raw} ✓ → ${encoded}` (unchanged)                   |
 | valid, no facts                                               | `${raw} ✓` (unchanged)                                |
 | valid, facts                                                  | `${raw} ✓ · ${facts.summary} · ${bytes}` + suffixes   |
-| invalid, `reason === 'too-long'`, descriptor has `ecc`        | `${raw} ✗ too long for ${label} (${eccChoice.label})` |
-| invalid, `reason === 'too-long'`, no `ecc`                    | `${raw} ✗ too long for ${label}`                      |
+| invalid, `reason === 'too-long'`, `eccChoice` defined         | `${raw} ✗ too long for ${label} (${eccChoice.label})` |
+| invalid, `reason === 'too-long'` otherwise                    | `${raw} ✗ too long for ${label}`                      |
 | invalid otherwise                                             | `${raw} ✗ invalid` (unchanged)                        |
 
 `${bytes}` is `1 byte` or `N bytes`, with `N` printed plainly, no grouping separator
@@ -762,9 +763,10 @@ the code.
   `['b']`; `?codes=1#` → `['1']`); `ecc=H&fmt=qr` round-trips; `ecc=M&fmt=qr`,
   `ecc=auto&fmt=pdf417`, `ecc=H&fmt=upc` and `ecc=Z&fmt=qr` decode with no `ecc` key.
 - **`qr.test.ts`:** `qrStatus` returns `fits`, `dense`, and `too-long` with `ecc`, `length` and
-  `capacity` from the table; `buildQrSvg('x'.repeat(16), 'H')` is a 29-module symbol (viewBox
-  33, since uqr's `border: 2` adds two modules per side) and `'L'` 21 (viewBox 25);
-  `buildQrSvg` returns `null` over capacity.
+  `capacity` from the table; `buildQrSvg('x'.repeat(16), 'H')` is a 29-module symbol and `'L'`
+  21, asserted through the SVG's `viewBox`: `0 0 330 330` and `0 0 250 250`, because uqr's
+  `border: 2` adds two modules per side and its default `pixelSize` is 10 (measured against
+  uqr 0.1.3); `buildQrSvg` returns `null` over capacity.
 - **`ShareLink.test.ts`:** the dense and too-long texts, exact, with the expected `length`
   computed from `location.origin + location.pathname + hash` (never hard-coded; jsdom's origin
   differs from the mocked page URL); `.qr-status` is empty for a one-code list and has
@@ -789,8 +791,9 @@ the code.
 - **Route tests, play:** a `qr` list renders items with `barcode-item--2d` and
   `barcode-item--qr`, a `upc` list renders neither; Back URL starts with `/#codes=` and is built
   from the decoded codes; `/play#codes=bad` bounces to `/#codes=bad`; the existing
-  `/play?codes=bad` → `/?codes=bad` bounce stays; `fmt=qr&ecc=H` with a payload that fits only
-  at `L` bounces; a legacy `?codes=` URL still plays; `hashchange` reloads.
+  `/play?codes=bad` → `/?codes=bad` bounce stays; `x` × 2000 under `fmt=qr&ecc=H` bounces and
+  the same list under `ecc=L` plays (measured: fits at L and M, fails at H); a legacy `?codes=`
+  URL still plays; `hashchange` reloads.
 - **Not tested** (implementation detail or presentation, checked in review instead): the
   `CACHE_MAX` clear, the valid-row colour, and the exact `"bwip-js": "4.11.4"` pin.
 - **Mechanical-edit inventory (the back-compat gate):**
