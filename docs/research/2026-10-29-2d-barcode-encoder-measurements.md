@@ -258,3 +258,73 @@ These are not counted as passes:
 - **Type checks:** tsc 7.0.2 was run only for bwip-js and zxing-wasm. The other TypeScript statements come from reading the .d.ts files.
 - **Barcode Bakery Aztec:** only `getDimension` was exercised, not rendering.
 - **rxing PDF417 columns/rows:** no accepted `Pdf417Dimensions` value format was found, so this is unknown rather than proven absent.
+
+## Appendix A: main-session probes (bwip-js 4.11.4, bun 1.3.14, 2026-10-29/30)
+
+Named encoders via `drawingSVG()`, `scale: 1`, no `padding` unless stated. Module counts use
+2 px per module for QR, Data Matrix and Aztec, 1 px per X-module and 3 px per row for PDF417.
+
+| payload                   | encoder    | options                      | viewBox | modules                 |
+| ------------------------- | ---------- | ---------------------------- | ------- | ----------------------- |
+| `hello world`             | qrcode     | default (M)                  | 42×42   | 21×21                   |
+| `hello world`             | qrcode     | eclevel L / M / Q            | 42×42   | 21×21                   |
+| `hello world`             | qrcode     | eclevel H                    | 50×50   | 25×25                   |
+| `hello world`             | qrcode     | eclevel M, fixedeclevel true | 42×42   | 21×21                   |
+| `hello world`             | datamatrix | default                      | 32×32   | 16×16                   |
+| `hello world`             | pdf417     | default (auto)               | 103×24  | 103 X-modules × 8 rows  |
+| `hello world`             | azteccode  | default (23)                 | 38×38   | 19×19                   |
+| `héllo → 日本` (17 bytes) | qrcode     | default                      | 50×50   | 25×25                   |
+| `line1\nline2`            | qrcode     | default                      | 42×42   | 21×21                   |
+| `x` × 900                 | pdf417     | eclevel 8, fixedeclevel true | 375×162 | 375 X-modules × 54 rows |
+| `x` × 600                 | pdf417     | eclevel 8, fixedeclevel true | 341×153 | 341 X-modules × 51 rows |
+| `x` × 900                 | pdf417     | eclevel 0, fixedeclevel true | 273×114 | 273 X-modules × 38 rows |
+
+Errors observed in the same session (all thrown synchronously as `Error`):
+
+| payload    | encoder    | message prefix                                                                  |
+| ---------- | ---------- | ------------------------------------------------------------------------------- |
+| `x` × 5000 | qrcode     | `bwipp.qrcodeNoValidSymbol#27236: Maximum length exceeded or invalid content`   |
+| `x` × 3000 | datamatrix | `bwipp.datamatrixTooMuchData#25674: The input data exceeds the symbol capacity` |
+| `x` × 3000 | pdf417     | `bwipp.pdf417inputTooLong#22902: The input data is too long`                    |
+| `x` × 1900 | pdf417     | `bwipp.pdf417dataTooLong#23301: The data is too long`                           |
+| `x` × 5000 | azteccode  | `bwipp.azteccodeInputTooLong#30019: The input data is too long`                 |
+| `x` × 2000 | azteccode  | no error (encodes; lower-case text compacts well in Aztec)                      |
+| `` (empty) | any        | `bwip-js: bar code text not specified.` (`ReferenceError`)                      |
+
+`grep -c` on `dist/bwipp.mjs` finds every one of these names present: qrcodeNoValidSymbol,
+qrcodeInputTooLong, qrcodeInputTooLarge, datamatrixTooMuchData, datamatrixInputTooLong,
+datamatrixNoValidSymbol, pdf417inputTooLong, pdf417dataTooLong, pdf417insufficientCapacity,
+azteccodeInputTooLong, azteccodeInputTooLarge, aztecNoValidSymbol. `fixedeclevel` is read by the
+pdf417 and qrcode encoders in the same file.
+
+## Appendix B: review-run measurements (Opus review agents, 2026-10-30)
+
+Over-capacity error names by payload length, `x` payloads, default options (digits, `é` and `A`
+payloads gave the same bands):
+
+| encoder    | encodes up to | first error name (band)             | second error name (band)              |
+| ---------- | ------------- | ----------------------------------- | ------------------------------------- |
+| qrcode     | 2000          | `qrcodeNoValidSymbol` (2400–7089)   | `qrcodeInputTooLong` (7100–30100)     |
+| datamatrix | 2000          | `datamatrixTooMuchData` (2400–3000) | `datamatrixInputTooLong` (3200–30100) |
+| pdf417     | 1800          | `pdf417dataTooLong` (1900–2700)     | `pdf417inputTooLong` (2800–30100)     |
+| azteccode  | 3000          | `aztecNoValidSymbol` (3200–4729)    | `azteccodeInputTooLong` (4800–30100)  |
+
+Other facts established by the review run:
+
+- `drawingSVG()` returns a plain object whose methods are own closure properties; `init` is called
+  at runtime as `init(width, height, 1, 1)` and its type is `init(width: number, height: number): void`.
+- `padding` changes the viewBox and never the `init()` width/height: QR `hello world` viewBox is
+  42×42 at padding 0 and 58×58 at padding 8. The viewBox attribute is always exactly `0 0 W H`.
+- `includetext` has no effect on these four symbologies, and glyphs are drawn as `<path>`, never `<text>`.
+- A lone surrogate in the input (`'a\uD800b'`) throws `URIError: URI malformed` for all four.
+- bwip-js 4.11.3 emits `fill=rule="evenodd"`; parsed with `DOMParser`, that yields a `parsererror` root.
+- Import from `bwip-js/browser` type-checks under the project's generated tsconfig (moduleResolution
+  bundler, verbatimModuleSyntax) with no customConditions; the bare `bwip-js` specifier gives TS2307.
+- SvelteKit production build with the four encoders: route chunk 262.48 kB, 92.48 kB gzip; no
+  `code128` or `ean13` strings in the chunk.
+- Headless Chromium and Firefox at 1024×768: a QR with viewBox 66×66 under
+  `max-width: min(90vw, 640px); max-height: 60vh; width: auto; height: auto` renders 460.8×460.8 px.
+- Warm Node/V8 timings: 100 × 51-char QR 258 ms; Data Matrix 104 ms; PDF417 85 ms; Aztec 129 ms;
+  one 3,000-char Aztec 238 ms; one 2,331-char QR 63 ms.
+- GitHub Pages (Varnish) returns HTTP 414 for a query string between 8,100 and 9,000 characters;
+  a 64,000-character fragment returns 200.
