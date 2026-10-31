@@ -839,7 +839,10 @@ payload, once, with the device model, firmware and read mode recorded.
    summary; a speed sweep to the highest speed at which every symbol reads.
 2. **Decode the error-correction extremes** with a decoder that reports the level (a ZXing-based
    phone app suffices): QR `L` and `H`, Aztec `10` and `50`, PDF417 `0`, `8` and `auto`. The
-   reported level must equal the label. No encoder output was decoded during research.
+   reported level must equal the label: the letter for QR, the number for PDF417 `0` and `8`.
+   For PDF417 `auto` record the level BWIPP chose (any value passes once the symbol decodes).
+   For Aztec the reported percentage must be at least the label's minimum, since `≥10%` is a
+   floor BWIPP may exceed. No encoder output was decoded during research.
 3. **Browser checks** in Chromium and Firefox, desktop and a 390 px phone: aspect preserved
    under both caps; PDF417 uses its wider cap; quiet zone intact under maximum rotation and
    skew on desktop; record the clipping behaviour on the phone at 8°/8° and 30°/30°; paste a

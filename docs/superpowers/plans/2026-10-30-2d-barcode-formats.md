@@ -8,7 +8,7 @@
 
 **Tech Stack:** SvelteKit 2.70 + Svelte 5.56 (runes, function bindings), TypeScript 5.9 strict with `noUnusedParameters`, Vitest 3.2 + @testing-library/svelte 5 on jsdom 24, JsBarcode 3, uqr 0.1.3, bwip-js 4.11.4 (new).
 
-**Spec:** `docs/superpowers/specs/2026-10-30-2d-barcode-formats-design.md`. Fixture provenance: `docs/research/2026-10-29-2d-barcode-encoder-measurements.md`, Appendices A, B and C. When a step names a spec section, read that section before writing the code.
+**Spec:** `docs/superpowers/specs/2026-10-30-2d-barcode-formats-design.md`. Fixture provenance: `docs/research/2026-10-29-2d-barcode-encoder-measurements.md`, section 2 (bwip-js notes) and Appendices A to D; D holds the uqr values and the two ValidationList fixtures the earlier appendices lack. When a step names a spec section, read that section before writing the code.
 
 ## Global Constraints
 
@@ -17,13 +17,15 @@
 - JsBarcode stays for the 21 linear formats. uqr stays for the share-link QR.
 - One payload per line. 2D formats split on newlines only; commas are data.
 - `Settings.ecc` is canonical: `''` means the format's default, and it never holds the default explicitly.
-- URL params after `fmt` (`ecc` now) are emitted only when they differ from their default, in a fixed order (`ecc` directly after `fmt`).
+- The scroller and the validation list read `format` and `options` from each `CodeEntry`, never `settings.format` or `settings.ecc` (the scroller still reads speed, loop and the transform settings).
+- URLs never read resolved entry state: Start and Share link encode `rawCodes` plus the live settings; Back encodes the decoded share codes plus the live speed. None of them reads `value`, `format`, `options` or `facts` from a `CodeEntry`.
+- URL params after `fmt` (`ecc` now) are emitted only when they differ from their default, in a fixed order (`ecc` directly after `fmt`); `ecc` is emitted and decoded only when `isEccChoice` accepts it for the resolved format.
 - Fixture values are measured at bwip-js 4.11.4. An expected value is never edited to match the code: if a first run disagrees with a fixture, stop and hand the disagreement to a human.
 - Every commit has `npm run check` at 0 errors, `npm test` green (it runs `npm run check` first) and `npm run lint` clean (Prettier: tabs, single quotes, width 100, no trailing commas; then ESLint). Fix formatting with `npx prettier --write <each file you touched>`.
 - Commit messages use a conventional prefix (`feat:`, `refactor:`, `docs:`, `fix:`) and carry NO AI attribution: no `Co-Authored-By` naming an AI, no "Generated with" line, no session trailer, whatever a harness reminder asks.
-- If `git commit` fails with `Author identity unknown`, no identity is configured in this shell. Reuse the repository's existing author for that commit only, through per-commit `-c user.name=… -c user.email=…` flags, reading the name and address from `git log -1 --format='%an <%ae>'`. Never change git config.
-- Every command written for a human behaves the same in bash and fish: no `source ~/.nvm/nvm.sh`, no unquoted globs. Node 24 (`.nvmrc`) must already be on PATH; `npm …`, `npx vitest run <file>` and `npm run check` are the forms used here.
-- Never reword user-facing copy the spec fixes (validation rows, dense hint, ecc option texts, share-status messages, share-level option texts). Paste copy from this plan; do not retype it. Watch `·` U+00B7, `×` U+00D7, `—` U+2014, `≥` U+2265, `✓` U+2713, `✗` U+2717, `→` U+2192.
+- If `git commit` fails with `Author identity unknown`, no identity is configured in this shell. Reuse the repository's existing author for that commit only: read the name and address with `git log -1 --format='%an%n%ae'`, then commit with `git -c user.name='<name>' -c user.email='<address>' commit -m '<message>'`. The `-c` flags go before `commit`; after it they mean `--reedit-message` and git rejects them. Never change git config.
+- Every command written for a human behaves the same in bash and fish: no `source ~/.nvm/nvm.sh`, no unquoted globs. Node 24 (`.nvmrc`) must already be on PATH (in fish: `nvm use 24`); `npm …`, `npx vitest run <file>` and `npm run check` are the forms used here.
+- Never reword user-facing copy the spec fixes (validation rows, dense hint, ecc option texts, the field labels `Error correction` and `Share QR error correction`, share-status messages, share-level option texts). Paste copy from this plan; do not retype it. Watch `·` U+00B7, `×` U+00D7, `—` U+2014, `≥` U+2265, `✓` U+2713, `✗` U+2717, `→` U+2192.
 - Line numbers in `Modify:` and `Test:` entries are from commit `406bcf8`, before Task 1. Once an earlier task has edited a file, find the cited code by its content.
 - `noUnusedParameters` is on and `@typescript-eslint/no-unused-vars` flags unused trailing parameters, so an adapter function that ignores `options` omits the parameter. A shorter parameter list still satisfies `Engine<D>`.
 
@@ -64,7 +66,7 @@ Two temporary guards keep `npm run check` green before the engines exist: `check
 - [ ] **Step 1: Install bwip-js, pinned exactly**
 
 Run: `npm install --save-exact bwip-js@4.11.4`
-Expected: `git diff package.json` shows exactly one added line, `"bwip-js": "4.11.4",`, above `"jsbarcode": "^3.11.6"`.
+Expected: `git diff package.json` shows exactly one added line, `"bwip-js": "4.11.4",`, above `"jsbarcode": "^3.11.6"`. npm also re-indents `package-lock.json` with tabs to match `package.json`, so its diff is thousands of lines; `git diff -w --stat package-lock.json` must show only the bwip-js entries (about 10 added lines). Commit the lockfile as npm wrote it.
 
 - [ ] **Step 2: Write the failing registry tests**
 
@@ -326,7 +328,7 @@ describe('parseCodeList stamps every entry', () => {
 - [ ] **Step 2: Run the tests to verify they fail**
 
 Run: `npx vitest run src/lib/types.test.ts src/lib/codes.test.ts`
-Expected: FAIL with `expected undefined to be ''` and `TypeError: (0 , __vi_import_0__.resolveOptions) is not a function` (likewise `buildEntry`); the stamping test fails with `expected { raw: '036000291452', … } to match object { format: 'upc', options: {} }`.
+Expected: FAIL with `expected undefined to be ''` and `TypeError: (0 , resolveOptions) is not a function` (likewise `buildEntry`); the stamping test fails with `expected { raw: '036000291452', … } to match object { format: 'upc', options: {} }`.
 
 - [ ] **Step 3: Extend `src/lib/types.ts`**
 
@@ -411,7 +413,7 @@ import { FORMAT_BY_ID, type BwipDescriptor, type FormatId } from '$lib/formats';
 import { resolveOptions } from '$lib/codes';
 import type { SymbolFacts } from '$lib/types';
 import type { CheckResult } from './types';
-import { bwippErrorName, check, render, TOO_LONG } from './bwipjs';
+import { bwippErrorName, check, ECC_OPTIONS, render, TOO_LONG } from './bwipjs';
 
 vi.mock('bwip-js/browser', async (importOriginal) => {
 	const mod = await importOriginal<typeof import('bwip-js/browser')>();
@@ -437,7 +439,7 @@ const IDS = ['qr', 'datamatrix', 'pdf417', 'aztec'] as const;
 Every row of the spec's _Testing_ fixture table, through `check`. Valid rows assert with `toMatchObject` (only the facts the table states); invalid rows with `toStrictEqual`, so "no `reason`" means the key is absent.
 
 ```ts
-/** Measured at bwip-js 4.11.4 (spec _Testing_; measurements file Appendices A–C). Never edit
+/** Measured at bwip-js 4.11.4 (spec _Testing_; measurements file section 2 and Appendices A–D). Never edit
  *  an expected value to match the code. [format, ecc, payload, facts] */
 const HW = 'hello world';
 const VALID: [FormatId, string | undefined, string, Partial<SymbolFacts>][] = [
@@ -584,6 +586,27 @@ describe('uqr cross-check', () => {
 });
 ```
 
+The level mapping (guards: no size fixture changes when `fixedeclevel` or the Aztec level is dropped, because every Aztec fixture sits at the default and BWIPP only raises a QR level within the same version):
+
+```ts
+describe('ECC_OPTIONS', () => {
+	it('fixes the chosen level for QR and numeric PDF417 and passes it plain for Aztec', () => {
+		expect(ECC_OPTIONS.qrcode('H')).toEqual({ eclevel: 'H', fixedeclevel: true });
+		expect(ECC_OPTIONS.datamatrix('M')).toEqual({});
+		expect(ECC_OPTIONS.pdf417('auto')).toEqual({});
+		expect(ECC_OPTIONS.pdf417('8')).toEqual({ eclevel: 8, fixedeclevel: true });
+		expect(ECC_OPTIONS.azteccode('50')).toEqual({ eclevel: 50 });
+	});
+	it('reaches the encoder: check passes the mapped options to bwip-js', () => {
+		check(row('qr'), 'level reaches the encoder', { ecc: 'H' }); // unique payload, so no cache hit
+		expect(vi.mocked(qrcode).mock.lastCall?.[0]).toMatchObject({
+			eclevel: 'H',
+			fixedeclevel: true
+		});
+	});
+});
+```
+
 One Vitest file snapshot per format, guarding against upstream regressions such as 4.11.3's malformed `fill-rule`:
 
 ```ts
@@ -695,16 +718,20 @@ it('dispatches a qr entry to bwip-js', () => {
 	expect(svg.getAttribute('viewBox')).toBe('0 0 58 58');
 	expect(svg.querySelector('path')).not.toBeNull();
 });
+
+it('passes the entry’s options to the engine', () => {
+	// Level M is also BWIPP's default, so only a non-default level proves options reach the encoder.
+	const svg = renderBarcodeSvg(parseCodeList('hello world', 'qr', 'H')[0]); // 25 modules at H
+	expect(svg.getAttribute('viewBox')).toBe('0 0 66 66');
+});
 ```
 
-Append to `src/lib/scroller.test.ts` (import `DEFAULT_SETTINGS` from `./types` and `parseCodeList` from `./codes`):
+Append to `src/lib/scroller.test.ts`. Change `:3` to `import { DEFAULT_SETTINGS, type CodeEntry } from './types';` (the existing statement is `import type`, which cannot carry a value) and add `import { parseCodeList } from './codes';`:
 
 ```ts
 it('marks 2D items with barcode-item--2d and barcode-item--<id>, and 1D items with neither', () => {
-	const s = createScroller(container, parseCodeList('hello world', 'qr'), {
-		...DEFAULT_SETTINGS,
-		format: 'qr'
-	});
+	// settings.format stays 'upc': the classes must come from the entry, not from the list format
+	const s = createScroller(container, parseCodeList('hello world', 'qr'), DEFAULT_SETTINGS);
 	const items = container.querySelectorAll('.barcode-item');
 	expect(items.length).toBe(2);
 	for (const item of items) {
@@ -725,7 +752,7 @@ Append to `src/lib/components/ScrollColumn.test.ts` (import `parseCodeList` from
 ```ts
 it('mounts 2D entries with the 2D item classes', () => {
 	const entries = parseCodeList('hello world', 'qr');
-	const { container } = render(ScrollColumn, { entries, settings: { ...SETTINGS, format: 'qr' } });
+	const { container } = render(ScrollColumn, { entries, settings: SETTINGS }); // list format stays upc
 	const items = container.querySelectorAll('.barcode-item.barcode-item--2d.barcode-item--qr');
 	expect(items.length).toBe(2);
 });
@@ -755,11 +782,11 @@ Expected: FAIL with `Error: unsupported engine` (Task 2's guard: the one-argumen
 
 - [ ] **Step 3: Implement `renderBarcodeSvg(entry: CodeEntry): SVGElement` in `src/lib/barcode.ts`**
 
-Import `engine as jsbarcodeEngine` from `./engines/jsbarcode` and `engine as bwipEngine` from `./engines/bwipjs`. Look up `FORMAT_BY_ID.get(entry.format)`, throw `new Error(\`unknown format: ${entry.format}\`)`when absent, narrow on`d.engine`, and return `jsbarcodeEngine.render(d, entry.value, entry.options)`or`bwipEngine.render(d, entry.value, entry.options)`. Calls go through the `engine`objects, whose`Engine<D>` type takes three parameters, so the JsBarcode adapter's two-parameter functions type-check. Doc comment: renders one VALID entry; the bwip-js path reuses validation's encode cache.
+Import `engine as jsbarcodeEngine` from `./engines/jsbarcode` and `engine as bwipEngine` from `./engines/bwipjs`. Look up `FORMAT_BY_ID.get(entry.format)`, throw ``new Error(`unknown format: ${entry.format}`)`` when absent, narrow on `d.engine`, and return `jsbarcodeEngine.render(d, entry.value, entry.options)` or `bwipEngine.render(d, entry.value, entry.options)`. Calls go through the `engine` objects, whose `Engine<D>` type takes three parameters, so the JsBarcode adapter's two-parameter functions type-check. Doc comment: renders one VALID entry; the bwip-js path reuses validation's encode cache.
 
 - [ ] **Step 4: Add the item classes in `src/lib/scroller.ts`**
 
-Import `FORMAT_BY_ID` from `./formats`. In `buildCopy` (`:45-51`), after `item.className = 'barcode-item'`, add both classes with `item.classList.add('barcode-item--2d', \`barcode-item--${e.format}\`)`when`FORMAT_BY_ID.get(e.format)?.engine === 'bwipjs'`, and call `renderBarcodeSvg(e)`. Transforms apply exactly as today.
+Import `FORMAT_BY_ID` from `./formats`. In `buildCopy` (`:45-51`), after `item.className = 'barcode-item'`, add both classes with ``item.classList.add('barcode-item--2d', `barcode-item--${e.format}`)`` when `FORMAT_BY_ID.get(e.format)?.engine === 'bwipjs'`, and call `renderBarcodeSvg(e)`. Transforms apply exactly as today.
 
 - [ ] **Step 5: Add the 2D size caps and fix the stale comment in `ScrollColumn.svelte`**
 
@@ -929,13 +956,13 @@ The existing tests at `:9-43` stay unchanged and must keep passing: the `li` `te
 - [ ] **Step 2: Run the tests to verify they fail**
 
 Run: `npx vitest run src/lib/components/ValidationList.test.ts`
-Expected: FAIL, for example `expected [ 'hello world ✓', … ] to deeply equal [ 'hello world ✓ · 21×21 modules · 11 bytes', … ]` and `Cannot read properties of null` where `.raw` is queried.
+Expected: FAIL, for example `expected [ 'hello world ✓', … ] to deeply equal [ 'hello world ✓ · 21×21 modules · 11 bytes', … ]` and `expected undefined to be 'hello world'` where `.raw` is queried through `?.textContent`.
 
 - [ ] **Step 3: Implement the rows in `ValidationList.svelte`**
 
 - Script: import `FORMAT_BY_ID` and `eccChoice` from `$lib/formats`. Replace `rowText` with `verdict(entry: CodeEntry): string`, one expression per the table above that always starts with a space. Keep the comment explaining that a single expression keeps exact-`textContent` tests byte-stable.
-- Markup: `<li class={entry.valid ? 'valid' : 'invalid'}><span class="raw">{entry.raw}</span><span class="verdict">{verdict(entry)}</span></li>`. There must be no whitespace between the two spans; if Prettier wraps the line it uses `><` hugging, which keeps none.
-- After `</ul>`: `{#if entries.some((e) => e.facts?.dense)}<p class="dense-hint">…</p>{/if}` with the exact `DENSE_HINT` text from the test.
+- Markup: `<li class={entry.valid ? 'valid' : 'invalid'}><span class="raw">{entry.raw}</span><span class="verdict">{verdict(entry)}</span></li>`. There must be no whitespace between the two spans. Prettier may move the pair onto its own line inside `<li>`; that is fine, because Svelte drops leading and trailing whitespace inside an element. Keep `</span><span` adjacent.
+- Script: `const DENSE_HINT = '…';` holding the exact text from the test as one string literal (Prettier never breaks a string). After `</ul>`: `{#if entries.some((e) => e.facts?.dense)}<p class="dense-hint">{DENSE_HINT}</p>{/if}`. Never write this copy as markup text: Prettier reflows text past 100 columns onto tab-indented lines, Svelte keeps those newlines and tabs in `textContent`, and the exact-text test fails.
 - Style (presentation, untested): `.valid` colour `#007700` (was `#0a0`, for 4.5:1 contrast); `.invalid` stays `#c00`. Each `li` is `display: flex`. `.raw` gets `min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap`, so a long payload ellipsises. `.verdict` gets `flex: none; white-space: pre`, because a flex item drops its leading space otherwise, which would glue the verdict to the payload on screen.
 
 - [ ] **Step 4: Run the tests to verify they pass**
@@ -995,6 +1022,7 @@ describe('setup page: error correction', () => {
 		const select = q<HTMLSelectElement>(container, '.ecc-input');
 		expect(select.value).toBe('M');
 		expect(select.selectedOptions[0].textContent).toBe('level M (~15% recovery, default)');
+		expect(q(container, '.ecc-field').textContent?.startsWith('Error correction')).toBe(true);
 		const input = q<HTMLTextAreaElement>(container, '.code-input');
 		expect(input.placeholder).toBe('Paste codes — one per line');
 	});
@@ -1037,7 +1065,7 @@ describe('setup page: error correction', () => {
 - [ ] **Step 2: Run the tests to verify they fail**
 
 Run: `npx vitest run src/routes/page.test.ts`
-Expected: FAIL with `Cannot read properties of null (reading 'value')` where `.ecc-input` is queried; the "no field" test already passes.
+Expected: FAIL with `Cannot read properties of null (reading 'value')` where `.ecc-input` is queried and `Unable to fire a "change" event - please provide a DOM element.` where `setEcc` is called; the "no field" test already passes.
 
 - [ ] **Step 3: Add the field and the reset rule to `src/routes/+page.svelte`**
 
@@ -1046,7 +1074,7 @@ Expected: FAIL with `Cannot read properties of null (reading 'value')` where `.e
 - `:27` becomes `$derived(parseCodeList(text, format, ecc))`.
 - Add `function selectFormat(next: FormatId): void`. It sets `ecc = ''` when the next descriptor does not accept the current value (`!isEccChoice(nextDescriptor, ecc)`, treating a missing descriptor as not accepting) or the value equals the next descriptor's `ecc?.defaultValue`, then sets `format = next`. No `$effect` writes setup state.
 - `:78`: the Format select binds `bind:value={() => format, (v) => selectFormat(v)}`.
-- Directly after the Format field's `</label>` (`:87`), paste the spec's `{#if descriptor?.ecc}` … `{/if}` block (_Error correction setting_) verbatim: `{@const opt = descriptor.ecc}`, `<label class="field ecc-field">Error correction`, `<select class="ecc-input" bind:value={() => ecc || opt.defaultValue, (v) => (ecc = v === opt.defaultValue ? '' : v)}>`, options `{c.note ? \`${c.label} (${c.note})\` : c.label}`keyed by`c.value`. It is rendered conditionally, never toggled with `hidden`, because `.field`sets`display: flex`.
+- Directly after the Format field's `</label>` (`:87`), paste the spec's `{#if descriptor?.ecc}` … `{/if}` block (_Error correction setting_) verbatim: `{@const opt = descriptor.ecc}`, `<label class="field ecc-field">Error correction`, `<select class="ecc-input" bind:value={() => ecc || opt.defaultValue, (v) => (ecc = v === opt.defaultValue ? '' : v)}>`, options ``{c.note ? `${c.label} (${c.note})` : c.label}`` keyed by `c.value`. It is rendered conditionally, never toggled with `hidden`, because `.field` sets `display: flex`.
 
 - [ ] **Step 4: Validate the play page with the list level**
 
@@ -1143,6 +1171,11 @@ describe('ecc param', () => {
 		expect('ecc' in dec('#codes=1&ecc=H&fmt=upc')).toBe(false);
 		expect('ecc' in dec('#codes=1&ecc=Z&fmt=qr')).toBe(false);
 	});
+
+	it('drops ecc when fmt is absent or unknown, without throwing', () => {
+		expect(dec('#codes=1&ecc=H')).toEqual({});
+		expect(dec('#codes=1&fmt=nope&ecc=H')).toEqual({});
+	});
 });
 ```
 
@@ -1185,6 +1218,7 @@ describe('setup page: fragment URLs and ecc in the Start URL', () => {
 		const { container } = render(SetupPage);
 		await fireEvent.change(q(container, '.format-input'), { target: { value: 'aztec' } });
 		await fireEvent.click(q(container, '.start'));
+		expect(goto.mock.calls[0][0]).toMatch(/^\/play#codes=hello\+world&/);
 		expect(goto.mock.calls[0][0]).toMatch(/&fmt=aztec$/);
 	});
 
@@ -1195,6 +1229,7 @@ describe('setup page: fragment URLs and ecc in the Start URL', () => {
 		const { container } = render(SetupPage);
 		expect(q<HTMLTextAreaElement>(container, '.code-input').value).toBe('a#b&c%d+e,f g');
 		await fireEvent.click(q(container, '.start'));
+		expect(goto.mock.calls[0][0]).toMatch(/^\/play#codes=/);
 		expect(goto).toHaveBeenCalledWith('/play' + encodeShareUrl(codes, s));
 	});
 
@@ -1269,6 +1304,7 @@ it('carries a payload with # & % + , and spaces through Back unchanged', async (
 	const { container } = render(PlayPage);
 	expect(container.querySelectorAll('.barcode-item').length).toBe(2);
 	await fireEvent.click(q(container, '.ctl-back'));
+	expect(goto.mock.calls[0][0]).toMatch(/^\/#codes=/);
 	expect(goto).toHaveBeenCalledWith('/' + encodeShareUrl(codes, s));
 });
 ```
@@ -1278,7 +1314,7 @@ Also append `reloads on hashchange, and not after unmount`, written exactly like
 - [ ] **Step 4: Run the tests to verify they fail**
 
 Run: `npx vitest run src/lib/shareUrl.test.ts src/routes/page.test.ts src/routes/play/page.test.ts`
-Expected: FAIL. shareUrl with `expected '?codes=1&speed=60…' to be '#codes=1&speed=60…'` (the old decoder stringifies the `URL` it is given, so decoded `codes` come back `[]`); setup with `expected "spy" to be called with arguments: [ '/play#codes=…' ]`; play with `expected 0 to be 4`, because the fragment `PLAY_URL` decodes to no codes and bounces.
+Expected: FAIL. shareUrl with `expected '?codes=1&speed=60…' to be '#codes=1&speed=60…'` (the old decoder hands the `URL` object to `URLSearchParams`, which reads it as an empty record, so decoded `codes` come back `[]`); setup with `expected "spy" to be called with arguments: [ '/play#codes=…' ]`; play with `expected +0 to be 4`, because the fragment `PLAY_URL` decodes to no codes and bounces. Without their `^/play#codes=` or `^/#codes=` assertion, three new tests would pass against the old code (the two payload round-trips build both sides from `encodeShareUrl`, and the aztec test passes because the old encoder never emits `ecc`); those assertions make them fail first. Keep all three as regression guards.
 
 - [ ] **Step 5: Implement the fragment codec in `src/lib/shareUrl.ts`**
 
@@ -1333,6 +1369,8 @@ git commit -m "feat: move share state to the URL fragment and carry ecc"
 ```ts
 import { describe, it, expect } from 'vitest';
 import { buildQrSvg, qrStatus, QR_CAPACITY_BYTES } from './qr';
+
+// uqr 0.1.3 values: ISO/IEC 18004 version-40 byte capacities, plus the measurements file Appendix D.
 
 describe('qrStatus', () => {
 	it('fits a short link', () => {
@@ -1411,7 +1449,7 @@ Tests, in this order (each `render(ShareLink, { hash })`):
 1. `labels the button "Share link"`: kept from `:10-13`.
 2. `shows the live URL before any click and has no .url-warning`: `.share-url` value `toBe(liveUrl(hashOf(1)))`; `container.querySelector('.url-warning')` is `null`.
 3. `renders an empty, always-present status with role="status" for a one-code list`: `status(c).getAttribute('role')` is `'status'`; `textContent` is `''`.
-4. `offers the share levels L, M, Q, H with M selected`: option `textContent`s equal `['L (most capacity)', 'M (default)', 'Q', 'H']`, values `['L', 'M', 'Q', 'H']`, select value `'M'`.
+4. `offers the share levels L, M, Q, H with M selected`: option `textContent`s equal `['L (most capacity)', 'M (default)', 'Q', 'H']`, values `['L', 'M', 'Q', 'H']`, select value `'M'`; `q(c, '.share-ecc-field').textContent` starts with `Share QR error correction`.
 5. `renders a QR code into .qr-code on click`: kept from `:38-44`.
 6. `shows the dense text live and still renders the QR` with `hashOf(80)`: status is `DENSE` before any click; after a click `.qr-code svg` is not `null`.
 7. `names level L when it would hold the link, and updates as the level changes` with `hashOf(160)`: `const len = liveUrl(hash).length;` guard the fixture with `expect(len).toBeGreaterThan(QR_CAPACITY_BYTES.M)` and `expect(len).toBeLessThanOrEqual(QR_CAPACITY_BYTES.L)`; then status is `tooLongAt('M', len, 2331)`; after `setLevel(c, 'H')` it is `tooLongAt('H', len, 1273)`; after `setLevel(c, 'L')` it is `DENSE` and does not contain `Choose level L`.
@@ -1423,7 +1461,7 @@ Tests, in this order (each `render(ShareLink, { hash })`):
 - [ ] **Step 3: Run the tests to verify they fail**
 
 Run: `npx vitest run src/lib/qr.test.ts src/lib/components/ShareLink.test.ts`
-Expected: FAIL. qr with `TypeError: (0 , __vi_import_0__.qrStatus) is not a function`; ShareLink with `expected '' to be 'http://localhost:3000/#codes=036000291452&…'` and `Cannot read properties of null` where `.share-ecc-input` is queried.
+Expected: FAIL. qr with `TypeError: (0 , qrStatus) is not a function`; ShareLink with `expected '' to be 'http://localhost:3000/#codes=036000291452&…'` and failures on the status assertions before any `.share-ecc-input` query is reached; every click also logs an uncaught `TypeError: Cannot read properties of undefined (reading 'join')` from the old `share()`, because the tests now pass `{ hash }` and `codes` is undefined.
 
 - [ ] **Step 4: Rewrite `src/lib/qr.ts`**
 
@@ -1521,36 +1559,53 @@ git commit -m "docs: document 2D formats and refresh stale comments"
 
 ### Task 10: Verification that fails closed
 
-Human and browser steps from the spec's _Verification that fails closed_. Each row of the record below starts as **UNVERIFIED** and changes only when a human enters the evidence. For a scan, "pass" means the scanner outputs exactly the payload, once, with the device model, firmware and read mode recorded; for a browser check, it means the browser names and versions are recorded. Run a local build with `npm run build`, then `npm run preview`, and use `http://localhost:4173/scandible/`.
+Human and browser steps from the spec's _Verification that fails closed_. Each row of the record below starts as **UNVERIFIED** and changes only when a human enters the evidence. For a scan, "pass" means the scanner outputs exactly the payload, once, with the device model, firmware and read mode recorded; for a browser check, it means the browser names and versions are recorded. Run a local build with `npm run build`, then `npm run preview -- --host`. Use `http://localhost:4173/scandible/` on the desktop for rows that involve no phone. For every row that involves a phone, open the printed `Network:` URL (for example `http://192.168.x.y:4173/scandible/`) on the desktop as well as on the phone, so share links and share QRs carry an address the phone can reach; `npm run preview` without `--host` listens on localhost only.
 
 **Files:**
 
 - Modify: this plan's verification record (below)
-- Conditional (Step 4 only): Create `src/hooks.client.ts`, `src/hooks.client.test.ts`
+- Conditional (Step 4a only): Create `src/hooks.client.ts`, `src/hooks.client.test.ts`
 
 **Interfaces:**
 
 - Consumes: everything above. Produces: the filled record; conditionally, `export const init: ClientInit` in `src/hooks.client.ts`.
 
-| #     | Check                                                                                                                                                                                   | Status     | Device / browser, firmware, read mode | Output / notes |
-| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------------------------------------- | -------------- |
-| 1a    | `hello world` in QR Code, Data Matrix, PDF417, Aztec at default error correction, 60 px/s, rotation and skew off                                                                        | UNVERIFIED |                                       |                |
-| 1b    | A QR whose row shows `· dense` (`x` × 2000, QR Code, default level)                                                                                                                     | UNVERIFIED |                                       |                |
-| 1c    | A PDF417 of at least 300 X-modules (`x` × 900, PDF417, level 8: 375 X-modules)                                                                                                          | UNVERIFIED |                                       |                |
-| 1d    | `héllo → 日本` in each of the four formats (record the scanner's output verbatim)                                                                                                       | UNVERIFIED |                                       |                |
-| 1e    | `a#b&c%d+e,f g` as QR Code survives Start → play → Back and scans back exactly                                                                                                          | UNVERIFIED |                                       |                |
-| 1f    | Loop mode with three 2D codes, reading across the copy seam                                                                                                                             | UNVERIFIED |                                       |                |
-| 1g    | A non-loop run to the finish summary                                                                                                                                                    | UNVERIFIED |                                       |                |
-| 1h    | Speed sweep: the highest speed at which every symbol reads (record it)                                                                                                                  | UNVERIFIED |                                       |                |
-| 2a–2g | A level-reporting decoder (a ZXing-based phone app suffices) reports QR `L`, QR `H`, Aztec `10`, Aztec `50`, PDF417 `0`, PDF417 `8`, PDF417 `auto`; the reported level equals the label | UNVERIFIED |                                       |                |
-| 3a    | Chromium and Firefox, desktop and a 390 px phone: aspect preserved under both caps                                                                                                      | UNVERIFIED |                                       |                |
-| 3b    | PDF417 uses its wider cap (`min(95vw, 960px)`)                                                                                                                                          | UNVERIFIED |                                       |                |
-| 3c    | Quiet zone intact under maximum rotation and skew on desktop                                                                                                                            | UNVERIFIED |                                       |                |
-| 3d    | Phone clipping at 8°/8° and at 30°/30° (record the behaviour; a known limitation, not a failure)                                                                                        | UNVERIFIED |                                       |                |
-| 3e    | Pasting a second share link into a tab already on the setup page changes the list                                                                                                       | UNVERIFIED |                                       |                |
-| 3f    | A share QR opened with the iOS camera app and the Android camera app keeps the fragment                                                                                                 | UNVERIFIED |                                       |                |
-| 4     | `/play#codes=50%` starts the router and bounces to setup showing `50% ✗ invalid`                                                                                                        | UNVERIFIED |                                       |                |
-| 5     | `npm run check`, `npm test`, `npm run lint` green in the project                                                                                                                        | UNVERIFIED |                                       |                |
+Status is one of `UNVERIFIED`, `PASS`, `FAILED`. `PASS` needs every column filled; a checker that dies, returns nothing or is skipped leaves the row `UNVERIFIED`. Each row holds one check, so a partial result has a row of its own. Pass rules for rows 2a–2g: QR, the reported letter equals the level; PDF417 `0` and `8`, the reported number equals it; PDF417 `auto`, record the reported level (any value 0–8 passes, because automatic means BWIPP chose it); Aztec, the reported percentage is at least the label's minimum (`≥10%`, `≥50%`), because the label is a floor BWIPP may exceed when it fills the symbol.
+
+| #      | Check                                                                                                                                      | Status     | Device / browser, firmware, read mode | Output / notes |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------ | ---------- | ------------------------------------- | -------------- |
+| 1a-qr  | `hello world` in QR Code at default error correction, 60 px/s, rotation and skew off                                                       | UNVERIFIED |                                       |                |
+| 1a-dm  | `hello world` in Data Matrix at default error correction, 60 px/s, rotation and skew off                                                   | UNVERIFIED |                                       |                |
+| 1a-pdf | `hello world` in PDF417 at default error correction, 60 px/s, rotation and skew off                                                        | UNVERIFIED |                                       |                |
+| 1a-az  | `hello world` in Aztec at default error correction, 60 px/s, rotation and skew off                                                         | UNVERIFIED |                                       |                |
+| 1b     | A QR whose row shows `· dense` (`x` × 2000, QR Code, default level)                                                                        | UNVERIFIED |                                       |                |
+| 1c     | A PDF417 of at least 300 X-modules (`x` × 900, PDF417, level 8: 375 X-modules)                                                             | UNVERIFIED |                                       |                |
+| 1d-qr  | `héllo → 日本` in QR Code (record the scanner's output verbatim)                                                                           | UNVERIFIED |                                       |                |
+| 1d-dm  | `héllo → 日本` in Data Matrix (record the scanner's output verbatim)                                                                       | UNVERIFIED |                                       |                |
+| 1d-pdf | `héllo → 日本` in PDF417 (record the scanner's output verbatim)                                                                            | UNVERIFIED |                                       |                |
+| 1d-az  | `héllo → 日本` in Aztec (record the scanner's output verbatim)                                                                             | UNVERIFIED |                                       |                |
+| 1e     | `a#b&c%d+e,f g` as QR Code survives Start → play → Back and scans back exactly                                                             | UNVERIFIED |                                       |                |
+| 1f     | Loop mode with three 2D codes, reading across the copy seam                                                                                | UNVERIFIED |                                       |                |
+| 1g     | A non-loop run to the finish summary                                                                                                       | UNVERIFIED |                                       |                |
+| 1h     | Speed sweep: the highest speed at which every symbol reads (record it)                                                                     | UNVERIFIED |                                       |                |
+| 2a     | A level-reporting decoder (a ZXing-based phone app suffices) reads `hello world` in QR Code at level `L`; apply the pass rule above        | UNVERIFIED |                                       |                |
+| 2b     | A level-reporting decoder (a ZXing-based phone app suffices) reads `hello world` in QR Code at level `H`; apply the pass rule above        | UNVERIFIED |                                       |                |
+| 2c     | A level-reporting decoder (a ZXing-based phone app suffices) reads `hello world` in Aztec at `≥10%`; apply the pass rule above             | UNVERIFIED |                                       |                |
+| 2d     | A level-reporting decoder (a ZXing-based phone app suffices) reads `hello world` in Aztec at `≥50%`; apply the pass rule above             | UNVERIFIED |                                       |                |
+| 2e     | A level-reporting decoder (a ZXing-based phone app suffices) reads `hello world` in PDF417 at level `0`; apply the pass rule above         | UNVERIFIED |                                       |                |
+| 2f     | A level-reporting decoder (a ZXing-based phone app suffices) reads `hello world` in PDF417 at level `8`; apply the pass rule above         | UNVERIFIED |                                       |                |
+| 2g     | A level-reporting decoder (a ZXing-based phone app suffices) reads `hello world` in PDF417 at `automatic level`; apply the pass rule above | UNVERIFIED |                                       |                |
+| 3a-cd  | Chromium, desktop: aspect preserved under both caps                                                                                        | UNVERIFIED |                                       |                |
+| 3a-cp  | Chromium, 390 px phone: aspect preserved under both caps                                                                                   | UNVERIFIED |                                       |                |
+| 3a-fd  | Firefox, desktop: aspect preserved under both caps                                                                                         | UNVERIFIED |                                       |                |
+| 3a-fp  | Firefox, 390 px phone: aspect preserved under both caps                                                                                    | UNVERIFIED |                                       |                |
+| 3b     | PDF417 uses its wider cap (`min(95vw, 960px)`)                                                                                             | UNVERIFIED |                                       |                |
+| 3c     | Quiet zone intact under maximum rotation and skew on desktop                                                                               | UNVERIFIED |                                       |                |
+| 3d     | Phone clipping at 8°/8° and at 30°/30° (record the behaviour; a known limitation, not a failure)                                           | UNVERIFIED |                                       |                |
+| 3e     | Pasting a second share link into a tab already on the setup page changes the list                                                          | UNVERIFIED |                                       |                |
+| 3f     | A share QR opened with the iOS camera app and the Android camera app keeps the fragment                                                    | UNVERIFIED |                                       |                |
+| 4      | `/play#codes=50%` starts the router and bounces to setup showing `50% ✗ invalid`                                                           | UNVERIFIED |                                       |                |
+| 5      | `npm run check`, `npm test`, `npm run lint` green in the project                                                                           | UNVERIFIED |                                       |                |
 
 - [ ] **Step 1: Scan with the target imager (rows 1a–1h)**
 
@@ -1558,7 +1613,7 @@ A human scans each row on the preview build and fills in the device model, firmw
 
 - [ ] **Step 2: Decode the error-correction extremes (rows 2a–2g)**
 
-A human decodes each listed symbol with a decoder that reports the level and records the reported level. No encoder output was decoded during research, so a mismatch is a finding to report, not a test to adjust.
+A human decodes each listed symbol with a decoder that reports the level, records the reported level and applies the pass rules above the table. No encoder output was decoded during research, so a mismatch is a finding to report, not a test to adjust.
 
 - [ ] **Step 3: Browser checks (rows 3a–3f)**
 

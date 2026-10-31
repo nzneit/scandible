@@ -346,3 +346,19 @@ measured. Same method as Appendix A (`bwip-js/browser` named encoders, `drawingS
 
 The `#27542` line number differs from Appendix A's `#27236` for the same error name: BWIPP
 raises `qrcodeNoValidSymbol` from more than one site. Matching on the name only is required.
+
+## Appendix D: plan-review probe (bwip-js 4.11.4, uqr 0.1.3, bun, 2026-10-31)
+
+Values the implementation plan's tests use that section 2 and Appendices A–C did not record,
+measured during the plan review. bwip-js rows use the spec's `tryEncode` (padding 8,
+`fixedeclevel` where the level mapping sets it); uqr rows use uqr 0.1.3 directly.
+
+| Payload                 | Encoder         | Options                               | Result                                                            |
+| ----------------------- | --------------- | ------------------------------------- | ----------------------------------------------------------------- |
+| `hello world`           | qrcode          | eclevel H, fixedeclevel true          | 25×25 modules; viewBox `0 0 66 66` (50 px plus 2 × 8 px padding)  |
+| `x`                     | qrcode          | eclevel M, fixedeclevel true          | 21×21 modules (version 1)                                         |
+| `é` × 1000 (2000 bytes) | qrcode          | eclevel L, fixedeclevel true          | 149×149 modules, the same as `x` × 2000 at L (Appendix C)         |
+| `x` × 16                | uqr `renderSVG` | ecc H, border 2, default pixelSize 10 | `viewBox="0 0 330 330"` (29 modules + 2 × 2 border, × 10 px)      |
+| `x` × 16                | uqr `renderSVG` | ecc L, border 2, default pixelSize 10 | `viewBox="0 0 250 250"` (21 modules + 2 × 2 border, × 10 px)      |
+| `A` × 1000              | uqr `encode`    | ecc M                                 | version 21, one above `QR_DENSE_VERSION` 20, so it reads as dense |
+| `x` × capacity          | uqr `encode`    | L 2953, M 2331, Q 1663, H 1273        | encodes at the capacity; one more byte throws `Data too long`     |
