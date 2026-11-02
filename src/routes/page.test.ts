@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, fireEvent } from '@testing-library/svelte';
 import SetupPage from './+page.svelte';
 import { readCodesFile } from '$lib/fileInput';
+import { encodeShareUrl } from '$lib/shareUrl';
+import { DEFAULT_SETTINGS } from '$lib/types';
 
 const mockPage = vi.hoisted(() => ({ url: new URL('http://localhost/') }));
 const goto = vi.hoisted(() => vi.fn());
@@ -18,8 +20,16 @@ beforeEach(() => {
 });
 
 describe('setup page', () => {
-	it('prefills the textarea and settings from the URL', () => {
+	it('prefills the textarea and settings from a legacy ?codes= URL', () => {
 		mockPage.url = new URL('http://localhost/?codes=036000291452&speed=120&loop=1');
+		const { container } = render(SetupPage);
+		expect(q<HTMLTextAreaElement>(container, '.code-input').value).toBe('036000291452');
+		expect(q<HTMLInputElement>(container, '.speed-input').value).toBe('120');
+		expect(q<HTMLInputElement>(container, '.loop-input').checked).toBe(true);
+	});
+
+	it('prefills the textarea and settings from a #codes= fragment URL', () => {
+		mockPage.url = new URL('http://localhost/#codes=036000291452&speed=120&loop=1');
 		const { container } = render(SetupPage);
 		expect(q<HTMLTextAreaElement>(container, '.code-input').value).toBe('036000291452');
 		expect(q<HTMLInputElement>(container, '.speed-input').value).toBe('120');
@@ -48,7 +58,7 @@ describe('setup page', () => {
 		const { container } = render(SetupPage);
 		await fireEvent.click(q(container, '.start'));
 		expect(goto).toHaveBeenCalledWith(
-			'/play?codes=036000291452&speed=60&loop=0&rot=0&rotmax=8&skew=0&skewmax=8&seed=0&fmt=upc'
+			'/play#codes=036000291452&speed=60&loop=0&rot=0&rotmax=8&skew=0&skewmax=8&seed=0&fmt=upc'
 		);
 	});
 
@@ -302,5 +312,66 @@ describe('setup page: error correction', () => {
 		expect(select.value).toBe('23');
 		expect(select.selectedOptions[0].textContent).toBe('≥23% error correction (default)');
 		expect(firstRow(container)).toBe('hello world ✓ · 19×19 modules · 11 bytes');
+	});
+});
+
+describe('setup page: fragment URLs and ecc in the Start URL', () => {
+	const setEcc = (c: Element, v: string) =>
+		fireEvent.change(q(c, '.ecc-input'), { target: { value: v } });
+
+	it('ends the Start URL with &fmt=qr&ecc=H for qr at level H', async () => {
+		mockPage.url = new URL('http://localhost/#codes=hello%20world&seed=0&fmt=qr&ecc=H');
+		const { container } = render(SetupPage);
+		await fireEvent.click(q(container, '.start'));
+		expect(goto).toHaveBeenCalledWith(
+			'/play#codes=hello+world&speed=60&loop=0&rot=0&rotmax=8&skew=0&skewmax=8&seed=0&fmt=qr&ecc=H'
+		);
+	});
+
+	it('drops ecc from the Start URL after choosing level H then level M', async () => {
+		mockPage.url = new URL('http://localhost/#codes=hello%20world&seed=0&fmt=qr');
+		const { container } = render(SetupPage);
+		await setEcc(container, 'H');
+		await fireEvent.click(q(container, '.start'));
+		await setEcc(container, 'M');
+		await fireEvent.click(q(container, '.start'));
+		expect(goto.mock.calls[0][0]).toMatch(/&fmt=qr&ecc=H$/);
+		expect(goto.mock.calls[1][0]).toMatch(/&fmt=qr$/);
+	});
+
+	it('emits no ecc after switching from qr at H to aztec', async () => {
+		mockPage.url = new URL('http://localhost/#codes=hello%20world&seed=0&fmt=qr&ecc=H');
+		const { container } = render(SetupPage);
+		await fireEvent.change(q(container, '.format-input'), { target: { value: 'aztec' } });
+		await fireEvent.click(q(container, '.start'));
+		expect(goto.mock.calls[0][0]).toMatch(/^\/play#codes=hello\+world&/);
+		expect(goto.mock.calls[0][0]).toMatch(/&fmt=aztec$/);
+	});
+
+	it('carries a payload with # & % + , and spaces into the Start URL unchanged', async () => {
+		const codes = ['a#b&c%d+e,f g'];
+		const s = { ...DEFAULT_SETTINGS, format: 'code128' as const, seed: 7 };
+		mockPage.url = new URL('http://localhost/' + encodeShareUrl(codes, s));
+		const { container } = render(SetupPage);
+		expect(q<HTMLTextAreaElement>(container, '.code-input').value).toBe('a#b&c%d+e,f g');
+		await fireEvent.click(q(container, '.start'));
+		expect(goto.mock.calls[0][0]).toMatch(/^\/play#codes=/);
+		expect(goto).toHaveBeenCalledWith('/play' + encodeShareUrl(codes, s));
+	});
+
+	it('reloads on hashchange, and not after unmount', () => {
+		const reload = vi.fn();
+		const { origin, pathname } = location;
+		vi.stubGlobal('location', { origin, pathname, reload });
+		try {
+			const { unmount } = render(SetupPage);
+			window.dispatchEvent(new Event('hashchange'));
+			expect(reload).toHaveBeenCalledTimes(1);
+			unmount();
+			window.dispatchEvent(new Event('hashchange'));
+			expect(reload).toHaveBeenCalledTimes(1);
+		} finally {
+			vi.unstubAllGlobals();
+		}
 	});
 });

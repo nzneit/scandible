@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
@@ -10,7 +11,7 @@
 	import ValidationList from '$lib/components/ValidationList.svelte';
 	import ShareLink from '$lib/components/ShareLink.svelte';
 
-	const decoded = decodeShareUrl(page.url.search);
+	const decoded = decodeShareUrl(page.url);
 	const initial: Settings = { ...DEFAULT_SETTINGS, ...decoded.settings };
 	const seed = decoded.settings.seed ?? Math.floor(Math.random() * 0x100000000) >>> 0;
 
@@ -60,6 +61,15 @@
 		format = next;
 	}
 
+	// A pasted share link or an edited fragment on the same path is a same-document navigation,
+	// so SvelteKit updates `page.url` without remounting and this page (which decodes once) must
+	// reload. Our own `goto` calls use pushState/replaceState, which never fire `hashchange`.
+	onMount(() => {
+		const reload = () => location.reload();
+		window.addEventListener('hashchange', reload);
+		return () => window.removeEventListener('hashchange', reload);
+	});
+
 	async function onFileChange(e: Event): Promise<void> {
 		const input = e.currentTarget as HTMLInputElement;
 		const file = input.files?.[0];
@@ -74,7 +84,7 @@
 	}
 
 	function start(): void {
-		// eslint-disable-next-line svelte/no-navigation-without-resolve -- pathname IS resolve()-based; the rule cannot see through the query-string concatenation
+		// eslint-disable-next-line svelte/no-navigation-without-resolve -- pathname IS resolve()-based; the rule cannot see through the fragment concatenation
 		goto(resolve('/play') + encodeShareUrl(rawCodes, settings));
 	}
 </script>
