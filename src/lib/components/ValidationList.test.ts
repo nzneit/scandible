@@ -3,7 +3,13 @@ import { render } from '@testing-library/svelte';
 import ValidationList from './ValidationList.svelte';
 import type { CodeEntry } from '$lib/types';
 
-const entry = (raw: string, valid: boolean): CodeEntry => ({ raw, value: raw, valid });
+const entry = (raw: string, valid: boolean): CodeEntry => ({
+	raw,
+	value: raw,
+	format: 'upc',
+	options: {},
+	valid
+});
 
 describe('ValidationList', () => {
 	it('renders one li per entry with valid/invalid classes and copy', () => {
@@ -26,7 +32,14 @@ describe('ValidationList', () => {
 	it('shows the exact arrow row when the encoder mutates the value', () => {
 		const { container } = render(ValidationList, {
 			entries: [
-				{ raw: '590123412345', value: '590123412345', valid: true, encoded: '5901234123457' }
+				{
+					raw: '590123412345',
+					value: '590123412345',
+					format: 'upc',
+					options: {},
+					valid: true,
+					encoded: '5901234123457'
+				}
 			]
 		});
 		expect(container.querySelector('.validation-list li')?.textContent).toBe(
@@ -36,7 +49,9 @@ describe('ValidationList', () => {
 
 	it('keeps entries without encoded arrow-free (undefined guard)', () => {
 		const { container } = render(ValidationList, {
-			entries: [{ raw: '036000291452', value: '036000291452', valid: true }]
+			entries: [
+				{ raw: '036000291452', value: '036000291452', format: 'upc', options: {}, valid: true }
+			]
 		});
 		expect(container.querySelector('.validation-list li')?.textContent).toBe('036000291452 ✓');
 	});

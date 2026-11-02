@@ -1,25 +1,14 @@
-import JsBarcode from 'jsbarcode';
-import type { CodeEntry } from './types';
+import { engine as jsbarcodeEngine } from './engines/jsbarcode';
 import { FORMAT_BY_ID, type FormatId } from './formats';
+import type { CodeEntry } from './types';
 
-const SVG_NS = 'http://www.w3.org/2000/svg';
-
-/** Render one VALID entry into a fresh SVG element (createElementNS, not
- *  createElement, to get the correct namespace). Draws the barcode with the
- *  human-readable text. Only ever called for entries where entry.valid === true. */
+/** Render one VALID entry into a fresh SVG element. Only ever called for entries where
+ *  entry.valid === true. */
 export function renderBarcodeSvg(entry: CodeEntry, format: FormatId): SVGElement {
-	const descriptor = FORMAT_BY_ID.get(format);
-	if (descriptor?.engine === 'bwipjs') throw new Error('unsupported engine'); // temporary: Task 4 dispatches on engine
-	const svg = document.createElementNS(SVG_NS, 'svg');
-	JsBarcode(svg, entry.value, {
-		format: descriptor?.jsbarcodeFormat ?? 'UPC',
-		displayValue: true,
-		lineColor: '#000',
-		background: '#fff',
-		width: 3,
-		height: 160,
-		margin: 16,
-		...descriptor?.renderOptions?.()
-	});
-	return svg;
+	const d = FORMAT_BY_ID.get(format);
+	// temporary: Task 4 dispatches on engine. Unlike Task 1's `=== 'bwipjs'` guard this also
+	// throws for an unknown format, replacing the old UPC fallback; Task 4's one-argument test
+	// calls rely on the throw.
+	if (d?.engine !== 'jsbarcode') throw new Error('unsupported engine');
+	return jsbarcodeEngine.render(d, entry.value, entry.options);
 }

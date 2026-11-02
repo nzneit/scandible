@@ -22,6 +22,7 @@
 	let skew = $state(initial.skew);
 	let skewMaxDeg = $state(initial.skewMaxDeg);
 	let format = $state(initial.format);
+	let ecc = $state(initial.ecc);
 	let fileError = $state('');
 
 	const entries: CodeEntry[] = $derived(parseCodeList(text, format));
@@ -40,7 +41,8 @@
 		skew,
 		skewMaxDeg,
 		seed,
-		format
+		format,
+		ecc
 	});
 
 	async function onFileChange(e: Event): Promise<void> {

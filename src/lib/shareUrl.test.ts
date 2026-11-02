@@ -12,7 +12,8 @@ describe('shareUrl', () => {
 			skew: false,
 			skewMaxDeg: 8,
 			seed: 0,
-			format: 'upc'
+			format: 'upc',
+			ecc: ''
 		});
 		expect(decodeShareUrl(search)).toEqual({
 			codes: ['036000291452', '012345678905'],
@@ -50,7 +51,8 @@ describe('shareUrl', () => {
 			skew: true,
 			skewMaxDeg: 12,
 			seed: 123456,
-			format: 'upc'
+			format: 'upc',
+			ecc: ''
 		});
 		expect(decodeShareUrl(search)).toEqual({
 			codes: ['036000291452'],

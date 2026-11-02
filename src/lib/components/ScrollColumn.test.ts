@@ -3,7 +3,13 @@ import { render } from '@testing-library/svelte';
 import ScrollColumn from './ScrollColumn.svelte';
 import { DEFAULT_SETTINGS, type Settings, type CodeEntry } from '$lib/types';
 
-const entry = (value: string, valid: boolean): CodeEntry => ({ raw: value, value, valid });
+const entry = (value: string, valid: boolean): CodeEntry => ({
+	raw: value,
+	value,
+	format: 'upc',
+	options: {},
+	valid
+});
 const entries: CodeEntry[] = [
 	entry('036000291452', true),
 	entry('bad', false),
