@@ -58,7 +58,7 @@ one at a time, so you can point a scanner at the screen and let it read the whol
 
 ## Development
 
-Requires Node 20+.
+Requires Node 24 (the version in `.nvmrc`).
 
 ```bash
 npm install      # install dependencies
