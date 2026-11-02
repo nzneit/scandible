@@ -9,6 +9,7 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
  *  human-readable text. Only ever called for entries where entry.valid === true. */
 export function renderBarcodeSvg(entry: CodeEntry, format: FormatId): SVGElement {
 	const descriptor = FORMAT_BY_ID.get(format);
+	if (descriptor?.engine === 'bwipjs') throw new Error('unsupported engine'); // temporary: Task 4 dispatches on engine
 	const svg = document.createElementNS(SVG_NS, 'svg');
 	JsBarcode(svg, entry.value, {
 		format: descriptor?.jsbarcodeFormat ?? 'UPC',

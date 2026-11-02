@@ -9,6 +9,7 @@ import type { CodeEntry } from './types';
 export function checkCode(value: string, format: FormatId): { valid: boolean; encoded?: string } {
 	const descriptor = FORMAT_BY_ID.get(format);
 	if (!descriptor) return { valid: false };
+	if (descriptor.engine !== 'jsbarcode') return { valid: false }; // temporary: Task 3 dispatches 2D formats to bwip-js
 	// Explicit guard: MSI checksum encoders would checksum '' into '0'/'00' and accept it.
 	if (value === '') return { valid: false };
 	try {
