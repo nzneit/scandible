@@ -56,8 +56,8 @@
 		<option value="H">H</option>
 	</select>
 </label>
-<!-- eslint-disable-next-line svelte/no-at-html-tags -- qrSvg comes only from uqr's renderSVG, which never reflects its input into markup (security-reviewed) -->
 <div class="qr-code" role="img" hidden={!qrSvg} aria-label="QR code for the share link">
+	<!-- eslint-disable-next-line svelte/no-at-html-tags -- qrSvg comes only from uqr's renderSVG, which never reflects its input into markup (security-reviewed) -->
 	{@html qrSvg}
 </div>
 <p class="qr-status" role="status">{statusMessage(status)}</p>
