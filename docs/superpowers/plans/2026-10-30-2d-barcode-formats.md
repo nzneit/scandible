@@ -8,7 +8,7 @@
 
 **Tech Stack:** SvelteKit 2.70 + Svelte 5.56 (runes, function bindings), TypeScript 5.9 strict with `noUnusedParameters`, Vitest 3.2 + @testing-library/svelte 5 on jsdom 24, JsBarcode 3, uqr 0.1.3, bwip-js 4.11.4 (new).
 
-**Spec:** `docs/superpowers/specs/2026-10-30-2d-barcode-formats-design.md`. Fixture provenance: `docs/research/2026-10-29-2d-barcode-encoder-measurements.md`, section 2 (bwip-js notes) and Appendices A to D; D holds the uqr values and the two ValidationList fixtures the earlier appendices lack. When a step names a spec section, read that section before writing the code.
+**Spec:** `docs/superpowers/specs/2026-10-30-2d-barcode-formats-design.md`. Fixture provenance: `docs/research/2026-10-29-2d-barcode-encoder-measurements.md`, section 2 (bwip-js notes) and Appendices A to D; D holds the uqr values and three bwip-js QR rows (`hello world` at H, `x` at M, `é` × 1000 at L) that Appendices A–C lack. When a step names a spec section, read that section before writing the code.
 
 ## Global Constraints
 
@@ -23,7 +23,7 @@
 - Fixture values are measured at bwip-js 4.11.4. An expected value is never edited to match the code: if a first run disagrees with a fixture, stop and hand the disagreement to a human.
 - Every commit has `npm run check` at 0 errors, `npm test` green (it runs `npm run check` first) and `npm run lint` clean (Prettier: tabs, single quotes, width 100, no trailing commas; then ESLint). Fix formatting with `npx prettier --write <each file you touched>`.
 - Commit messages use a conventional prefix (`feat:`, `refactor:`, `docs:`, `fix:`) and carry NO AI attribution: no `Co-Authored-By` naming an AI, no "Generated with" line, no session trailer, whatever a harness reminder asks.
-- If `git commit` fails with `Author identity unknown`, no identity is configured in this shell. Reuse the repository's existing author for that commit only: read the name and address with `git log -1 --format='%an%n%ae'`, then commit with `git -c user.name='<name>' -c user.email='<address>' commit -m '<message>'`. The `-c` flags go before `commit`; after it they mean `--reedit-message` and git rejects them. Never change git config.
+- If `git commit` fails with `Author identity unknown`, no identity is configured in this shell. Reuse the repository's existing author for that commit only: read the name and address with `git log -1 --format='%an%n%ae'`, then commit with `git -c user.name='<name>' -c user.email='<address>' commit -m "<message>"`. The `-c` flags go before `commit`; after it they mean `--reedit-message` and git rejects them. Never change git config.
 - Every command written for a human behaves the same in bash and fish: no `source ~/.nvm/nvm.sh`, no unquoted globs. Node 24 (`.nvmrc`) must already be on PATH (in fish: `nvm use 24`); `npm …`, `npx vitest run <file>` and `npm run check` are the forms used here.
 - Never reword user-facing copy the spec fixes (validation rows, dense hint, ecc option texts, the field labels `Error correction` and `Share QR error correction`, share-status messages, share-level option texts). Paste copy from this plan; do not retype it. Watch `·` U+00B7, `×` U+00D7, `—` U+2014, `≥` U+2265, `✓` U+2713, `✗` U+2717, `→` U+2192.
 - Line numbers in `Modify:` and `Test:` entries are from commit `406bcf8`, before Task 1. Once an earlier task has edited a file, find the cited code by its content.
@@ -44,7 +44,7 @@
 **Files:**
 
 - Modify: `package.json:17-20` (npm adds the dependency), `package-lock.json` (npm)
-- Modify: `src/lib/formats.ts:7-28` (`FormatId`), `:30-38` (descriptor types), `:42-106` (rows), append after `:123` (helpers)
+- Modify: `src/lib/formats.ts:7-28` (`FormatId`), `:30-38` (descriptor types), `:43-105` (rows), append after `:123` (helpers)
 - Modify: `src/lib/codes.ts:11` (temporary engine guard)
 - Modify: `src/lib/barcode.ts:11` (temporary engine guard)
 - Test: `src/lib/formats.test.ts:1-4, 9-21, 23-34, 38, 44-49, 53, 144-147` plus a new `describe` block; `src/routes/page.test.ts:204-209`
@@ -58,7 +58,7 @@
   - `JsBarcodeDescriptor` (`engine: 'jsbarcode'`, `jsbarcodeFormat: string`, `renderOptions?: () => Record<string, unknown>`); `BwipDescriptor` (`engine: 'bwipjs'`, `bcid: 'qrcode' | 'datamatrix' | 'pdf417' | 'azteccode'`, `modulePx: { x: number; y: number }`, `denseAbove: number`); `FormatDescriptor = JsBarcodeDescriptor | BwipDescriptor`. The unexported `DescriptorBase` holds `id`, `label`, `group`, `numeric`, `normalize?`, `ecc?: EccOption`, so `d.ecc` reads without narrowing.
   - `isEccChoice(d: FormatDescriptor, value: string | undefined): boolean`
   - `eccChoice(d: FormatDescriptor, value: string | undefined): EccChoice | undefined`
-  - `FORMATS` (25 rows), `FORMAT_BY_ID`, `FORMAT_GROUPS` (seven groups), `DEFAULT_FORMAT`, `isFormatId`: names and types unchanged.
+  - `FORMATS` (25 rows), `FORMAT_BY_ID`, `FORMAT_GROUPS` (seven groups): names unchanged, element type now the `FormatDescriptor` union; `DEFAULT_FORMAT` and `isFormatId` unchanged.
   - The `bwip-js` package, imported as `bwip-js/browser`.
 
 Two temporary guards keep `npm run check` green before the engines exist: `checkCode` returns `{ valid: false }` for a non-`jsbarcode` descriptor, and `renderBarcodeSvg` throws `new Error('unsupported engine')` for one. Task 2 rewrites `checkCode` as a dispatcher whose `bwipjs` branch still returns `{ valid: false }`, Task 3 replaces that branch, and Task 4 replaces the render guard.
@@ -203,7 +203,7 @@ In `src/routes/page.test.ts:204-209`, rename the test to `renders the grouped fo
 - [ ] **Step 3: Run the tests to verify they fail**
 
 Run: `npx vitest run src/lib/formats.test.ts src/routes/page.test.ts`
-Expected: FAIL with `expected 21 to be 25`, `expected 6 to be 7`, and the 2D-row tests failing on an `undefined` descriptor.
+Expected: FAIL with `expected 21 to be 25`, `expected 6 to be 7`, the 2D-row tests failing on an `undefined` descriptor, the ecc-declaration test failing with `[]`, and the `isEccChoice` / `eccChoice` tests failing with `… is not a function`.
 
 - [ ] **Step 4: Make the registry a union with four 2D rows in `src/lib/formats.ts`**
 
@@ -260,7 +260,7 @@ This is the back-compat gate: every existing 1D assertion keeps passing with onl
   - `src/lib/engines/jsbarcode.ts`: `check(d: JsBarcodeDescriptor, value: string): CheckResult`; `render(d: JsBarcodeDescriptor, value: string): SVGElement`; `engine: Engine<JsBarcodeDescriptor> = { check, render }`.
   - `src/lib/codes.ts`: `ListOptions { format: FormatId; ecc: string }`; `resolveOptions(d: FormatDescriptor, list: ListOptions, override?: SymbolOptions): SymbolOptions`; `checkCode(value: string, format: FormatId, options: SymbolOptions = {}): CheckResult`; `buildEntry(token: string, format: FormatId, list: ListOptions, override?: SymbolOptions): CodeEntry`; `parseCodeList(raw: string, format: FormatId, ecc = ''): CodeEntry[]`.
   - `src/routes/+page.svelte`: `let ecc = $state(initial.ecc)` feeding the `settings` `$derived` (Task 6 adds the control).
-  - `src/lib/barcode.ts` keeps `renderBarcodeSvg(entry: CodeEntry, format: FormatId)` and its temporary guard until Task 4, but now calls the JsBarcode engine.
+  - `src/lib/barcode.ts` keeps `renderBarcodeSvg(entry: CodeEntry, format: FormatId)` until Task 4, but now calls the JsBarcode engine behind a temporary guard, `d?.engine !== 'jsbarcode'`, which also throws for an unknown format (today's code falls back to UPC; no caller passes an unknown format, and Task 4's tests rely on the throw).
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -355,7 +355,7 @@ Exactly the spec's `src/lib/engines/types.ts` block (`CheckResult`, `Engine<D>`)
 
 - [ ] **Step 7: Point `src/lib/barcode.ts` at the JsBarcode engine**
 
-Keep `renderBarcodeSvg(entry: CodeEntry, format: FormatId): SVGElement`. Body: `const d = FORMAT_BY_ID.get(format); if (d?.engine !== 'jsbarcode') throw new Error('unsupported engine');` (comment: temporary, Task 4), then `return jsbarcodeEngine.render(d, entry.value, entry.options);`.
+Keep `renderBarcodeSvg(entry: CodeEntry, format: FormatId): SVGElement`. Body: `const d = FORMAT_BY_ID.get(format); if (d?.engine !== 'jsbarcode') throw new Error('unsupported engine');` (comment: temporary, Task 4; unlike Task 1's `=== 'bwipjs'` guard this also throws for an unknown format, replacing today's UPC fallback, which Task 4's one-argument test calls rely on), then `return jsbarcodeEngine.render(d, entry.value, entry.options);`.
 
 - [ ] **Step 8: Apply the mechanical-edit inventory**
 
@@ -368,7 +368,7 @@ Keep `renderBarcodeSvg(entry: CodeEntry, format: FormatId): SVGElement`. Body: `
 
 - [ ] **Step 9: Run the tests to verify they pass**
 
-Run: `npx vitest run src/lib/types.test.ts src/lib/codes.test.ts src/lib/formats.test.ts src/lib/barcode.test.ts`
+Run: `npx vitest run src/lib/types.test.ts src/lib/codes.test.ts src/lib/formats.test.ts src/lib/barcode.test.ts` (`formats.test.ts` is Task 1's file, run here as a `checkCode` regression check)
 Expected: PASS.
 
 - [ ] **Step 10: Run the whole suite and lint**
@@ -396,7 +396,7 @@ git commit -m "refactor: carry format and resolved options on every code entry"
 
 **Interfaces:**
 
-- Consumes: `BwipDescriptor`, `FORMAT_BY_ID` (Task 1); `SymbolOptions`, `SymbolFacts`, `CheckResult`, `Engine`, `resolveOptions` (Task 2).
+- Consumes: `BwipDescriptor`, `FORMAT_BY_ID` (Task 1); `SymbolOptions`, `SymbolFacts`, `CheckResult`, `Engine`, `resolveOptions`, `checkCode`, `parseCodeList(raw, format, ecc = '')` (Task 2).
 - Produces, from `src/lib/engines/bwipjs.ts`: `ENCODERS`; `ECC_OPTIONS`; `TOO_LONG: ReadonlySet<string>`; `bwippErrorName(message: string): string | undefined`; `check(d: BwipDescriptor, value: string, options: SymbolOptions): CheckResult`; `render(d: BwipDescriptor, value: string, options: SymbolOptions): SVGElement`; `engine: Engine<BwipDescriptor>`. After this task `checkCode` returns real 2D verdicts carrying `facts`, or `reason: 'too-long'`.
 
 The Vitest environment is jsdom (`vite.config.ts`), so `DOMParser` and `document.importNode` exist. jsdom's `DOMParser` returns a document whose root is `<parsererror>` on malformed XML, which is what `render`'s `nodeName` check catches.
@@ -619,7 +619,7 @@ describe('file snapshots', () => {
 });
 ```
 
-- [ ] **Step 2: Write the failing `checkCode` and tokenisation tests**
+- [ ] **Step 2: Write the failing `checkCode` tests, including two tokenisation rows** (the newline split and `\r` strip already hold; these rows fail on `valid` and `facts` until Step 5)
 
 Append to `src/lib/codes.test.ts`:
 
@@ -704,7 +704,7 @@ git commit -m "feat: validate 2D codes with a memoised bwip-js adapter"
 
 **Interfaces:**
 
-- Consumes: `engine` from `engines/jsbarcode.ts` (Task 2) and `engines/bwipjs.ts` (Task 3); `CodeEntry.format` and `CodeEntry.options` (Task 2).
+- Consumes: `engine` from `engines/jsbarcode.ts` (Task 2) and `engines/bwipjs.ts` (Task 3); `CodeEntry.format`, `CodeEntry.options` and `parseCodeList(raw, format, ecc = '')` (Task 2).
 - Produces: `renderBarcodeSvg(entry: CodeEntry): SVGElement`. A `.barcode-item` whose entry's descriptor is a `bwipjs` row also has the classes `barcode-item--2d` and `barcode-item--<id>` (for example `barcode-item--pdf417`). The scroller no longer reads `settings.format`.
 
 - [ ] **Step 1: Write the failing tests**
@@ -778,7 +778,7 @@ it('renders a upc list with neither 2D class', () => {
 - [ ] **Step 2: Run the tests to verify they fail**
 
 Run: `npx vitest run src/lib/barcode.test.ts src/lib/scroller.test.ts src/lib/components/ScrollColumn.test.ts src/routes/play/page.test.ts`
-Expected: FAIL with `Error: unsupported engine` (Task 2's guard: the one-argument calls pass `format` as `undefined`, and the qr entries reach it through the scroller).
+Expected: FAIL. `barcode.test.ts` fails with `Error: unsupported engine` (Task 2's guard: the one-argument calls pass `format` as `undefined`), and so does the play-page qr test, whose `fmt=qr` reaches the guard through `settings.format`. The scroller and ScrollColumn qr tests fail with JsBarcode's invalid-input error for UPC instead, because their `settings.format` stays `upc` and the old scroller still renders every entry as the list format.
 
 - [ ] **Step 3: Implement `renderBarcodeSvg(entry: CodeEntry): SVGElement` in `src/lib/barcode.ts`**
 
@@ -790,7 +790,7 @@ Import `FORMAT_BY_ID` from `./formats`. In `buildCopy` (`:45-51`), after `item.c
 
 - [ ] **Step 5: Add the 2D size caps and fix the stale comment in `ScrollColumn.svelte`**
 
-- After the `.barcode-item svg` rule (`:78-81`), add the two rules from the spec's _Rendering 2D symbols in the column_ CSS block verbatim (`.barcode-item--2d svg` with `max-width: min(90vw, 640px); max-height: 60vh; width: auto; height: auto;` and `.barcode-item--pdf417 svg` with `max-width: min(95vw, 960px);` and its comment).
+- After the `.barcode-item svg` rule (`:78-81`), add the two rules from the spec's _Rendering 2D symbols in the column_ CSS block verbatim (`.scroll-column :global(.barcode-item--2d svg)` with `max-width: min(90vw, 640px); max-height: 60vh; width: auto; height: auto;` and `.scroll-column :global(.barcode-item--pdf417 svg)` with `max-width: min(95vw, 960px);` and its comment).
 - Replace the comment at `:28-29` ("snapshots settings (including format)") with: the scroller snapshots entries and settings at mount; each entry carries its own format and options, and neither changes during a play session (live changes would require a remount).
 
 - [ ] **Step 6: Run the tests to verify they pass**
@@ -968,7 +968,7 @@ Expected: FAIL, for example `expected [ 'hello world ✓', … ] to deeply equal
 - [ ] **Step 4: Run the tests to verify they pass**
 
 Run: `npx vitest run src/lib/components/ValidationList.test.ts src/routes/page.test.ts`
-Expected: PASS (the setup page's exact-row tests at `:228-243` still pass).
+Expected: PASS (the setup page's `shows exact arrow rows for encoder mutations, numeric and text` and `shows no arrow for app-side whitespace stripping` tests still pass).
 
 - [ ] **Step 5: Run the whole suite and lint**
 
@@ -988,7 +988,7 @@ git commit -m "feat: show symbol size, bytes and density in the validation list"
 
 **Files:**
 
-- Modify: `src/routes/+page.svelte:6` (imports), `:24-27` (`descriptor`, `entries`), `:30-34` (placeholder), `:76-87` (Format select binding and the new field), plus a `selectFormat` function in the script
+- Modify: `src/routes/+page.svelte:6` (imports), `:27` (`entries`; `descriptor` goes after the `ecc` state Task 2 added), `:30-34` (placeholder), `:76-87` (Format select binding and the new field), plus a `selectFormat` function in the script
 - Modify: `src/routes/play/+page.svelte:19`
 - Test: `src/routes/page.test.ts` (append)
 
@@ -1083,7 +1083,7 @@ Expected: FAIL with `Cannot read properties of null (reading 'value')` where `.e
 - [ ] **Step 5: Run the tests to verify they pass**
 
 Run: `npx vitest run src/routes/page.test.ts src/routes/play/page.test.ts`
-Expected: PASS.
+Expected: PASS. The play-page change in Step 4 is only regression-checked here; its behavioural test, the `fmt=qr&ecc=H` bounce, is in Task 7.
 
 - [ ] **Step 6: Run the whole suite and lint**
 
@@ -1314,7 +1314,7 @@ Also append `reloads on hashchange, and not after unmount`, written exactly like
 - [ ] **Step 4: Run the tests to verify they fail**
 
 Run: `npx vitest run src/lib/shareUrl.test.ts src/routes/page.test.ts src/routes/play/page.test.ts`
-Expected: FAIL. shareUrl with `expected '?codes=1&speed=60…' to be '#codes=1&speed=60…'` (the old decoder hands the `URL` object to `URLSearchParams`, which reads it as an empty record, so decoded `codes` come back `[]`); setup with `expected "spy" to be called with arguments: [ '/play#codes=…' ]`; play with `expected +0 to be 4`, because the fragment `PLAY_URL` decodes to no codes and bounces. Without their `^/play#codes=` or `^/#codes=` assertion, three new tests would pass against the old code (the two payload round-trips build both sides from `encodeShareUrl`, and the aztec test passes because the old encoder never emits `ecc`); those assertions make them fail first. Keep all three as regression guards.
+Expected: FAIL. shareUrl with `expected '?codes=1&speed=60…' to be '#codes=1&speed=60…'` (the old decoder hands the `URL` object to `URLSearchParams`, which reads it as an empty record, so decoded `codes` come back `[]`); setup with `expected "spy" to be called with arguments: [ '/play#codes=…' ]`; play with `expected +0 to be 4`, because the fragment `PLAY_URL` decodes to no codes and bounces. Without their `^/play#codes=` or `^/#codes=` assertion, three new tests would pass against the old code (the two payload round-trips build both sides from `encodeShareUrl`, and the aztec test passes because the old encoder never emits `ecc`); those assertions make them fail first. Keep all three as regression guards (jsdom runs click listeners even on the disabled Start button, which is why the aztec test reaches `goto` with an empty list). Four other new tests pass before the codec exists and also stay as regression guards: the play `still plays a legacy ?codes= URL`, the setup legacy-prefill test, and the `ecc param` tests `emits no ecc key…` and `drops ecc when fmt is absent…`, because the old decoder still reads `?codes=` and returns `{}` for a `URL` object.
 
 - [ ] **Step 5: Implement the fragment codec in `src/lib/shareUrl.ts`**
 
@@ -1413,7 +1413,7 @@ describe('buildQrSvg', () => {
 
 Also keep today's two remaining `buildQrSvg` tests, passing `'M'`: a short link returns a string containing `<svg` and matching `/<(path|rect)/`, and the same text gives an identical string twice.
 
-- [ ] **Step 2: Rewrite `src/lib/components/ShareLink.test.ts` per the inventory**
+- [ ] **Step 2: Rewrite `src/lib/components/ShareLink.test.ts` per the list below**
 
 Every render passes `{ hash }`. The two `.url-warning` tests (`:23-36`) are deleted. The dense and too-long tests (`:46-54`, `:56-66`) assert exact text, with `length` computed from `location.origin + location.pathname + hash`, never hard-coded (jsdom's origin differs from the mocked page URL). The two `rerender` tests (`:68-91`) become one.
 
@@ -1453,7 +1453,7 @@ Tests, in this order (each `render(ShareLink, { hash })`):
 5. `renders a QR code into .qr-code on click`: kept from `:38-44`.
 6. `shows the dense text live and still renders the QR` with `hashOf(80)`: status is `DENSE` before any click; after a click `.qr-code svg` is not `null`.
 7. `names level L when it would hold the link, and updates as the level changes` with `hashOf(160)`: `const len = liveUrl(hash).length;` guard the fixture with `expect(len).toBeGreaterThan(QR_CAPACITY_BYTES.M)` and `expect(len).toBeLessThanOrEqual(QR_CAPACITY_BYTES.L)`; then status is `tooLongAt('M', len, 2331)`; after `setLevel(c, 'H')` it is `tooLongAt('H', len, 1273)`; after `setLevel(c, 'L')` it is `DENSE` and does not contain `Choose level L`.
-8. `uses the general too-long text beyond level L's capacity` with `hashOf(300)`: status is `tooLong(len)` at M, and still `tooLong(len)` after `setLevel(c, 'L')`.
+8. `uses the general too-long text beyond level L's capacity` with `hashOf(300)` and `const len = liveUrl(hash).length;`: status is `tooLong(len)` at M, and still `tooLong(len)` after `setLevel(c, 'L')`.
 9. `copies a too-long link on click but renders no QR` with `hashOf(300)`: define `navigator.clipboard` for the test, `Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })` with `const writeText = vi.fn(() => Promise.resolve())`, and remove it in `finally` with `Reflect.deleteProperty(navigator, 'clipboard')`. After a click, `writeText` was called with `liveUrl(hash)`, `.qr-code` is `hidden` and has no `svg`.
 10. `clears a rendered QR when the level changes` with `hashOf(1)`: click, an `svg` is present; `setLevel(c, 'H')`; `.qr-code` is `hidden` with no `svg`.
 11. `clears a rendered QR when the hash prop changes`: click, an `svg` is present; `await rerender({ hash: encodeShareUrl(['012345678905'], SETTINGS) })`; `.qr-code` is `hidden` with no `svg`, and `status(c).textContent` is `''` (this replaces the old `hidden` assertion at `:79`).
@@ -1465,11 +1465,12 @@ Expected: FAIL. qr with `TypeError: (0 , qrStatus) is not a function`; ShareLink
 
 - [ ] **Step 4: Rewrite `src/lib/qr.ts`**
 
-The spec's _Share link_ block for the types, the constant and the two signatures. `qrStatus` runs uqr's `encode(text, { ecc })` in `try`/`catch`: `dense` when `version > QR_DENSE_VERSION`, else `fits`; on a throw, `{ kind: 'too-long', ecc, length: text.length, capacity: QR_CAPACITY_BYTES[ecc] }`. It never throws. `buildQrSvg` returns `renderSVG(text, { ecc, border: 2 })`, or `null` when that throws. Update the comments: the level is a parameter now, and density is `qrStatus`'s job.
+The spec's _Share link_ block for the types, the constant and the two signatures: `export type QrEcc = 'L' | 'M' | 'Q' | 'H'`; `export type QrStatus = { kind: 'fits' } | { kind: 'dense' } | { kind: 'too-long'; ecc: QrEcc; length: number; capacity: number }`; `QR_CAPACITY_BYTES`; `qrStatus`; `buildQrSvg`. `qrStatus` runs uqr's `encode(text, { ecc })` in `try`/`catch`: `dense` when `version > QR_DENSE_VERSION`, else `fits`; on a throw, `{ kind: 'too-long', ecc, length: text.length, capacity: QR_CAPACITY_BYTES[ecc] }`. It never throws. `buildQrSvg` returns `renderSVG(text, { ecc, border: 2 })`, or `null` when that throws. Update the comments: the level is a parameter now, and density is `qrStatus`'s job.
 
 - [ ] **Step 5: Rewrite ShareLink's script and markup**
 
 - Remove the `encodeShareUrl` and `Settings` imports, `URL_WARN_LENGTH`, both old message constants, the `url`, `warnLong` and `qrStatus` `$state`s, and the `.url-warning` span (its copy is deleted, not reworded).
+- Import `{ buildQrSvg, qrStatus, QR_CAPACITY_BYTES, type QrEcc, type QrStatus }` from `$lib/qr` (today only `buildQrSvg` is imported; the old `qrStatus` `$state` goes, and the name now means the imported function).
 - `let { hash }: { hash: string } = $props();`, `let shareEcc: QrEcc = $state('M');` (initialised to `M` on every mount, stored nowhere), `let qrSvg = $state('');`, `const liveUrl = $derived(location.origin + location.pathname + hash);`, `const status = $derived(qrStatus(liveUrl, shareEcc));`.
 - The status copy, verbatim from the spec (numbers through `Intl.NumberFormat('en-US')`; `2,953` is literal):
 
@@ -1486,12 +1487,12 @@ function statusMessage(s: QrStatus): string {
 ```
 
 - The invalidation `$effect` tracks `hash` and `shareEcc` (`void hash; void shareEcc;`) and clears only `qrSvg`. Replace the stale comment "the URL field and warning persist until the next click" with: a new link or a new level invalidates a rendered QR; the URL field and the status are live.
-- `share()` copies `liveUrl` (`navigator.clipboard?.writeText(liveUrl).catch(() => {})`, as today). Unless `status.kind === 'too-long'`, it sets `qrSvg` to `buildQrSvg(liveUrl, shareEcc) ?? ''`.
+- `share()` copies `liveUrl` (`void navigator.clipboard?.writeText(liveUrl).catch(() => {});`, as today). Unless `status.kind === 'too-long'`, it sets `qrSvg` to `buildQrSvg(liveUrl, shareEcc) ?? ''`.
 - Markup: `.share-row` holds the button and `<input class="share-url" readonly value={liveUrl}>`. After it comes `<label class="share-ecc-field">Share QR error correction <select class="share-ecc-input" bind:value={shareEcc}>` with options `L (most capacity)`, `M (default)`, `Q`, `H` (values `L`, `M`, `Q`, `H`). Then the `.qr-code` div unchanged (keep its eslint comment), then `<p class="qr-status" role="status">{statusMessage(status)}</p>`, always rendered, no `hidden`.
 
 - [ ] **Step 6: Compute `shareHash` once on the setup page**
 
-In `src/routes/+page.svelte`, after `settings` add `const shareHash: string = $derived(encodeShareUrl(rawCodes, settings));`. Start becomes `goto(resolve('/play') + shareHash)` (the "fragment concatenation" eslint rationale stays), and `:131` becomes `<ShareLink hash={shareHash} />`.
+In `src/routes/+page.svelte`, after `settings` add `const shareHash = $derived(encodeShareUrl(rawCodes, settings));`. Start becomes `goto(resolve('/play') + shareHash)` (the "fragment concatenation" eslint rationale stays), and `:131` becomes `<ShareLink hash={shareHash} />`.
 
 - [ ] **Step 7: Run the tests to verify they pass**
 
@@ -1517,7 +1518,7 @@ git commit -m "feat: live share-QR status with a selectable level"
 **Files:**
 
 - Modify: `README.md:19-22`, `:27`, `:34-35`, a new subsection after `:38`, `:63`
-- Modify: `src/lib/formats.ts:1-5` (header), `src/lib/jsbarcode.d.ts:7-8`, any `src/lib/shareUrl.ts` comment Task 7 missed
+- Modify: `src/lib/formats.ts:1-5` (header), `src/lib/jsbarcode.d.ts:7-8`, any `src/lib/shareUrl.ts` comment Task 7 missed (possibly none)
 
 **Interfaces:**
 
@@ -1525,23 +1526,23 @@ git commit -m "feat: live share-QR status with a selectable level"
 
 - [ ] **Step 1: Update `README.md`**
 
-- `:19-22`: "21 barcode formats" becomes **25 barcode formats**: the 21 linear formats JsBarcode documents (keep the existing list) plus four 2D formats, QR Code, Data Matrix, PDF417 and Aztec. Add that 2D rows show the symbol size, the byte count and whether the symbol is dense.
+- `:19-22`: "21 barcode formats" becomes **25 barcode formats**: the 21 linear formats JsBarcode documents (keep the existing list) plus four 2D formats, QR Code, Data Matrix, PDF417 and Aztec. Append to the same bullet that 2D rows show the symbol size, the byte count and whether the symbol is dense.
 - New Features bullet after it, **Error correction**: for QR Code, PDF417 and Aztec, an **Error correction** select sets the level for the whole list, and codes too long for that level are flagged.
 - `:27` **Shareable links**: the link can also be shown as a QR code; a level select (L, M, Q, H) sets the share QR's error correction; a status line says when the link makes a dense QR or is too long for one, and why; links keep the list in the URL fragment (`#codes=…`), so long lists are never refused by the server, and older `?codes=` links keep working.
 - `:34-35`: "one per line, or comma-separated" becomes "one per line, or comma-separated for numeric formats such as UPC and EAN (2D and other text formats are one per line, and commas are part of the code)". Add: for QR Code, PDF417 and Aztec, choose an error-correction level or keep the default.
 - After `:38`, a `### Scanning 2D symbols` subsection with these five points: a 2D area imager is required; enable the scanner's screen or mobile-display read mode if it has one; start at 60 px/s and use the browser's full screen for dense symbols; non-ASCII text is encoded as UTF-8 without an ECI marker, so scanners that assume Latin-1 show it garbled; 2D symbols carry no caption, so count misses against the list.
-- `:63`: JsBarcode is "for the 21 linear formats (inline SVG)"; add a line, **bwip-js** 4.11.4 for QR Code, Data Matrix, PDF417 and Aztec (inline SVG).
+- `:63` becomes `- **JsBarcode** for the 21 linear formats (inline SVG)`; add below it `- **bwip-js** 4.11.4 for QR Code, Data Matrix, PDF417 and Aztec (inline SVG)`.
 
 - [ ] **Step 2: Refresh the stale comments**
 
 - `src/lib/formats.ts:1-5`: the header says the registry holds the 21 JsBarcode-documented linear formats (`engine: 'jsbarcode'`) and four 2D symbologies rendered by bwip-js (`engine: 'bwipjs'`), that descriptors stay data-only with behaviour in `src/lib/engines/`, and keeps the CODE39 `normalize` sentence verbatim.
 - `src/lib/jsbarcode.d.ts:7`: "surface checkCode relies on" becomes "surface the JsBarcode engine's `check` relies on (`src/lib/engines/jsbarcode.ts`)".
-- `src/lib/shareUrl.ts`: no comment may mention `?codes` or `location.search` (Task 7 should already have fixed this).
+- `src/lib/shareUrl.ts`: no comment may call the URL a `?codes` query or mention `location.search` (Task 7 should already have fixed this; its doc comments say "legacy query string").
 
 - [ ] **Step 3: Verify the stale strings are gone**
 
-Run: `git grep -n -F -e 'one descriptor per JsBarcode' -e 'checkCode relies on' -e 'location.search' -e 'Build "?codes' -e 'query-string concatenation' -e 'snapshots settings (including format)' -e 'warning persist' -- src`
-Expected: no output, exit status 1.
+Run: `git grep -n -F -e 'one descriptor per JsBarcode' -e 'checkCode relies on' -e 'location.search' -e '?codes' -e 'query-string concatenation' -e 'snapshots settings (including format)' -e 'warning persist' -- src ':!*.test.ts'`
+Expected: no output, exit status 1 (test files are excluded because the legacy-URL tests legitimately contain `?codes=`). A hit in `ScrollColumn.svelte`, `ShareLink.svelte` or a route file means Task 4, 8 or 7 left it: fix it here, add that file to this task's commit, and say so in the task report.
 
 - [ ] **Step 4: Run lint and the suite**
 
@@ -1570,7 +1571,7 @@ Human and browser steps from the spec's _Verification that fails closed_. Each r
 
 - Consumes: everything above. Produces: the filled record; conditionally, `export const init: ClientInit` in `src/hooks.client.ts`.
 
-Status is one of `UNVERIFIED`, `PASS`, `FAILED`. `PASS` needs every column filled; a checker that dies, returns nothing or is skipped leaves the row `UNVERIFIED`. Each row holds one check, so a partial result has a row of its own. Pass rules for rows 2a–2g: QR, the reported letter equals the level; PDF417 `0` and `8`, the reported number equals it; PDF417 `auto`, record the reported level (any value 0–8 passes, because automatic means BWIPP chose it); Aztec, the reported percentage is at least the label's minimum (`≥10%`, `≥50%`), because the label is a floor BWIPP may exceed when it fills the symbol.
+Status is one of `UNVERIFIED`, `PASS`, `FAILED`. `PASS` needs the evidence the paragraph above names for that kind of row (a scan: device model, firmware, read mode and output; a browser check: browser names and versions; row 5: the four command results in Output / notes); a checker that dies, returns nothing or is skipped leaves the row `UNVERIFIED`. Each row holds one check, so a partial result has a row of its own. Pass rules for rows 2a–2g: QR, the reported letter equals the level; PDF417 `0` and `8`, the reported number equals it; PDF417 `automatic level`, record the reported level (any value 0–8 passes, because automatic means BWIPP chose it); Aztec, the reported percentage is at least the label's minimum (`≥10%`, `≥50%`), because the label is a floor BWIPP may exceed when it fills the symbol.
 
 | #      | Check                                                                                                                                      | Status     | Device / browser, firmware, read mode | Output / notes |
 | ------ | ------------------------------------------------------------------------------------------------------------------------------------------ | ---------- | ------------------------------------- | -------------- |
@@ -1605,7 +1606,7 @@ Status is one of `UNVERIFIED`, `PASS`, `FAILED`. `PASS` needs every column fille
 | 3e     | Pasting a second share link into a tab already on the setup page changes the list                                                          | UNVERIFIED |                                       |                |
 | 3f     | A share QR opened with the iOS camera app and the Android camera app keeps the fragment                                                    | UNVERIFIED |                                       |                |
 | 4      | `/play#codes=50%` starts the router and bounces to setup showing `50% ✗ invalid`                                                           | UNVERIFIED |                                       |                |
-| 5      | `npm run check`, `npm test`, `npm run lint` green in the project                                                                           | UNVERIFIED |                                       |                |
+| 5      | `npm run check`, `npm test`, `npm run lint` green and `npm run build` succeeds in the project                                              | UNVERIFIED |                                       |                |
 
 - [ ] **Step 1: Scan with the target imager (rows 1a–1h)**
 
@@ -1617,11 +1618,11 @@ A human decodes each listed symbol with a decoder that reports the level, record
 
 - [ ] **Step 3: Browser checks (rows 3a–3f)**
 
-A human runs each check in Chromium and Firefox (desktop) and on a 390 px phone, and records the browser versions.
+A human runs rows 3a-cd to 3a-fp as labelled. For 3b, 3c and 3e, use desktop Chromium and Firefox. For 3d and 3f, use a real phone, open the `Network:` URL on the desktop as well, and record browser and OS versions.
 
 - [ ] **Step 4: Malformed fragment (row 4)**
 
-Open `http://localhost:4173/scandible/play#codes=50%` in Chromium and Firefox with the console open. Pass: the setup page renders with `50%` in the textarea and no uncaught error. Fail: a blank page or an uncaught `URIError`.
+Open `http://localhost:4173/scandible/play#codes=50%` in Chromium and Firefox with the console open. Pass: the router starts, the page bounces to setup, the textarea holds `50%`, the validation list shows `50% ✗ invalid`, and the console shows no uncaught error. Fail: a blank page or an uncaught `URIError`. If Step 4a repairs it, keep the first failure in Output / notes and set row 4 to PASS only when the repeat passes in both browsers.
 
 - [ ] **Step 4a (only if Step 4 failed): Repair the fragment before the router starts**
 
@@ -1644,4 +1645,4 @@ git add docs/superpowers/plans/2026-10-30-2d-barcode-formats.md
 git commit -m "docs: record 2D verification results"
 ```
 
-A skipped or failed step stays UNVERIFIED (or FAILED, with the evidence) in the record, and the final report lists every such row as unverified, never as passed.
+A skipped step, or one whose checker died or returned nothing, stays UNVERIFIED. A step that ran and failed is recorded FAILED, with the evidence. The final report lists every UNVERIFIED and FAILED row and never reports one as passed.
