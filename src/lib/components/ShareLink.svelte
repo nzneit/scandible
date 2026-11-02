@@ -1,10 +1,14 @@
 <script lang="ts">
 	import { buildQrSvg, qrStatus, QR_CAPACITY_BYTES, type QrEcc, type QrStatus } from '$lib/qr';
 
+	const COPY_OK = 'Link copied.';
+	const COPY_FAILED = 'Could not copy. Select the link above and copy it.';
+
 	let { hash }: { hash: string } = $props();
 
 	let shareEcc: QrEcc = $state('M');
 	let qrSvg = $state('');
+	let copyStatus = $state('');
 
 	const liveUrl = $derived(location.origin + location.pathname + hash);
 	const status = $derived(qrStatus(liveUrl, shareEcc));
@@ -24,17 +28,24 @@
 		void hash;
 		void shareEcc;
 		qrSvg = '';
+		copyStatus = '';
 	});
 
 	function share(): void {
-		void navigator.clipboard?.writeText(liveUrl).catch(() => {});
+		if (navigator.clipboard === undefined) copyStatus = COPY_FAILED;
+		else
+			navigator.clipboard.writeText(liveUrl).then(
+				() => (copyStatus = COPY_OK),
+				() => (copyStatus = COPY_FAILED)
+			);
 		if (status.kind !== 'too-long') qrSvg = buildQrSvg(liveUrl, shareEcc) ?? '';
 	}
 </script>
 
 <div class="share-row">
 	<button type="button" class="copy-link" onclick={share}>Share link</button>
-	<input type="text" class="share-url" readonly value={liveUrl} />
+	<input type="text" class="share-url" readonly aria-label="Share link" value={liveUrl} />
+	<span class="copy-status" role="status">{copyStatus}</span>
 </div>
 <label class="share-ecc-field"
 	>Share QR error correction
@@ -46,13 +57,18 @@
 	</select>
 </label>
 <!-- eslint-disable-next-line svelte/no-at-html-tags -- qrSvg comes only from uqr's renderSVG, which never reflects its input into markup (security-reviewed) -->
-<div class="qr-code" hidden={!qrSvg} aria-label="QR code for the share link">{@html qrSvg}</div>
+<div class="qr-code" role="img" hidden={!qrSvg} aria-label="QR code for the share link">
+	{@html qrSvg}
+</div>
 <p class="qr-status" role="status">{statusMessage(status)}</p>
 
 <style>
 	.share-url {
 		flex: 1;
 		font-family: monospace;
+	}
+	.copy-status {
+		margin-left: 8px;
 	}
 	.qr-code {
 		background: #fff;
@@ -65,7 +81,7 @@
 		display: block;
 	}
 	.qr-status {
-		color: #c60;
+		color: #a04b00;
 		margin: 4px 0 0;
 	}
 </style>

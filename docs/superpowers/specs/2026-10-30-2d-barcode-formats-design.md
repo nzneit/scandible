@@ -619,7 +619,7 @@ ShareLink:
   `let qrStatus = $state('')` is removed (name collision with the imported function).
 - Clicking **Share link** copies `liveUrl` and, unless the status is `too-long`, renders
   `buildQrSvg(liveUrl, shareEcc)` into `.qr-code`. The invalidation effect clears only `qrSvg`
-  and tracks `hash` and `shareEcc`, so a level change clears a QR rendered at the old level.
+  and tracks `hash` and `shareEcc`, so a level change clears a QR rendered at the old level. A second live region, `.copy-status`, shows `Link copied.` once the clipboard write resolves, or `Could not copy. Select the link above and copy it.` when it rejects or the Clipboard API is absent; it clears with the QR on a new hash or level.
 - Exact copy, numbers formatted with `new Intl.NumberFormat('en-US')`; `${ecc}` is the share
   level:
   - dense: `This link makes a dense QR code. Hold the phone steady, or share the link itself.`

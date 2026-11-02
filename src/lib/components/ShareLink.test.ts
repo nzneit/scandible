@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, fireEvent } from '@testing-library/svelte';
 import ShareLink from './ShareLink.svelte';
 import { encodeShareUrl } from '$lib/shareUrl';
@@ -129,5 +129,48 @@ describe('ShareLink', () => {
 		expect(qr.hidden).toBe(true);
 		expect(qr.querySelector('svg')).toBeNull();
 		expect(status(container).textContent).toBe('');
+	});
+
+	describe('copy confirmation', () => {
+		const copyStatus = (c: Element) => q<HTMLElement>(c, '.copy-status');
+		const FAILED = 'Could not copy. Select the link above and copy it.';
+		const stub = (value: unknown) =>
+			Object.defineProperty(navigator, 'clipboard', { value, configurable: true });
+		afterEach(() => Reflect.deleteProperty(navigator, 'clipboard'));
+
+		it('shows "Link copied." once the write resolves', async () => {
+			stub({ writeText: vi.fn(() => Promise.resolve()) });
+			const { container } = render(ShareLink, { hash: hashOf(1) });
+			await fireEvent.click(q(container, '.copy-link'));
+			await vi.waitFor(() => expect(copyStatus(container).textContent).toBe('Link copied.'));
+		});
+
+		it('shows the failure text when the write rejects', async () => {
+			stub({ writeText: vi.fn(() => Promise.reject(new Error('denied'))) });
+			const { container } = render(ShareLink, { hash: hashOf(1) });
+			await fireEvent.click(q(container, '.copy-link'));
+			await vi.waitFor(() => expect(copyStatus(container).textContent).toBe(FAILED));
+		});
+
+		it('shows the failure text when the Clipboard API is absent', async () => {
+			stub(undefined);
+			const { container } = render(ShareLink, { hash: hashOf(1) });
+			await fireEvent.click(q(container, '.copy-link'));
+			expect(copyStatus(container).textContent).toBe(FAILED);
+		});
+
+		it('clears the copy status when the level changes', async () => {
+			stub({ writeText: vi.fn(() => Promise.resolve()) });
+			const { container } = render(ShareLink, { hash: hashOf(1) });
+			await fireEvent.click(q(container, '.copy-link'));
+			await vi.waitFor(() => expect(copyStatus(container).textContent).toBe('Link copied.'));
+			await setLevel(container, 'H');
+			expect(copyStatus(container).textContent).toBe('');
+		});
+
+		it('gives the link field an accessible name', () => {
+			const { container } = render(ShareLink, { hash: hashOf(1) });
+			expect(q(container, '.share-url').getAttribute('aria-label')).toBe('Share link');
+		});
 	});
 });
