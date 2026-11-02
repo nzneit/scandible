@@ -46,6 +46,7 @@
 		format,
 		ecc
 	});
+	const shareHash = $derived(encodeShareUrl(rawCodes, settings));
 
 	// Keep `ecc` canonical across a format switch: drop a level the next format does not offer,
 	// or one that is its default. Done in the binding's setter, never an $effect.
@@ -85,7 +86,7 @@
 
 	function start(): void {
 		// eslint-disable-next-line svelte/no-navigation-without-resolve -- pathname IS resolve()-based; the rule cannot see through the fragment concatenation
-		goto(resolve('/play') + encodeShareUrl(rawCodes, settings));
+		goto(resolve('/play') + shareHash);
 	}
 </script>
 
@@ -169,7 +170,7 @@
 		</label>
 	</div>
 	<ValidationList {entries} />
-	<ShareLink codes={rawCodes} {settings} />
+	<ShareLink hash={shareHash} />
 	<button type="button" class="start" disabled={!canStart} onclick={start}>Start</button>
 </div>
 

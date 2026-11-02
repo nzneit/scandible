@@ -1,55 +1,53 @@
 <script lang="ts">
-	import { encodeShareUrl } from '$lib/shareUrl';
-	import { buildQrSvg } from '$lib/qr';
-	import type { Settings } from '$lib/types';
+	import { buildQrSvg, qrStatus, QR_CAPACITY_BYTES, type QrEcc, type QrStatus } from '$lib/qr';
 
-	const URL_WARN_LENGTH = 2000;
-	const QR_DENSE_MSG = 'QR is dense — hold the phone steady, or use the copied link.';
-	const QR_TOO_LONG_MSG = 'Too many codes for a QR — share the copied link instead.';
+	let { hash }: { hash: string } = $props();
 
-	let { codes, settings }: { codes: string[]; settings: Settings } = $props();
-
-	let url = $state('');
-	let warnLong = $state(false);
+	let shareEcc: QrEcc = $state('M');
 	let qrSvg = $state('');
-	let qrStatus = $state('');
 
-	// Any change to the shared content invalidates a rendered QR (the URL field and
-	// warning persist until the next click, matching the old view).
+	const liveUrl = $derived(location.origin + location.pathname + hash);
+	const status = $derived(qrStatus(liveUrl, shareEcc));
+
+	const count = new Intl.NumberFormat('en-US');
+	function statusMessage(s: QrStatus): string {
+		if (s.kind === 'fits') return '';
+		if (s.kind === 'dense')
+			return 'This link makes a dense QR code. Hold the phone steady, or share the link itself.';
+		if (s.ecc !== 'L' && s.length <= QR_CAPACITY_BYTES.L)
+			return `Too long for a QR code at level ${s.ecc}: this link is ${count.format(s.length)} characters and level ${s.ecc} holds at most ${count.format(s.capacity)}. Choose level L, or shorten the list. The link itself still works.`;
+		return `Too long for a QR code: this link is ${count.format(s.length)} characters and a QR holds at most 2,953. Shorten the list to share it as a QR. The link itself still works.`;
+	}
+
+	// A new link or a new level invalidates a rendered QR; the URL field and the status are live.
 	$effect(() => {
-		void codes;
-		void settings;
+		void hash;
+		void shareEcc;
 		qrSvg = '';
-		qrStatus = '';
 	});
 
 	function share(): void {
-		const u = location.origin + location.pathname + encodeShareUrl(codes, settings);
-		url = u;
-		warnLong = u.length > URL_WARN_LENGTH;
-		void navigator.clipboard?.writeText(u).catch(() => {});
-
-		const qr = buildQrSvg(u);
-		if (qr.ok) {
-			qrSvg = qr.svg;
-			qrStatus = qr.dense ? QR_DENSE_MSG : '';
-		} else {
-			qrSvg = '';
-			qrStatus = QR_TOO_LONG_MSG;
-		}
+		void navigator.clipboard?.writeText(liveUrl).catch(() => {});
+		if (status.kind !== 'too-long') qrSvg = buildQrSvg(liveUrl, shareEcc) ?? '';
 	}
 </script>
 
 <div class="share-row">
 	<button type="button" class="copy-link" onclick={share}>Share link</button>
-	<input type="text" class="share-url" readonly value={url} />
-	<span class="url-warning" hidden={!warnLong}
-		>Link is long; it may be truncated by some browsers.</span
-	>
+	<input type="text" class="share-url" readonly value={liveUrl} />
 </div>
+<label class="share-ecc-field"
+	>Share QR error correction
+	<select class="share-ecc-input" bind:value={shareEcc}>
+		<option value="L">L (most capacity)</option>
+		<option value="M">M (default)</option>
+		<option value="Q">Q</option>
+		<option value="H">H</option>
+	</select>
+</label>
 <!-- eslint-disable-next-line svelte/no-at-html-tags -- qrSvg comes only from uqr's renderSVG, which never reflects its input into markup (security-reviewed) -->
 <div class="qr-code" hidden={!qrSvg} aria-label="QR code for the share link">{@html qrSvg}</div>
-<p class="qr-status" hidden={!qrStatus}>{qrStatus}</p>
+<p class="qr-status" role="status">{statusMessage(status)}</p>
 
 <style>
 	.share-url {
