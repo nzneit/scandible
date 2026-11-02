@@ -198,6 +198,10 @@ describe('2D rows and error-correction choices', () => {
 			if (f.engine === 'bwipjs') expect(typeof bwip[f.bcid], f.id).toBe('function');
 	});
 
+	it('declares no ecc on any JsBarcode descriptor, because only bwip-js reads it', () => {
+		for (const f of FORMATS) if (f.engine === 'jsbarcode') expect(f.ecc, f.id).toBeUndefined();
+	});
+
 	it('declares ecc only on qr, pdf417 and aztec, with the spec copy in order', () => {
 		expect(FORMATS.filter((f) => f.ecc).map((f) => f.id)).toEqual(['qr', 'pdf417', 'aztec']);
 		expect(values('qr')).toEqual(['L', 'M', 'Q', 'H']);
