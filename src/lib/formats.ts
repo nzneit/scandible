@@ -1,6 +1,6 @@
-/** Format registry (Approach C′): one descriptor per JsBarcode-documented format.
- *  Descriptors are data-only today; the optional hooks are the extension seam for
- *  future format-specific features (EAN flat, CODE39 mod43, …). CODE39 must never
+/** Format registry: the 21 linear formats JsBarcode documents (`engine: 'jsbarcode'`)
+ *  and four 2D symbologies rendered by bwip-js (`engine: 'bwipjs'`).
+ *  Descriptors stay data-only; behaviour lives in `src/lib/engines/`. CODE39 must never
  *  define `normalize` — the encoder's own uppercasing is what the UI's
  *  `raw ✓ → encoded` row exists to surface. */
 

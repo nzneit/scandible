@@ -4,7 +4,7 @@ declare module 'jsbarcode' {
 }
 
 declare module 'jsbarcode/bin/barcodes' {
-	/** Internal encoder-class surface checkCode relies on. Constructors may normalize
+	/** Internal encoder-class surface the JsBarcode engine's `check` relies on (`src/lib/engines/jsbarcode.ts`). Constructors may normalize
 	 *  the input into `data` (check digits, checksums, uppercasing, codabar guards). */
 	interface JsBarcodeEncoder {
 		data: string;
