@@ -105,8 +105,7 @@ This spec builds these seams for spec 3 and otherwise leaves it alone:
   list; without a cache a 100-line QR list costs about 260 ms per keystroke and one
   over-capacity 3,000-character Aztec attempt about 240 ms (measured, Node). The adapter
   caches each encode's result or its thrown error, so a keystroke re-encodes only the edited
-  line, valid or not, except on the keystroke after the cache reaches `CACHE_MAX` and is
-  cleared. Playback reuses the same cache.
+  line, valid or not, except on the keystroke after the retained text passes `CACHE_BUDGET_CHARS` (32 MiB of key and SVG characters) and the cache is cleared; a count cap was rejected because a list longer than the cap re-encodes on every keystroke. Playback reuses the same cache.
 - **Known limitation, recorded not mitigated:** on viewports narrower than about 560 px with
   rotation or skew near their 30° maximum, the corners of a 2D symbol can leave the viewport
   (`.play` is `overflow: hidden`). 1D symbols already clip slightly in the same conditions.
@@ -255,7 +254,9 @@ export const ECC_OPTIONS: Record<
 
 const QUIET_ZONE_PX = 8; // 4 modules at 2 px/module for matrix codes; 8 X-modules for PDF417 (≥ 2 required)
 const NATURAL_PX = 1024; // longer side of the SVG's natural size; CSS max-* only ever shrink it
-const CACHE_MAX = 2000;
+/** The cache keeps whole SVG strings, so the bound is on retained characters. */
+const CACHE_BUDGET_CHARS = 32 * 1024 * 1024;
+let cacheChars = 0;
 
 /** Every BWIPP name that means "the payload does not fit". The name depends on the payload's
  *  length band, so each symbology has several (measurements file, Appendix B). */
@@ -291,15 +292,21 @@ type CacheEntry = { ok: true; result: Encoded } | { ok: false; error: unknown };
 const cache = new Map<string, CacheEntry>();
 
 /** One encode, memoised by bcid + ecc + value, failures included: an over-capacity line must
- *  not re-encode on every keystroke. Rethrows the cached error on a hit. The clear at
- *  CACHE_MAX is crude on purpose: the next keystroke re-encodes the list once. */
+ *  not re-encode on every keystroke. Rethrows the cached error on a hit. The cache is cleared
+ *  when the retained text would pass CACHE_BUDGET_CHARS; below the budget a keystroke
+ *  re-encodes only the edited line. */
 function encode(d: BwipDescriptor, value: string, options: SymbolOptions): Encoded {
 	const key = `${d.bcid}\u0000${options.ecc ?? ''}\u0000${value}`;
 	let entry = cache.get(key);
 	if (entry === undefined) {
 		entry = tryEncode(d, value, options);
-		if (cache.size >= CACHE_MAX) cache.clear();
+		const cost = key.length + (entry.ok ? entry.result.svg.length : 0);
+		if (cacheChars + cost > CACHE_BUDGET_CHARS) {
+			cache.clear();
+			cacheChars = 0;
+		}
 		cache.set(key, entry);
+		cacheChars += cost;
 	}
 	if (entry.ok) return entry.result;
 	throw entry.error;
@@ -795,7 +802,7 @@ the code.
   the same list under `ecc=L` plays (measured: fits at L and M, fails at H); a legacy `?codes=`
   URL still plays; `hashchange` reloads.
 - **Not tested** (implementation detail or presentation, checked in review instead): the
-  `CACHE_MAX` clear, the valid-row colour, and the exact `"bwip-js": "4.11.4"` pin.
+  `CACHE_BUDGET_CHARS` clear, the valid-row colour, and the exact `"bwip-js": "4.11.4"` pin.
 - **Mechanical-edit inventory (the back-compat gate):**
   - `CodeEntry` fixtures gain `format` and `options: {}`: `ValidationList.test.ts:6,29,39`
     (`'upc'`); `scroller.test.ts:5` and `ScrollColumn.test.ts:6` (`'upc'`); `barcode.test.ts:7`

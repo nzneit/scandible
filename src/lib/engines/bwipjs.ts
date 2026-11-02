@@ -19,7 +19,6 @@ export const ECC_OPTIONS: Record<
 
 const QUIET_ZONE_PX = 8; // 4 modules at 2 px/module for matrix codes; 8 X-modules for PDF417 (≥ 2 required)
 const NATURAL_PX = 1024; // longer side of the SVG's natural size; CSS max-* only ever shrink it
-const CACHE_MAX = 2000;
 
 /** Every BWIPP name that means "the payload does not fit". The name depends on the payload's
  *  length band, so each symbology has several (measurements file, Appendix B). */
@@ -52,18 +51,30 @@ interface Encoded {
 
 type CacheEntry = { ok: true; result: Encoded } | { ok: false; error: unknown };
 
+/** The cache keeps whole SVG strings, so the bound is on retained characters (key plus SVG
+ *  text), not entries: a list has to retain more than this before a clear can thrash, and
+ *  encoding such a list already takes longer per keystroke than any cache saves. */
+export const CACHE_BUDGET_CHARS = 32 * 1024 * 1024;
+
 const cache = new Map<string, CacheEntry>();
+let cacheChars = 0;
 
 /** One encode, memoised by bcid + ecc + value, failures included: an over-capacity line must
- *  not re-encode on every keystroke. Rethrows the cached error on a hit. The clear at
- *  CACHE_MAX is crude on purpose: the next keystroke re-encodes the list once. */
+ *  not re-encode on every keystroke. Rethrows the cached error on a hit. The cache is cleared
+ *  when the retained text would pass CACHE_BUDGET_CHARS; below the budget a keystroke
+ *  re-encodes only the edited line. */
 function encode(d: BwipDescriptor, value: string, options: SymbolOptions): Encoded {
 	const key = `${d.bcid}\u0000${options.ecc ?? ''}\u0000${value}`;
 	let entry = cache.get(key);
 	if (entry === undefined) {
 		entry = tryEncode(d, value, options);
-		if (cache.size >= CACHE_MAX) cache.clear();
+		const cost = key.length + (entry.ok ? entry.result.svg.length : 0);
+		if (cacheChars + cost > CACHE_BUDGET_CHARS) {
+			cache.clear();
+			cacheChars = 0;
+		}
 		cache.set(key, entry);
+		cacheChars += cost;
 	}
 	if (entry.ok) return entry.result;
 	throw entry.error;
