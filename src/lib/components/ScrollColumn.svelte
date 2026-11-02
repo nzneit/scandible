@@ -25,8 +25,8 @@
 	let container: HTMLDivElement | undefined;
 	let scroller: Scroller | undefined;
 
-	// The scroller snapshots settings (including format) at mount; format is immutable
-	// during a play session by design — live format switching would require a remount.
+	// The scroller snapshots entries and settings at mount; each entry carries its own format and
+	// options, and neither changes during a play session (live changes would require a remount).
 	onMount(() => {
 		if (!container) return;
 		scroller = createScroller(container, entries, settings, onFinish);
@@ -78,5 +78,14 @@
 	.scroll-column :global(.barcode-item svg) {
 		max-width: min(90vw, 640px);
 		height: auto;
+	}
+	.scroll-column :global(.barcode-item--2d svg) {
+		max-width: min(90vw, 640px);
+		max-height: 60vh;
+		width: auto;
+		height: auto;
+	}
+	.scroll-column :global(.barcode-item--pdf417 svg) {
+		max-width: min(95vw, 960px); /* PDF417 is wide: 18 data columns = 375 X-modules */
 	}
 </style>

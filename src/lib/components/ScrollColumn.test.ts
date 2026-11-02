@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render } from '@testing-library/svelte';
 import ScrollColumn from './ScrollColumn.svelte';
+import { parseCodeList } from '$lib/codes';
 import { DEFAULT_SETTINGS, type Settings, type CodeEntry } from '$lib/types';
 
 const entry = (value: string, valid: boolean): CodeEntry => ({
@@ -40,4 +41,11 @@ describe('ScrollColumn', () => {
 		expect(removeSpy).toHaveBeenCalledWith('resize', expect.any(Function));
 		removeSpy.mockRestore();
 	});
+});
+
+it('mounts 2D entries with the 2D item classes', () => {
+	const entries = parseCodeList('hello world', 'qr');
+	const { container } = render(ScrollColumn, { entries, settings: SETTINGS }); // list format stays upc
+	const items = container.querySelectorAll('.barcode-item.barcode-item--2d.barcode-item--qr');
+	expect(items.length).toBe(2);
 });

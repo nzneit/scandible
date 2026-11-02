@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createScroller } from './scroller';
-import type { CodeEntry } from './types';
+import { DEFAULT_SETTINGS, type CodeEntry } from './types';
+import { parseCodeList } from './codes';
 
 const entry = (value: string, valid: boolean): CodeEntry => ({
 	raw: value,
@@ -208,4 +209,21 @@ describe('createScroller', () => {
 		expect(item.style.transform).toBe('');
 		s.destroy();
 	});
+});
+
+it('marks 2D items with barcode-item--2d and barcode-item--<id>, and 1D items with neither', () => {
+	// settings.format stays 'upc': the classes must come from the entry, not from the list format
+	const s = createScroller(container, parseCodeList('hello world', 'qr'), DEFAULT_SETTINGS);
+	const items = container.querySelectorAll('.barcode-item');
+	expect(items.length).toBe(2);
+	for (const item of items) {
+		expect(item.classList.contains('barcode-item--2d')).toBe(true);
+		expect(item.classList.contains('barcode-item--qr')).toBe(true);
+		expect(item.querySelector('svg')).not.toBeNull();
+	}
+	s.destroy();
+	const u = createScroller(container, entries, { ...DEFAULT_SETTINGS });
+	expect(container.querySelector('.barcode-item--2d')).toBeNull();
+	expect(container.querySelector('.barcode-item--upc')).toBeNull();
+	u.destroy();
 });

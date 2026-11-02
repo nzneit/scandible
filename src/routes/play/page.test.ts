@@ -75,3 +75,16 @@ describe('play page', () => {
 		expect(goto.mock.calls[0][0]).toContain('fmt=code39');
 	});
 });
+
+it('renders a qr list with the 2D item classes', () => {
+	mockPage.url = new URL('http://localhost/play?codes=hello%20world&fmt=qr&seed=7');
+	const { container } = render(PlayPage);
+	expect(container.querySelectorAll('.barcode-item').length).toBe(2);
+	expect(container.querySelectorAll('.barcode-item--2d.barcode-item--qr').length).toBe(2);
+});
+
+it('renders a upc list with neither 2D class', () => {
+	const { container } = render(PlayPage);
+	expect(container.querySelector('.barcode-item--2d')).toBeNull();
+	expect(container.querySelector('.barcode-item--qr')).toBeNull();
+});
