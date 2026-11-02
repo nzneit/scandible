@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { parseCodeList } from './codes';
+import { buildEntry, parseCodeList, resolveOptions } from './codes';
+import { FORMAT_BY_ID, type FormatId } from './formats';
 
 describe('parseCodeList tokenization', () => {
 	it('numeric formats split on newlines AND commas, trim, drop empties, keep order + duplicates', () => {
@@ -33,5 +34,82 @@ describe('parseCodeList tokenization', () => {
 	it('flips validity by format: HELLO is invalid upc, valid code39', () => {
 		expect(parseCodeList('HELLO', 'upc')[0].valid).toBe(false);
 		expect(parseCodeList('HELLO', 'code39')[0].valid).toBe(true);
+	});
+});
+
+const row = (id: FormatId) => FORMAT_BY_ID.get(id)!;
+
+describe('resolveOptions: override → list → default', () => {
+	it('returns {} for formats without ecc', () => {
+		expect(resolveOptions(row('upc'), { format: 'upc', ecc: 'H' }, { ecc: 'H' })).toEqual({});
+		expect(
+			resolveOptions(row('datamatrix'), { format: 'datamatrix', ecc: 'H' }, { ecc: 'H' })
+		).toEqual({});
+	});
+
+	it('takes the first accepted layer and skips invalid ones', () => {
+		const qr = row('qr');
+		expect(resolveOptions(qr, { format: 'qr', ecc: '' })).toEqual({ ecc: 'M' });
+		expect(resolveOptions(qr, { format: 'qr', ecc: 'H' })).toEqual({ ecc: 'H' });
+		expect(resolveOptions(qr, { format: 'qr', ecc: 'H' }, { ecc: 'L' })).toEqual({ ecc: 'L' });
+		expect(resolveOptions(qr, { format: 'qr', ecc: 'H' }, { ecc: 'X' })).toEqual({ ecc: 'H' });
+		expect(resolveOptions(qr, { format: 'qr', ecc: 'Z' }, { ecc: '23' })).toEqual({ ecc: 'M' });
+	});
+
+	it('never applies the list level to another format', () => {
+		expect(resolveOptions(row('aztec'), { format: 'qr', ecc: 'H' })).toEqual({ ecc: '23' });
+		// '10' is an Aztec value, but the list format is qr, so it is not inherited.
+		expect(resolveOptions(row('aztec'), { format: 'qr', ecc: '10' })).toEqual({ ecc: '23' });
+	});
+});
+
+describe('buildEntry', () => {
+	it('keeps raw, cleans value and stamps format and options', () => {
+		expect(buildEntry('0360 00291452', 'upc', { format: 'upc', ecc: '' })).toEqual({
+			raw: '0360 00291452',
+			value: '036000291452',
+			format: 'upc',
+			options: {},
+			valid: true,
+			encoded: '036000291452'
+		});
+	});
+});
+
+describe('parseCodeList stamps every entry', () => {
+	it('with the list format and the resolved options', () => {
+		for (const e of parseCodeList('036000291452\nbad', 'upc'))
+			expect(e).toMatchObject({ format: 'upc', options: {} });
+		for (const e of parseCodeList('a\nb', 'qr', 'H'))
+			expect(e).toMatchObject({ format: 'qr', options: { ecc: 'H' } });
+		expect(parseCodeList('a', 'qr')[0].options).toEqual({ ecc: 'M' });
+	});
+});
+
+describe('2D formats through parseCodeList', () => {
+	it('x × 2000 under qr is valid at L and too long at H', () => {
+		expect(parseCodeList('x'.repeat(2000), 'qr', 'L')[0]).toMatchObject({
+			valid: true,
+			facts: { cols: 149 }
+		});
+		expect(parseCodeList('x'.repeat(2000), 'qr', 'H')[0]).toMatchObject({
+			valid: false,
+			reason: 'too-long'
+		});
+	});
+
+	it('splits 2D lists on newlines only and keeps commas as data', () => {
+		const entries = parseCodeList('a,b\nc, d', 'qr');
+		expect(entries.map((e) => e.raw)).toEqual(['a,b', 'c, d']);
+		expect(entries.map((e) => e.value)).toEqual(['a,b', 'c, d']);
+		expect(entries.every((e) => e.valid)).toBe(true);
+	});
+
+	it('strips Windows line endings from 2D tokens', () => {
+		const entries = parseCodeList('hello world\r\nline two\r\n', 'qr');
+		expect(entries.map((e) => e.raw)).toEqual(['hello world', 'line two']);
+		expect(entries.map((e) => e.value)).toEqual(['hello world', 'line two']);
+		// 11 bytes, not 12: no trailing \r reached the encoder.
+		expect(entries[0]).toMatchObject({ valid: true, facts: { bytes: 11, cols: 21 } });
 	});
 });

@@ -1,5 +1,5 @@
 import type { Settings } from './types';
-import { isFormatId } from './formats';
+import { DEFAULT_FORMAT, FORMAT_BY_ID, isEccChoice, isFormatId } from './formats';
 
 const SPEED_MIN = 10;
 const SPEED_MAX = 5000;
@@ -7,8 +7,10 @@ const DEG_MIN = 1;
 const DEG_MAX = 30;
 const SEED_MAX = 0xffffffff;
 
-/** Build "?codes=...&speed=...&loop=..." from raw code strings + settings. codes are
- *  joined with "\n" so internal commas/whitespace survive URLSearchParams encoding. */
+/** Build the share fragment "#codes=…&speed=…&…&fmt=…" from raw code strings + settings.
+ *  Params after `fmt` (`ecc` now) appear only when they differ from their default, in a
+ *  fixed order. Codes are joined with "\n" so commas and spaces survive URLSearchParams
+ *  encoding. */
 export function encodeShareUrl(codes: string[], settings: Settings): string {
 	const params = new URLSearchParams();
 	params.set('codes', codes.join('\n'));
@@ -20,13 +22,23 @@ export function encodeShareUrl(codes: string[], settings: Settings): string {
 	params.set('skewmax', String(settings.skewMaxDeg));
 	params.set('seed', String(settings.seed));
 	params.set('fmt', settings.format);
-	return '?' + params.toString();
+	const descriptor = FORMAT_BY_ID.get(settings.format);
+	if (
+		descriptor?.ecc &&
+		isEccChoice(descriptor, settings.ecc) &&
+		settings.ecc !== descriptor.ecc.defaultValue
+	) {
+		params.set('ecc', settings.ecc);
+	}
+	return '#' + params.toString();
 }
 
-/** Parse location.search into codes + partial settings. Per-parameter leniency,
- *  never throws. */
-export function decodeShareUrl(search: string): { codes: string[]; settings: Partial<Settings> } {
-	const params = new URLSearchParams(search);
+/** Parse a page URL into codes + partial settings. The fragment is the source when it
+ *  carries `codes`, else the legacy query string is, so old links keep working.
+ *  Per-parameter leniency, never throws. */
+export function decodeShareUrl(url: URL): { codes: string[]; settings: Partial<Settings> } {
+	const hashParams = new URLSearchParams(url.hash.slice(1));
+	const params = hashParams.has('codes') ? hashParams : new URLSearchParams(url.search.slice(1));
 	const codesRaw = params.get('codes');
 	const codes = codesRaw
 		? codesRaw
@@ -79,6 +91,17 @@ export function decodeShareUrl(search: string): { codes: string[]; settings: Par
 	const fmtRaw = params.get('fmt');
 	if (fmtRaw !== null && isFormatId(fmtRaw)) {
 		settings.format = fmtRaw;
+	}
+	// `ecc` is judged against the resolved format, so its position in the URL does not matter.
+	const eccRaw = params.get('ecc');
+	const descriptor = FORMAT_BY_ID.get(settings.format ?? DEFAULT_FORMAT);
+	if (
+		eccRaw !== null &&
+		descriptor?.ecc &&
+		isEccChoice(descriptor, eccRaw) &&
+		eccRaw !== descriptor.ecc.defaultValue
+	) {
+		settings.ecc = eccRaw;
 	}
 	return { codes, settings };
 }

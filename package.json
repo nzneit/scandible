@@ -15,6 +15,7 @@
 		"format": "prettier --write ."
 	},
 	"dependencies": {
+		"bwip-js": "4.11.4",
 		"jsbarcode": "^3.11.6",
 		"uqr": "^0.1.3"
 	},

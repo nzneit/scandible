@@ -2,18 +2,34 @@ import { encode, renderSVG } from 'uqr';
 
 const QR_DENSE_VERSION = 20; // tunable; higher version = denser = harder to scan phone-to-phone
 
-export type QrResult = { ok: true; svg: string; dense: boolean } | { ok: false; tooLong: true };
+export type QrEcc = 'L' | 'M' | 'Q' | 'H';
 
-/** Encode `text` as a QR SVG string. Error-correction level M balances capacity
- *  against robustness to screen glare. Returns `dense: true` when the selected
- *  version is very high (hard to scan phone-to-phone), and `{ ok: false,
- *  tooLong: true }` when the text exceeds QR capacity. Deterministic and pure. */
-export function buildQrSvg(text: string): QrResult {
+/** ISO/IEC 18004 version 40, byte mode. */
+export const QR_CAPACITY_BYTES: Record<QrEcc, number> = { L: 2953, M: 2331, Q: 1663, H: 1273 };
+
+export type QrStatus =
+	| { kind: 'fits' }
+	| { kind: 'dense' }
+	| { kind: 'too-long'; ecc: QrEcc; length: number; capacity: number };
+
+/** How `text` fares as a QR at error-correction level `ecc`: `dense` when the selected
+ *  version is above QR_DENSE_VERSION (hard to scan phone-to-phone), `too-long` when the
+ *  text exceeds the level's capacity, else `fits`. Never throws. */
+export function qrStatus(text: string, ecc: QrEcc): QrStatus {
 	try {
-		const { version } = encode(text, { ecc: 'M' }); // where over-capacity surfaces
-		const svg = renderSVG(text, { ecc: 'M', border: 2 }); // quiet zone = 2 modules; default white background
-		return { ok: true, svg, dense: version > QR_DENSE_VERSION };
+		const { version } = encode(text, { ecc }); // where over-capacity surfaces
+		return version > QR_DENSE_VERSION ? { kind: 'dense' } : { kind: 'fits' };
 	} catch {
-		return { ok: false, tooLong: true };
+		return { kind: 'too-long', ecc, length: text.length, capacity: QR_CAPACITY_BYTES[ecc] };
+	}
+}
+
+/** Encode `text` as a QR SVG string at error-correction level `ecc`, or `null` when it does
+ *  not fit. Density is `qrStatus`'s job. Deterministic and pure. */
+export function buildQrSvg(text: string, ecc: QrEcc): string | null {
+	try {
+		return renderSVG(text, { ecc, border: 2 }); // quiet zone = 2 modules; default white background
+	} catch {
+		return null;
 	}
 }

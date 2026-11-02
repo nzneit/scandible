@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, fireEvent } from '@testing-library/svelte';
 import SetupPage from './+page.svelte';
 import { readCodesFile } from '$lib/fileInput';
+import { encodeShareUrl } from '$lib/shareUrl';
+import { DEFAULT_SETTINGS } from '$lib/types';
 
 const mockPage = vi.hoisted(() => ({ url: new URL('http://localhost/') }));
 const goto = vi.hoisted(() => vi.fn());
@@ -18,8 +20,16 @@ beforeEach(() => {
 });
 
 describe('setup page', () => {
-	it('prefills the textarea and settings from the URL', () => {
+	it('prefills the textarea and settings from a legacy ?codes= URL', () => {
 		mockPage.url = new URL('http://localhost/?codes=036000291452&speed=120&loop=1');
+		const { container } = render(SetupPage);
+		expect(q<HTMLTextAreaElement>(container, '.code-input').value).toBe('036000291452');
+		expect(q<HTMLInputElement>(container, '.speed-input').value).toBe('120');
+		expect(q<HTMLInputElement>(container, '.loop-input').checked).toBe(true);
+	});
+
+	it('prefills the textarea and settings from a #codes= fragment URL', () => {
+		mockPage.url = new URL('http://localhost/#codes=036000291452&speed=120&loop=1');
 		const { container } = render(SetupPage);
 		expect(q<HTMLTextAreaElement>(container, '.code-input').value).toBe('036000291452');
 		expect(q<HTMLInputElement>(container, '.speed-input').value).toBe('120');
@@ -48,7 +58,7 @@ describe('setup page', () => {
 		const { container } = render(SetupPage);
 		await fireEvent.click(q(container, '.start'));
 		expect(goto).toHaveBeenCalledWith(
-			'/play?codes=036000291452&speed=60&loop=0&rot=0&rotmax=8&skew=0&skewmax=8&seed=0&fmt=upc'
+			'/play#codes=036000291452&speed=60&loop=0&rot=0&rotmax=8&skew=0&skewmax=8&seed=0&fmt=upc'
 		);
 	});
 
@@ -201,10 +211,10 @@ describe('setup page', () => {
 		expect(container.querySelector('.validation-list li')?.textContent).toBe(originalFirst);
 	});
 
-	it('renders the grouped format dropdown with 21 options', () => {
+	it('renders the grouped format dropdown with 25 options', () => {
 		const { container } = render(SetupPage);
-		expect(container.querySelectorAll('.format-input optgroup').length).toBe(6);
-		expect(container.querySelectorAll('.format-input option').length).toBe(21);
+		expect(container.querySelectorAll('.format-input optgroup').length).toBe(7);
+		expect(container.querySelectorAll('.format-input option').length).toBe(25);
 		expect(q<HTMLSelectElement>(container, '.format-input').value).toBe('upc');
 	});
 
@@ -247,5 +257,121 @@ describe('setup page', () => {
 		const { container } = render(SetupPage);
 		await fireEvent.click(q(container, '.start'));
 		expect(goto.mock.calls[0][0]).toContain('fmt=code39');
+	});
+});
+
+describe('setup page: error correction', () => {
+	const X2000 = 'x'.repeat(2000);
+	const setText = (c: Element, v: string) =>
+		fireEvent.input(q(c, '.code-input'), { target: { value: v } });
+	const choose = (c: Element, sel: string, v: string) =>
+		fireEvent.change(q(c, sel), { target: { value: v } });
+	const setFormat = (c: Element, v: string) => choose(c, '.format-input', v);
+	const setEcc = (c: Element, v: string) => choose(c, '.ecc-input', v);
+	const firstRow = (c: Element) => c.querySelector('.validation-list li')?.textContent;
+
+	it('validates hello world as qr with the facts row and shows the field at the default level', async () => {
+		const { container } = render(SetupPage);
+		await setText(container, 'hello world');
+		await setFormat(container, 'qr');
+		expect(firstRow(container)).toBe('hello world ✓ · 21×21 modules · 11 bytes');
+		const select = q<HTMLSelectElement>(container, '.ecc-input');
+		expect(select.value).toBe('M');
+		expect(select.selectedOptions[0].textContent).toBe('level M (~15% recovery, default)');
+		expect(q(container, '.ecc-field').textContent?.startsWith('Error correction')).toBe(true);
+		const input = q<HTMLTextAreaElement>(container, '.code-input');
+		expect(input.placeholder).toBe('Paste codes — one per line');
+	});
+
+	it('renders no field for upc or datamatrix', async () => {
+		const { container } = render(SetupPage);
+		expect(container.querySelector('.ecc-input')).toBeNull();
+		await setFormat(container, 'datamatrix');
+		expect(container.querySelector('.ecc-input')).toBeNull();
+	});
+
+	it('applies the chosen level to validation and returns to the default', async () => {
+		const { container } = render(SetupPage);
+		await setText(container, X2000);
+		await setFormat(container, 'qr');
+		expect(firstRow(container)).toBe(`${X2000} ✓ · 169×169 modules · 2000 bytes · dense`);
+		await setEcc(container, 'H');
+		expect(firstRow(container)).toBe(`${X2000} ✗ too long for QR Code (level H)`);
+		await setEcc(container, 'M');
+		expect(q<HTMLSelectElement>(container, '.ecc-input').value).toBe('M');
+		expect(firstRow(container)).toBe(`${X2000} ✓ · 169×169 modules · 2000 bytes · dense`);
+	});
+
+	it('resets to the new format’s default when switching from qr at H to aztec', async () => {
+		const { container } = render(SetupPage);
+		await setText(container, 'hello world');
+		await setFormat(container, 'qr');
+		await setEcc(container, 'H');
+		await setFormat(container, 'aztec');
+		const select = q<HTMLSelectElement>(container, '.ecc-input');
+		expect(select.value).toBe('23');
+		expect(select.selectedOptions[0].textContent).toBe('≥23% error correction (default)');
+		expect(firstRow(container)).toBe('hello world ✓ · 19×19 modules · 11 bytes');
+	});
+});
+
+describe('setup page: fragment URLs and ecc in the Start URL', () => {
+	const setEcc = (c: Element, v: string) =>
+		fireEvent.change(q(c, '.ecc-input'), { target: { value: v } });
+
+	it('ends the Start URL with &fmt=qr&ecc=H for qr at level H', async () => {
+		mockPage.url = new URL('http://localhost/#codes=hello%20world&seed=0&fmt=qr&ecc=H');
+		const { container } = render(SetupPage);
+		await fireEvent.click(q(container, '.start'));
+		expect(goto).toHaveBeenCalledWith(
+			'/play#codes=hello+world&speed=60&loop=0&rot=0&rotmax=8&skew=0&skewmax=8&seed=0&fmt=qr&ecc=H'
+		);
+	});
+
+	it('drops ecc from the Start URL after choosing level H then level M', async () => {
+		mockPage.url = new URL('http://localhost/#codes=hello%20world&seed=0&fmt=qr');
+		const { container } = render(SetupPage);
+		await setEcc(container, 'H');
+		await fireEvent.click(q(container, '.start'));
+		await setEcc(container, 'M');
+		await fireEvent.click(q(container, '.start'));
+		expect(goto.mock.calls[0][0]).toMatch(/&fmt=qr&ecc=H$/);
+		expect(goto.mock.calls[1][0]).toMatch(/&fmt=qr$/);
+	});
+
+	it('emits no ecc after switching from qr at H to aztec', async () => {
+		mockPage.url = new URL('http://localhost/#codes=hello%20world&seed=0&fmt=qr&ecc=H');
+		const { container } = render(SetupPage);
+		await fireEvent.change(q(container, '.format-input'), { target: { value: 'aztec' } });
+		await fireEvent.click(q(container, '.start'));
+		expect(goto.mock.calls[0][0]).toMatch(/^\/play#codes=hello\+world&/);
+		expect(goto.mock.calls[0][0]).toMatch(/&fmt=aztec$/);
+	});
+
+	it('carries a payload with # & % + , and spaces into the Start URL unchanged', async () => {
+		const codes = ['a#b&c%d+e,f g'];
+		const s = { ...DEFAULT_SETTINGS, format: 'code128' as const, seed: 7 };
+		mockPage.url = new URL('http://localhost/' + encodeShareUrl(codes, s));
+		const { container } = render(SetupPage);
+		expect(q<HTMLTextAreaElement>(container, '.code-input').value).toBe('a#b&c%d+e,f g');
+		await fireEvent.click(q(container, '.start'));
+		expect(goto.mock.calls[0][0]).toMatch(/^\/play#codes=/);
+		expect(goto).toHaveBeenCalledWith('/play' + encodeShareUrl(codes, s));
+	});
+
+	it('reloads on hashchange, and not after unmount', () => {
+		const reload = vi.fn();
+		const { origin, pathname } = location;
+		vi.stubGlobal('location', { origin, pathname, reload });
+		try {
+			const { unmount } = render(SetupPage);
+			window.dispatchEvent(new Event('hashchange'));
+			expect(reload).toHaveBeenCalledTimes(1);
+			unmount();
+			window.dispatchEvent(new Event('hashchange'));
+			expect(reload).toHaveBeenCalledTimes(1);
+		} finally {
+			vi.unstubAllGlobals();
+		}
 	});
 });

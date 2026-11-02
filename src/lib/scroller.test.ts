@@ -1,8 +1,15 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createScroller } from './scroller';
-import type { CodeEntry } from './types';
+import { DEFAULT_SETTINGS, type CodeEntry } from './types';
+import { parseCodeList } from './codes';
 
-const entry = (value: string, valid: boolean): CodeEntry => ({ raw: value, value, valid });
+const entry = (value: string, valid: boolean): CodeEntry => ({
+	raw: value,
+	value,
+	format: 'upc',
+	options: {},
+	valid
+});
 const entries: CodeEntry[] = [
 	entry('036000291452', true),
 	entry('bad', false),
@@ -25,7 +32,8 @@ describe('createScroller', () => {
 			skew: false,
 			skewMaxDeg: 8,
 			seed: 0,
-			format: 'upc'
+			format: 'upc',
+			ecc: ''
 		});
 		// 2 valid entries × 2 copies = 4 barcode items
 		expect(container.querySelectorAll('.barcode-item').length).toBe(4);
@@ -42,7 +50,8 @@ describe('createScroller', () => {
 			skew: false,
 			skewMaxDeg: 8,
 			seed: 0,
-			format: 'upc'
+			format: 'upc',
+			ecc: ''
 		});
 		const copies = container.querySelectorAll<HTMLElement>('.scroller-copy');
 		expect(copies[1].style.display).toBe('none');
@@ -62,7 +71,8 @@ describe('createScroller', () => {
 			skew: false,
 			skewMaxDeg: 8,
 			seed: 0,
-			format: 'upc'
+			format: 'upc',
+			ecc: ''
 		});
 		s.play();
 		expect(s.isPlaying()).toBe(true);
@@ -111,7 +121,8 @@ describe('createScroller', () => {
 					skew: false,
 					skewMaxDeg: 8,
 					seed: 0,
-					format: 'upc'
+					format: 'upc',
+					ecc: ''
 				},
 				onFinish
 			);
@@ -135,7 +146,8 @@ describe('createScroller', () => {
 			skew: true,
 			skewMaxDeg: 10,
 			seed: 5,
-			format: 'upc'
+			format: 'upc',
+			ecc: ''
 		});
 		const copies = container.querySelectorAll<HTMLElement>('.scroller-copy');
 		const items0 = copies[0].querySelectorAll<HTMLElement>('.barcode-item');
@@ -155,7 +167,8 @@ describe('createScroller', () => {
 			skew: false,
 			skewMaxDeg: 10,
 			seed: 5,
-			format: 'upc'
+			format: 'upc',
+			ecc: ''
 		});
 		const item = container.querySelector<HTMLElement>('.barcode-item')!;
 		expect(item.style.transform).toMatch(/^rotate\(/);
@@ -171,7 +184,8 @@ describe('createScroller', () => {
 			skew: false,
 			skewMaxDeg: 8,
 			seed: 0,
-			format: 'upc'
+			format: 'upc',
+			ecc: ''
 		});
 		const track = container.querySelector<HTMLElement>('.scroller-track')!;
 		// Initial render (offset 0) must use the 3D transform form, not translateY.
@@ -188,10 +202,28 @@ describe('createScroller', () => {
 			skew: false,
 			skewMaxDeg: 10,
 			seed: 5,
-			format: 'upc'
+			format: 'upc',
+			ecc: ''
 		});
 		const item = container.querySelector<HTMLElement>('.barcode-item')!;
 		expect(item.style.transform).toBe('');
 		s.destroy();
 	});
+});
+
+it('marks 2D items with barcode-item--2d and barcode-item--<id>, and 1D items with neither', () => {
+	// settings.format stays 'upc': the classes must come from the entry, not from the list format
+	const s = createScroller(container, parseCodeList('hello world', 'qr'), DEFAULT_SETTINGS);
+	const items = container.querySelectorAll('.barcode-item');
+	expect(items.length).toBe(2);
+	for (const item of items) {
+		expect(item.classList.contains('barcode-item--2d')).toBe(true);
+		expect(item.classList.contains('barcode-item--qr')).toBe(true);
+		expect(item.querySelector('svg')).not.toBeNull();
+	}
+	s.destroy();
+	const u = createScroller(container, entries, { ...DEFAULT_SETTINGS });
+	expect(container.querySelector('.barcode-item--2d')).toBeNull();
+	expect(container.querySelector('.barcode-item--upc')).toBeNull();
+	u.destroy();
 });

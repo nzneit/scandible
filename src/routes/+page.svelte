@@ -1,16 +1,17 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { parseCodeList } from '$lib/codes';
-	import { FORMAT_BY_ID, FORMAT_GROUPS } from '$lib/formats';
+	import { FORMAT_BY_ID, FORMAT_GROUPS, isEccChoice, type FormatId } from '$lib/formats';
 	import { readCodesFile } from '$lib/fileInput';
 	import { decodeShareUrl, encodeShareUrl } from '$lib/shareUrl';
 	import { DEFAULT_SETTINGS, type Settings, type CodeEntry } from '$lib/types';
 	import ValidationList from '$lib/components/ValidationList.svelte';
 	import ShareLink from '$lib/components/ShareLink.svelte';
 
-	const decoded = decodeShareUrl(page.url.search);
+	const decoded = decodeShareUrl(page.url);
 	const initial: Settings = { ...DEFAULT_SETTINGS, ...decoded.settings };
 	const seed = decoded.settings.seed ?? Math.floor(Math.random() * 0x100000000) >>> 0;
 
@@ -22,13 +23,15 @@
 	let skew = $state(initial.skew);
 	let skewMaxDeg = $state(initial.skewMaxDeg);
 	let format = $state(initial.format);
+	let ecc = $state(initial.ecc);
+	const descriptor = $derived(FORMAT_BY_ID.get(format));
 	let fileError = $state('');
 
-	const entries: CodeEntry[] = $derived(parseCodeList(text, format));
+	const entries: CodeEntry[] = $derived(parseCodeList(text, format, ecc));
 	const rawCodes: string[] = $derived(entries.map((e) => e.raw));
 	const canStart: boolean = $derived(entries.some((e) => e.valid));
 	const placeholder: string = $derived(
-		FORMAT_BY_ID.get(format)?.numeric
+		descriptor?.numeric
 			? 'Paste codes — one per line, or comma-separated'
 			: 'Paste codes — one per line'
 	);
@@ -40,7 +43,32 @@
 		skew,
 		skewMaxDeg,
 		seed,
-		format
+		format,
+		ecc
+	});
+	const shareHash = $derived(encodeShareUrl(rawCodes, settings));
+
+	// Keep `ecc` canonical across a format switch: drop a level the next format does not offer,
+	// or one that is its default. Done in the binding's setter, never an $effect.
+	function selectFormat(next: FormatId): void {
+		const nextDescriptor = FORMAT_BY_ID.get(next);
+		if (
+			!nextDescriptor ||
+			!isEccChoice(nextDescriptor, ecc) ||
+			ecc === nextDescriptor.ecc?.defaultValue
+		) {
+			ecc = '';
+		}
+		format = next;
+	}
+
+	// A pasted share link or an edited fragment on the same path is a same-document navigation,
+	// so SvelteKit updates `page.url` without remounting and this page (which decodes once) must
+	// reload. Our own `goto` calls use pushState/replaceState, which never fire `hashchange`.
+	onMount(() => {
+		const reload = () => location.reload();
+		window.addEventListener('hashchange', reload);
+		return () => window.removeEventListener('hashchange', reload);
 	});
 
 	async function onFileChange(e: Event): Promise<void> {
@@ -57,8 +85,8 @@
 	}
 
 	function start(): void {
-		// eslint-disable-next-line svelte/no-navigation-without-resolve -- pathname IS resolve()-based; the rule cannot see through the query-string concatenation
-		goto(resolve('/play') + encodeShareUrl(rawCodes, settings));
+		// eslint-disable-next-line svelte/no-navigation-without-resolve -- pathname IS resolve()-based; the rule cannot see through the fragment concatenation
+		goto(resolve('/play') + shareHash);
 	}
 </script>
 
@@ -75,7 +103,7 @@
 	<div class="settings-row">
 		<label class="field"
 			>Format
-			<select class="format-input" bind:value={format}>
+			<select class="format-input" bind:value={() => format, (v) => selectFormat(v)}>
 				{#each FORMAT_GROUPS as { group, formats } (group)}
 					<optgroup label={group}>
 						{#each formats as f (f.id)}
@@ -85,6 +113,20 @@
 				{/each}
 			</select>
 		</label>
+		{#if descriptor?.ecc}
+			{@const opt = descriptor.ecc}
+			<label class="field ecc-field"
+				>Error correction
+				<select
+					class="ecc-input"
+					bind:value={() => ecc || opt.defaultValue, (v) => (ecc = v === opt.defaultValue ? '' : v)}
+				>
+					{#each opt.choices as c (c.value)}
+						<option value={c.value}>{c.note ? `${c.label} (${c.note})` : c.label}</option>
+					{/each}
+				</select>
+			</label>
+		{/if}
 		<label class="field"
 			>Speed
 			<input
@@ -128,7 +170,7 @@
 		</label>
 	</div>
 	<ValidationList {entries} />
-	<ShareLink codes={rawCodes} {settings} />
+	<ShareLink hash={shareHash} />
 	<button type="button" class="start" disabled={!canStart} onclick={start}>Start</button>
 </div>
 

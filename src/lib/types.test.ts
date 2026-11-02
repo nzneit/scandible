@@ -11,4 +11,8 @@ describe('DEFAULT_SETTINGS', () => {
 		expect(DEFAULT_SETTINGS.skewMaxDeg).toBe(8);
 		expect(DEFAULT_SETTINGS.seed).toBe(0);
 	});
+
+	it('defaults ecc to the empty string, meaning the format default', () => {
+		expect(DEFAULT_SETTINGS.ecc).toBe('');
+	});
 });

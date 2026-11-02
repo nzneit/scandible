@@ -11,12 +11,12 @@
 
 	const OVERLAY_IDLE_MS = 3000;
 
-	const decoded = decodeShareUrl(page.url.search);
+	const decoded = decodeShareUrl(page.url);
 	const settings: Settings = { ...DEFAULT_SETTINGS, ...decoded.settings };
 	if (decoded.settings.seed === undefined) {
 		settings.seed = Math.floor(Math.random() * 0x100000000) >>> 0;
 	}
-	const entries = parseCodeList(decoded.codes.join('\n'), settings.format);
+	const entries = parseCodeList(decoded.codes.join('\n'), settings.format, settings.ecc);
 	const hasValid = entries.some((e) => e.valid);
 
 	let column: ScrollColumnHandle | undefined = $state();
@@ -28,26 +28,33 @@
 
 	onMount(() => {
 		if (!hasValid) {
-			// Nothing scannable — bounce to setup, keeping whatever params were given.
-			// eslint-disable-next-line svelte/no-navigation-without-resolve -- pathname IS resolve()-based; the rule cannot see through the query-string concatenation
-			goto(resolve('/') + page.url.search, { replaceState: true });
+			// Nothing scannable — bounce to setup, keeping whichever form it received (fragment or
+			// legacy query string).
+			// eslint-disable-next-line svelte/no-navigation-without-resolve -- pathname IS resolve()-based; the rule cannot see through the fragment concatenation
+			goto(resolve('/') + page.url.search + page.url.hash, { replaceState: true });
 			return;
 		}
 		showOverlay();
 		return () => clearTimeout(idleTimer);
 	});
 
+	// A pasted share link or an edited fragment on the same path is a same-document navigation,
+	// so SvelteKit updates `page.url` without remounting and this page (which decodes once) must
+	// reload. Our own `goto` calls use pushState/replaceState, which never fire `hashchange`.
+	// Kept apart from the onMount above, whose early return would skip it.
+	onMount(() => {
+		const reload = () => location.reload();
+		window.addEventListener('hashchange', reload);
+		return () => window.removeEventListener('hashchange', reload);
+	});
+
 	function currentSettings(): Settings {
 		return { ...settings, speedPxPerSec: speed };
 	}
 	function back(): void {
-		const url =
-			resolve('/') +
-			encodeShareUrl(
-				entries.map((e) => e.raw),
-				currentSettings()
-			);
-		// eslint-disable-next-line svelte/no-navigation-without-resolve -- pathname IS resolve()-based; the rule cannot see through the query-string concatenation
+		// The decoded share state plus the live speed, never the parsed entries.
+		const url = resolve('/') + encodeShareUrl(decoded.codes, currentSettings());
+		// eslint-disable-next-line svelte/no-navigation-without-resolve -- pathname IS resolve()-based; the rule cannot see through the fragment concatenation
 		goto(url);
 	}
 	function toggle(): void {
