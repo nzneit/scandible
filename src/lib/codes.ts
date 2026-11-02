@@ -1,3 +1,4 @@
+import { engine as bwipEngine } from './engines/bwipjs';
 import { engine as jsbarcodeEngine } from './engines/jsbarcode';
 import type { CheckResult } from './engines/types';
 import { FORMAT_BY_ID, isEccChoice, type FormatDescriptor, type FormatId } from './formats';
@@ -32,7 +33,7 @@ export function checkCode(
 	// Explicit guard: MSI checksum encoders would checksum '' into '0'/'00' and accept it.
 	if (value === '') return { valid: false };
 	if (d.engine === 'jsbarcode') return jsbarcodeEngine.check(d, value, options);
-	return { valid: false }; // temporary: Task 3 dispatches to bwip-js
+	return bwipEngine.check(d, value, options);
 }
 
 /** The per-row seam. `token` is one trimmed, non-empty, UNCLEANED token. Sets raw = token;

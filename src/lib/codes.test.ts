@@ -85,3 +85,31 @@ describe('parseCodeList stamps every entry', () => {
 		expect(parseCodeList('a', 'qr')[0].options).toEqual({ ecc: 'M' });
 	});
 });
+
+describe('2D formats through parseCodeList', () => {
+	it('x × 2000 under qr is valid at L and too long at H', () => {
+		expect(parseCodeList('x'.repeat(2000), 'qr', 'L')[0]).toMatchObject({
+			valid: true,
+			facts: { cols: 149 }
+		});
+		expect(parseCodeList('x'.repeat(2000), 'qr', 'H')[0]).toMatchObject({
+			valid: false,
+			reason: 'too-long'
+		});
+	});
+
+	it('splits 2D lists on newlines only and keeps commas as data', () => {
+		const entries = parseCodeList('a,b\nc, d', 'qr');
+		expect(entries.map((e) => e.raw)).toEqual(['a,b', 'c, d']);
+		expect(entries.map((e) => e.value)).toEqual(['a,b', 'c, d']);
+		expect(entries.every((e) => e.valid)).toBe(true);
+	});
+
+	it('strips Windows line endings from 2D tokens', () => {
+		const entries = parseCodeList('hello world\r\nline two\r\n', 'qr');
+		expect(entries.map((e) => e.raw)).toEqual(['hello world', 'line two']);
+		expect(entries.map((e) => e.value)).toEqual(['hello world', 'line two']);
+		// 11 bytes, not 12: no trailing \r reached the encoder.
+		expect(entries[0]).toMatchObject({ valid: true, facts: { bytes: 11, cols: 21 } });
+	});
+});
