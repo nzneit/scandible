@@ -47,8 +47,10 @@
 		max-height: 200px;
 		overflow: auto;
 	}
+	/* The verdict drops below the payload when both do not fit. */
 	.validation-list li {
 		display: flex;
+		flex-wrap: wrap;
 	}
 	.validation-list .raw {
 		min-width: 0;
@@ -57,8 +59,7 @@
 		white-space: nowrap;
 	}
 	.validation-list .verdict {
-		flex: none;
-		white-space: pre;
+		white-space: pre-wrap;
 	}
 	.validation-list .valid {
 		color: #007700;
