@@ -3,7 +3,7 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { parseCodeList } from '$lib/codes';
-	import { FORMAT_BY_ID, FORMAT_GROUPS } from '$lib/formats';
+	import { FORMAT_BY_ID, FORMAT_GROUPS, isEccChoice, type FormatId } from '$lib/formats';
 	import { readCodesFile } from '$lib/fileInput';
 	import { decodeShareUrl, encodeShareUrl } from '$lib/shareUrl';
 	import { DEFAULT_SETTINGS, type Settings, type CodeEntry } from '$lib/types';
@@ -23,13 +23,14 @@
 	let skewMaxDeg = $state(initial.skewMaxDeg);
 	let format = $state(initial.format);
 	let ecc = $state(initial.ecc);
+	const descriptor = $derived(FORMAT_BY_ID.get(format));
 	let fileError = $state('');
 
-	const entries: CodeEntry[] = $derived(parseCodeList(text, format));
+	const entries: CodeEntry[] = $derived(parseCodeList(text, format, ecc));
 	const rawCodes: string[] = $derived(entries.map((e) => e.raw));
 	const canStart: boolean = $derived(entries.some((e) => e.valid));
 	const placeholder: string = $derived(
-		FORMAT_BY_ID.get(format)?.numeric
+		descriptor?.numeric
 			? 'Paste codes — one per line, or comma-separated'
 			: 'Paste codes — one per line'
 	);
@@ -44,6 +45,20 @@
 		format,
 		ecc
 	});
+
+	// Keep `ecc` canonical across a format switch: drop a level the next format does not offer,
+	// or one that is its default. Done in the binding's setter, never an $effect.
+	function selectFormat(next: FormatId): void {
+		const nextDescriptor = FORMAT_BY_ID.get(next);
+		if (
+			!nextDescriptor ||
+			!isEccChoice(nextDescriptor, ecc) ||
+			ecc === nextDescriptor.ecc?.defaultValue
+		) {
+			ecc = '';
+		}
+		format = next;
+	}
 
 	async function onFileChange(e: Event): Promise<void> {
 		const input = e.currentTarget as HTMLInputElement;
@@ -77,7 +92,7 @@
 	<div class="settings-row">
 		<label class="field"
 			>Format
-			<select class="format-input" bind:value={format}>
+			<select class="format-input" bind:value={() => format, (v) => selectFormat(v)}>
 				{#each FORMAT_GROUPS as { group, formats } (group)}
 					<optgroup label={group}>
 						{#each formats as f (f.id)}
@@ -87,6 +102,20 @@
 				{/each}
 			</select>
 		</label>
+		{#if descriptor?.ecc}
+			{@const opt = descriptor.ecc}
+			<label class="field ecc-field"
+				>Error correction
+				<select
+					class="ecc-input"
+					bind:value={() => ecc || opt.defaultValue, (v) => (ecc = v === opt.defaultValue ? '' : v)}
+				>
+					{#each opt.choices as c (c.value)}
+						<option value={c.value}>{c.note ? `${c.label} (${c.note})` : c.label}</option>
+					{/each}
+				</select>
+			</label>
+		{/if}
 		<label class="field"
 			>Speed
 			<input

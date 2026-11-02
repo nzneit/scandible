@@ -16,7 +16,7 @@
 	if (decoded.settings.seed === undefined) {
 		settings.seed = Math.floor(Math.random() * 0x100000000) >>> 0;
 	}
-	const entries = parseCodeList(decoded.codes.join('\n'), settings.format);
+	const entries = parseCodeList(decoded.codes.join('\n'), settings.format, settings.ecc);
 	const hasValid = entries.some((e) => e.valid);
 
 	let column: ScrollColumnHandle | undefined = $state();

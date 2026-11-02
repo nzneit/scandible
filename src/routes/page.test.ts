@@ -249,3 +249,58 @@ describe('setup page', () => {
 		expect(goto.mock.calls[0][0]).toContain('fmt=code39');
 	});
 });
+
+describe('setup page: error correction', () => {
+	const X2000 = 'x'.repeat(2000);
+	const setText = (c: Element, v: string) =>
+		fireEvent.input(q(c, '.code-input'), { target: { value: v } });
+	const choose = (c: Element, sel: string, v: string) =>
+		fireEvent.change(q(c, sel), { target: { value: v } });
+	const setFormat = (c: Element, v: string) => choose(c, '.format-input', v);
+	const setEcc = (c: Element, v: string) => choose(c, '.ecc-input', v);
+	const firstRow = (c: Element) => c.querySelector('.validation-list li')?.textContent;
+
+	it('validates hello world as qr with the facts row and shows the field at the default level', async () => {
+		const { container } = render(SetupPage);
+		await setText(container, 'hello world');
+		await setFormat(container, 'qr');
+		expect(firstRow(container)).toBe('hello world ✓ · 21×21 modules · 11 bytes');
+		const select = q<HTMLSelectElement>(container, '.ecc-input');
+		expect(select.value).toBe('M');
+		expect(select.selectedOptions[0].textContent).toBe('level M (~15% recovery, default)');
+		expect(q(container, '.ecc-field').textContent?.startsWith('Error correction')).toBe(true);
+		const input = q<HTMLTextAreaElement>(container, '.code-input');
+		expect(input.placeholder).toBe('Paste codes — one per line');
+	});
+
+	it('renders no field for upc or datamatrix', async () => {
+		const { container } = render(SetupPage);
+		expect(container.querySelector('.ecc-input')).toBeNull();
+		await setFormat(container, 'datamatrix');
+		expect(container.querySelector('.ecc-input')).toBeNull();
+	});
+
+	it('applies the chosen level to validation and returns to the default', async () => {
+		const { container } = render(SetupPage);
+		await setText(container, X2000);
+		await setFormat(container, 'qr');
+		expect(firstRow(container)).toBe(`${X2000} ✓ · 169×169 modules · 2000 bytes · dense`);
+		await setEcc(container, 'H');
+		expect(firstRow(container)).toBe(`${X2000} ✗ too long for QR Code (level H)`);
+		await setEcc(container, 'M');
+		expect(q<HTMLSelectElement>(container, '.ecc-input').value).toBe('M');
+		expect(firstRow(container)).toBe(`${X2000} ✓ · 169×169 modules · 2000 bytes · dense`);
+	});
+
+	it('resets to the new format’s default when switching from qr at H to aztec', async () => {
+		const { container } = render(SetupPage);
+		await setText(container, 'hello world');
+		await setFormat(container, 'qr');
+		await setEcc(container, 'H');
+		await setFormat(container, 'aztec');
+		const select = q<HTMLSelectElement>(container, '.ecc-input');
+		expect(select.value).toBe('23');
+		expect(select.selectedOptions[0].textContent).toBe('≥23% error correction (default)');
+		expect(firstRow(container)).toBe('hello world ✓ · 19×19 modules · 11 bytes');
+	});
+});
