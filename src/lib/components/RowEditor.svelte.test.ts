@@ -66,9 +66,9 @@ describe('RowEditor', () => {
 				el.querySelectorAll('option').length
 			])
 		).toEqual([
-			[7, 25],
-			[7, 25],
-			[7, 25]
+			[8, 36],
+			[8, 36],
+			[8, 36]
 		]);
 	});
 

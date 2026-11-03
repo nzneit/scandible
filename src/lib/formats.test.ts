@@ -7,21 +7,37 @@ import {
 	FORMAT_BY_ID,
 	FORMAT_GROUPS,
 	canonicalEcc,
+	canonicalLax,
 	eccChoice,
 	isEccChoice,
 	isFormatId,
+	isGs1,
 	type FormatId
 } from './formats';
 import { checkCode } from './codes';
 
 const EXCLUDED = ['GenericBarcode', 'CODE93FullASCII'];
 
+const GS1_IDS: FormatId[] = [
+	'gs1128',
+	'databaromni',
+	'databartruncated',
+	'databarstacked',
+	'databarstackedomni',
+	'databarlimited',
+	'databarexpanded',
+	'databarexpandedstacked',
+	'gs1datamatrix',
+	'gs1qr',
+	'gs1dotcode'
+];
+
 describe('format registry integrity', () => {
 	const JSB = FORMATS.filter((f) => f.engine === 'jsbarcode');
 
-	it('has 25 unique ids across seven groups in README order, 2D last', () => {
-		expect(FORMATS.length).toBe(25);
-		expect(new Set(FORMATS.map((f) => f.id)).size).toBe(25);
+	it('has 36 unique ids across eight groups in README order, 2D then GS1 last', () => {
+		expect(FORMATS.length).toBe(36);
+		expect(new Set(FORMATS.map((f) => f.id)).size).toBe(36);
 		expect(FORMAT_GROUPS.map((g) => g.group)).toEqual([
 			'CODE128',
 			'EAN / UPC',
@@ -29,7 +45,8 @@ describe('format registry integrity', () => {
 			'ITF',
 			'MSI',
 			'Other',
-			'2D'
+			'2D',
+			'GS1'
 		]);
 		expect(FORMAT_GROUPS.flatMap((g) => g.formats)).toEqual([...FORMATS]);
 		expect(FORMAT_GROUPS[6].formats.map((f) => f.id)).toEqual([
@@ -38,6 +55,7 @@ describe('format registry integrity', () => {
 			'pdf417',
 			'aztec'
 		]);
+		expect(FORMAT_GROUPS[7].formats.map((f) => f.id)).toEqual(GS1_IDS);
 	});
 
 	it('resolves every descriptor in JsBarcode’s registry', () => {
@@ -61,9 +79,11 @@ describe('format registry integrity', () => {
 		expect(isFormatId('')).toBe(false);
 	});
 
-	it('defines no day-one behavior hooks (the seam stays data-only)', () => {
+	it('defines normalize on every GS1 descriptor and on no other (the seam stays data-only)', () => {
 		for (const f of FORMATS) {
-			expect(f.normalize, f.id).toBeUndefined();
+			if (f.engine === 'bwipjs' && f.gs1)
+				expect(f.normalize?.(' (01) 0950 '), f.id).toBe('(01)0950');
+			else expect(f.normalize, f.id).toBeUndefined();
 		}
 		for (const f of JSB) {
 			expect(f.renderOptions, f.id).toBeUndefined();
@@ -203,8 +223,14 @@ describe('2D rows and error-correction choices', () => {
 		for (const f of FORMATS) if (f.engine === 'jsbarcode') expect(f.ecc, f.id).toBeUndefined();
 	});
 
-	it('declares ecc only on qr, pdf417 and aztec, with the spec copy in order', () => {
-		expect(FORMATS.filter((f) => f.ecc).map((f) => f.id)).toEqual(['qr', 'pdf417', 'aztec']);
+	it('declares ecc only on qr, pdf417, aztec and gs1qr, with the spec copy in order', () => {
+		expect(FORMATS.filter((f) => f.ecc).map((f) => f.id)).toEqual([
+			'qr',
+			'pdf417',
+			'aztec',
+			'gs1qr'
+		]);
+		expect(row('gs1qr').ecc).toBe(row('qr').ecc);
 		expect(values('qr')).toEqual(['L', 'M', 'Q', 'H']);
 		expect(optionText('qr')).toEqual([
 			'level L (~7% recovery)',
@@ -271,5 +297,91 @@ describe('canonicalEcc', () => {
 		expect(canonicalEcc('qr', 'auto')).toBe('');
 		expect(canonicalEcc('qr', 'M')).toBe('');
 		expect(canonicalEcc('qr', 'H')).toBe('H');
+	});
+});
+
+describe('GS1 rows', () => {
+	const bw = (id: FormatId) => {
+		const d = FORMAT_BY_ID.get(id);
+		if (d?.engine !== 'bwipjs') throw new Error(`${id} is not a bwip-js row`);
+		return d;
+	};
+
+	it('names the eleven encoders and labels in table order', () => {
+		expect(GS1_IDS.map((id) => [bw(id).bcid, bw(id).label])).toEqual([
+			['gs1_128', 'GS1-128'],
+			['databaromni', 'GS1 DataBar Omnidirectional'],
+			['databartruncated', 'GS1 DataBar Truncated'],
+			['databarstacked', 'GS1 DataBar Stacked'],
+			['databarstackedomni', 'GS1 DataBar Stacked Omnidirectional'],
+			['databarlimited', 'GS1 DataBar Limited'],
+			['databarexpanded', 'GS1 DataBar Expanded'],
+			['databarexpandedstacked', 'GS1 DataBar Expanded Stacked'],
+			['gs1datamatrix', 'GS1 DataMatrix'],
+			['gs1qrcode', 'GS1 QR Code'],
+			['gs1dotcode', 'GS1 DotCode']
+		]);
+	});
+
+	it('carries the AIM identifier and the GTIN rule of each carrier', () => {
+		expect(GS1_IDS.map((id) => [bw(id).gs1?.aim, bw(id).gs1?.gtinCheck])).toEqual([
+			[']C1', undefined],
+			[']e0', 'own'],
+			[']e0', 'own'],
+			[']e0', 'own'],
+			[']e0', 'own'],
+			[']e0', 'own'],
+			[']e0', 'implied'],
+			[']e0', 'implied'],
+			[']d2', undefined],
+			[']Q3', undefined],
+			[']J1', undefined]
+		]);
+	});
+
+	it('shapes eight linear carriers (1 px, quiet zone 10, dense above 300) and three 2D ones (2 px, 4, 100)', () => {
+		const geometry = (id: FormatId) => {
+			const d = bw(id);
+			expect(d).toMatchObject({ engine: 'bwipjs', group: 'GS1', numeric: false });
+			return [d.shape, d.modulePx.x, d.modulePx.y, d.quietZone, d.denseAbove].join(' ');
+		};
+		expect(GS1_IDS.map(geometry)).toEqual([
+			...Array<string>(8).fill('linear 1 1 10 300'),
+			...Array<string>(3).fill('2d 2 2 4 100')
+		]);
+	});
+
+	it('sets the GS1-128 height and ceiling and the DotCode offset, and nothing else of the kind', () => {
+		const withField = <K extends 'heightMm' | 'maxChars' | 'moduleOffsetPx'>(key: K) =>
+			FORMATS.flatMap((f) =>
+				f.engine === 'bwipjs' && f[key] !== undefined ? [[f.id, f[key]]] : []
+			);
+		expect(withField('heightMm')).toEqual([['gs1128', 18.3]]);
+		expect(withField('maxChars')).toEqual([['gs1128', 48]]);
+		expect(withField('moduleOffsetPx')).toEqual([['gs1dotcode', { x: 1, y: 1 }]]);
+	});
+
+	it('gives the four 2D rows their shape and quiet zone', () => {
+		expect(
+			(['qr', 'datamatrix', 'pdf417', 'aztec'] as const).map((id) => [
+				bw(id).shape,
+				bw(id).quietZone
+			])
+		).toEqual([
+			['2d', 4],
+			['2d', 4],
+			['2d', 8],
+			['2d', 4]
+		]);
+	});
+
+	it('isGs1 narrows the eleven and nothing else; canonicalLax keeps lax only on them', () => {
+		expect(FORMATS.filter((f) => isGs1(f)).map((f) => f.id)).toEqual(GS1_IDS);
+		expect(isGs1(undefined)).toBe(false);
+		expect(isGs1(FORMAT_BY_ID.get('qr'))).toBe(false);
+		expect(canonicalLax('gs1128', true)).toBe(true);
+		expect(canonicalLax('upc', true)).toBe(false);
+		expect(canonicalLax('gs1qr', false)).toBe(false);
+		expect(canonicalLax('nope' as FormatId, true)).toBe(false);
 	});
 });

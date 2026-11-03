@@ -26,6 +26,23 @@ function row(id: FormatId): BwipDescriptor {
 const opts = (ecc: string | undefined) => (ecc === undefined ? {} : { ecc });
 const x = (n: number) => 'x'.repeat(n);
 const IDS = ['qr', 'datamatrix', 'pdf417', 'aztec'] as const;
+const S = '(01)09501101530003(17)261231(10)LOT42';
+const G = '(01)09501101530003';
+const E = '(01)09501101530003(3103)000123';
+/** [id, sample, cols, rows, summary], measurements §1; GS1-128 at heightMm 18.3 (53 px). */
+const GS1_SIZES: [FormatId, string, number, number, string][] = [
+	['gs1128', S, 255, 53, '255 modules wide'],
+	['databaromni', G, 96, 34, '96 modules wide'],
+	['databartruncated', G, 96, 14, '96 modules wide'],
+	['databarstacked', G, 50, 13, '50 modules wide'],
+	['databarstackedomni', G, 50, 69, '50 modules wide'],
+	['databarlimited', G, 74, 11, '74 modules wide'],
+	['databarexpanded', E, 200, 35, '200 modules wide'],
+	['databarexpandedstacked', E, 102, 71, '102 modules wide'],
+	['gs1datamatrix', S, 18, 18, '18×18 modules'],
+	['gs1qr', S, 25, 25, '25×25 modules'],
+	['gs1dotcode', S, 29, 20, '29×20 modules']
+];
 
 /** Measured at bwip-js 4.11.4 (spec _Testing_; measurements file section 2 and Appendices A–D). Never edit
  *  an expected value to match the code. [format, ecc, payload, facts] */
@@ -164,6 +181,8 @@ describe('ECC_OPTIONS', () => {
 		expect(ECC_OPTIONS.pdf417('auto')).toEqual({});
 		expect(ECC_OPTIONS.pdf417('8')).toEqual({ eclevel: 8, fixedeclevel: true });
 		expect(ECC_OPTIONS.azteccode('50')).toEqual({ eclevel: 50 });
+		expect(ECC_OPTIONS.gs1qrcode('H')).toEqual({ eclevel: 'H', fixedeclevel: true });
+		expect(ECC_OPTIONS.gs1_128('H')).toEqual({});
 	});
 	it('reaches the encoder: check passes the mapped options to bwip-js', () => {
 		check(row('qr'), 'level reaches the encoder', { ecc: 'H' }); // unique payload, so no cache hit
@@ -175,9 +194,47 @@ describe('ECC_OPTIONS', () => {
 });
 
 describe('file snapshots', () => {
+	it.each(GS1_SIZES)('%s sample at the default level', async (id, sample) => {
+		const d = row(id);
+		const el = render(d, sample, resolveOptions(d, { format: id, ecc: '' }));
+		await expect(el.outerHTML).toMatchFileSnapshot(`./__snapshots__/bwipjs.${id}.svg`);
+	});
+
 	it.each(IDS)('%s hello world at the default level', async (id) => {
 		const d = row(id);
 		const el = render(d, 'hello world', resolveOptions(d, { format: id, ecc: '' }));
 		await expect(el.outerHTML).toMatchFileSnapshot(`./__snapshots__/bwipjs.${id}.svg`);
+	});
+});
+
+describe('GS1 carriers: measured geometry', () => {
+	it.each(GS1_SIZES)('%s encodes %s at its measured size', (id, sample, cols, rows, summary) => {
+		expect(check(row(id), sample, {})).toMatchObject({
+			valid: true,
+			facts: { cols, rows, summary, dense: false }
+		});
+	});
+
+	it('rejects a wrong check digit and a missing bracket', () => {
+		expect(check(row('gs1128'), '(01)09501101530004', {}).valid).toBe(false);
+		expect(check(row('gs1128'), '0109501101530003', {}).valid).toBe(false);
+	});
+
+	it('scales GS1 QR Code with its level', () => {
+		const cols = (ecc: string) => {
+			const res = check(row('gs1qr'), S, { ecc });
+			return res.valid ? res.facts?.cols : undefined;
+		};
+		expect(['L', 'M', 'H'].map(cols)).toEqual([21, 25, 29]);
+	});
+
+	it('renders linear carriers at 3 px per module inside a 10-module quiet zone, 2D ones at 1024 px', () => {
+		const size = (el: SVGElement) =>
+			[el.getAttribute('width'), el.getAttribute('height')].map(Number);
+		expect(render(row('gs1128'), S, {}).getAttribute('viewBox')).toBe('0 0 275 73');
+		expect(size(render(row('gs1128'), S, {}))).toEqual([825, 219]);
+		expect(size(render(row('databaromni'), G, {}))).toEqual([348, 162]);
+		expect(render(row('gs1qr'), S, {}).getAttribute('viewBox')).toBe('0 0 66 66');
+		expect(Math.max(...size(render(row('gs1qr'), S, {})))).toBe(1024);
 	});
 });

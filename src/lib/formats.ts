@@ -1,8 +1,9 @@
-/** Format registry: the 21 linear formats JsBarcode documents (`engine: 'jsbarcode'`)
- *  and four 2D symbologies rendered by bwip-js (`engine: 'bwipjs'`).
+/** Format registry: 36 formats. The 21 linear formats JsBarcode documents (`engine: 'jsbarcode'`),
+ *  four 2D symbologies and eleven GS1 carriers rendered by bwip-js (`engine: 'bwipjs'`).
  *  Descriptors stay data-only; behaviour lives in `src/lib/engines/`. CODE39 must never
  *  define `normalize` — the encoder's own uppercasing is what the UI's
- *  `raw ✓ → encoded` row exists to surface. */
+ *  `raw ✓ → encoded` row exists to surface; the GS1 descriptors are the only ones that do,
+ *  to strip whitespace. */
 
 export type FormatId =
 	| 'code128'
@@ -29,7 +30,18 @@ export type FormatId =
 	| 'qr'
 	| 'datamatrix'
 	| 'pdf417'
-	| 'aztec';
+	| 'aztec'
+	| 'gs1128'
+	| 'databaromni'
+	| 'databartruncated'
+	| 'databarstacked'
+	| 'databarstackedomni'
+	| 'databarlimited'
+	| 'databarexpanded'
+	| 'databarexpandedstacked'
+	| 'gs1datamatrix'
+	| 'gs1qr'
+	| 'gs1dotcode';
 
 export interface EccChoice {
 	value: string; // stored in Settings.ecc (see _Entries, options and facts_) and the `ecc` URL param
@@ -58,16 +70,59 @@ export interface JsBarcodeDescriptor extends DescriptorBase {
 	renderOptions?: () => Record<string, unknown>;
 }
 
+export interface Gs1Carrier {
+	aim: string; // the AIM symbology identifier the scanner prefixes: ']C1', ']e0', ']d2', ']Q3', ']J1'
+	gtinCheck?: 'own' | 'implied';
+	// 'own': the five GTIN-only DataBar members check the GTIN themselves (lax cannot override) and
+	//        accept 13 digits, encoding the check digit. 'implied': Expanded and Expanded Stacked
+	//        recompute the check digit of a leading 14-digit (01). See _Scan data_.
+}
+
+export type BwipEncoderId =
+	| 'qrcode'
+	| 'datamatrix'
+	| 'pdf417'
+	| 'azteccode'
+	| 'gs1_128'
+	| 'databaromni'
+	| 'databartruncated'
+	| 'databarstacked'
+	| 'databarstackedomni'
+	| 'databarlimited'
+	| 'databarexpanded'
+	| 'databarexpandedstacked'
+	| 'gs1datamatrix'
+	| 'gs1qrcode'
+	| 'gs1dotcode';
+
 export interface BwipDescriptor extends DescriptorBase {
 	engine: 'bwipjs';
-	bcid: 'qrcode' | 'datamatrix' | 'pdf417' | 'azteccode';
-	modulePx: { x: number; y: number }; // px per module at scale 1 (from the BWIPP source)
+	bcid: BwipEncoderId; // the named encoder in bwip-js/browser; the engine's ENCODERS map is keyed by it
+	shape: 'linear' | '2d'; // '2d' takes the matrix render path and CSS; 'linear' the 3 px/module path
+	gs1?: Gs1Carrier; // present on GS1 carriers only
+	quietZone: number; // modules of padding on every side
+	modulePx: { x: number; y: number }; // px per module at scale 1 (measurements §1)
+	moduleOffsetPx?: { x: number; y: number }; // px to subtract before dividing; DotCode draws 2n + 1
 	denseAbove: number; // module columns above which facts.dense is true
+	heightMm?: number; // bwip-js `height`; GS1-128 only. Never set for DataBar (measurements §1)
+	maxChars?: number; // soft ceiling on data characters (GS excluded); GS1-128: 48
 }
 
 export type FormatDescriptor = JsBarcodeDescriptor | BwipDescriptor;
 
 export const DEFAULT_FORMAT: FormatId = 'upc';
+
+const QR_ECC: EccOption = {
+	choices: [
+		{ value: 'L', label: 'level L', note: '~7% recovery' },
+		{ value: 'M', label: 'level M', note: '~15% recovery, default' },
+		{ value: 'Q', label: 'level Q', note: '~25% recovery' },
+		{ value: 'H', label: 'level H', note: '~30% recovery' }
+	],
+	defaultValue: 'M'
+};
+
+const stripWhitespace = (token: string) => token.replace(/\s+/g, '');
 
 export const FORMATS: readonly FormatDescriptor[] = [
 	{
@@ -242,25 +297,21 @@ export const FORMATS: readonly FormatDescriptor[] = [
 		id: 'qr',
 		engine: 'bwipjs',
 		bcid: 'qrcode',
+		shape: '2d',
+		quietZone: 4,
 		label: 'QR Code',
 		group: '2D',
 		numeric: false,
 		modulePx: { x: 2, y: 2 },
 		denseAbove: 100,
-		ecc: {
-			choices: [
-				{ value: 'L', label: 'level L', note: '~7% recovery' },
-				{ value: 'M', label: 'level M', note: '~15% recovery, default' },
-				{ value: 'Q', label: 'level Q', note: '~25% recovery' },
-				{ value: 'H', label: 'level H', note: '~30% recovery' }
-			],
-			defaultValue: 'M'
-		}
+		ecc: QR_ECC
 	},
 	{
 		id: 'datamatrix',
 		engine: 'bwipjs',
 		bcid: 'datamatrix',
+		shape: '2d',
+		quietZone: 4,
 		label: 'Data Matrix',
 		group: '2D',
 		numeric: false,
@@ -271,6 +322,8 @@ export const FORMATS: readonly FormatDescriptor[] = [
 		id: 'pdf417',
 		engine: 'bwipjs',
 		bcid: 'pdf417',
+		shape: '2d',
+		quietZone: 8,
 		label: 'PDF417',
 		group: '2D',
 		numeric: false,
@@ -289,6 +342,8 @@ export const FORMATS: readonly FormatDescriptor[] = [
 		id: 'aztec',
 		engine: 'bwipjs',
 		bcid: 'azteccode',
+		shape: '2d',
+		quietZone: 4,
 		label: 'Aztec',
 		group: '2D',
 		numeric: false,
@@ -303,6 +358,164 @@ export const FORMATS: readonly FormatDescriptor[] = [
 			],
 			defaultValue: '23'
 		}
+	},
+	{
+		id: 'gs1128',
+		engine: 'bwipjs',
+		bcid: 'gs1_128',
+		label: 'GS1-128',
+		group: 'GS1',
+		numeric: false,
+		normalize: stripWhitespace,
+		shape: 'linear',
+		gs1: { aim: ']C1' },
+		modulePx: { x: 1, y: 1 },
+		quietZone: 10,
+		denseAbove: 300,
+		heightMm: 18.3,
+		maxChars: 48
+	},
+	{
+		id: 'databaromni',
+		engine: 'bwipjs',
+		bcid: 'databaromni',
+		label: 'GS1 DataBar Omnidirectional',
+		group: 'GS1',
+		numeric: false,
+		normalize: stripWhitespace,
+		shape: 'linear',
+		gs1: { aim: ']e0', gtinCheck: 'own' },
+		modulePx: { x: 1, y: 1 },
+		quietZone: 10,
+		denseAbove: 300
+	},
+	{
+		id: 'databartruncated',
+		engine: 'bwipjs',
+		bcid: 'databartruncated',
+		label: 'GS1 DataBar Truncated',
+		group: 'GS1',
+		numeric: false,
+		normalize: stripWhitespace,
+		shape: 'linear',
+		gs1: { aim: ']e0', gtinCheck: 'own' },
+		modulePx: { x: 1, y: 1 },
+		quietZone: 10,
+		denseAbove: 300
+	},
+	{
+		id: 'databarstacked',
+		engine: 'bwipjs',
+		bcid: 'databarstacked',
+		label: 'GS1 DataBar Stacked',
+		group: 'GS1',
+		numeric: false,
+		normalize: stripWhitespace,
+		shape: 'linear',
+		gs1: { aim: ']e0', gtinCheck: 'own' },
+		modulePx: { x: 1, y: 1 },
+		quietZone: 10,
+		denseAbove: 300
+	},
+	{
+		id: 'databarstackedomni',
+		engine: 'bwipjs',
+		bcid: 'databarstackedomni',
+		label: 'GS1 DataBar Stacked Omnidirectional',
+		group: 'GS1',
+		numeric: false,
+		normalize: stripWhitespace,
+		shape: 'linear',
+		gs1: { aim: ']e0', gtinCheck: 'own' },
+		modulePx: { x: 1, y: 1 },
+		quietZone: 10,
+		denseAbove: 300
+	},
+	{
+		id: 'databarlimited',
+		engine: 'bwipjs',
+		bcid: 'databarlimited',
+		label: 'GS1 DataBar Limited',
+		group: 'GS1',
+		numeric: false,
+		normalize: stripWhitespace,
+		shape: 'linear',
+		gs1: { aim: ']e0', gtinCheck: 'own' },
+		modulePx: { x: 1, y: 1 },
+		quietZone: 10,
+		denseAbove: 300
+	},
+	{
+		id: 'databarexpanded',
+		engine: 'bwipjs',
+		bcid: 'databarexpanded',
+		label: 'GS1 DataBar Expanded',
+		group: 'GS1',
+		numeric: false,
+		normalize: stripWhitespace,
+		shape: 'linear',
+		gs1: { aim: ']e0', gtinCheck: 'implied' },
+		modulePx: { x: 1, y: 1 },
+		quietZone: 10,
+		denseAbove: 300
+	},
+	{
+		id: 'databarexpandedstacked',
+		engine: 'bwipjs',
+		bcid: 'databarexpandedstacked',
+		label: 'GS1 DataBar Expanded Stacked',
+		group: 'GS1',
+		numeric: false,
+		normalize: stripWhitespace,
+		shape: 'linear',
+		gs1: { aim: ']e0', gtinCheck: 'implied' },
+		modulePx: { x: 1, y: 1 },
+		quietZone: 10,
+		denseAbove: 300
+	},
+	{
+		id: 'gs1datamatrix',
+		engine: 'bwipjs',
+		bcid: 'gs1datamatrix',
+		label: 'GS1 DataMatrix',
+		group: 'GS1',
+		numeric: false,
+		normalize: stripWhitespace,
+		shape: '2d',
+		gs1: { aim: ']d2' },
+		modulePx: { x: 2, y: 2 },
+		quietZone: 4,
+		denseAbove: 100
+	},
+	{
+		id: 'gs1qr',
+		engine: 'bwipjs',
+		bcid: 'gs1qrcode',
+		label: 'GS1 QR Code',
+		group: 'GS1',
+		numeric: false,
+		normalize: stripWhitespace,
+		shape: '2d',
+		gs1: { aim: ']Q3' },
+		modulePx: { x: 2, y: 2 },
+		quietZone: 4,
+		denseAbove: 100,
+		ecc: QR_ECC
+	},
+	{
+		id: 'gs1dotcode',
+		engine: 'bwipjs',
+		bcid: 'gs1dotcode',
+		label: 'GS1 DotCode',
+		group: 'GS1',
+		numeric: false,
+		normalize: stripWhitespace,
+		shape: '2d',
+		gs1: { aim: ']J1' },
+		modulePx: { x: 2, y: 2 },
+		moduleOffsetPx: { x: 1, y: 1 },
+		quietZone: 4,
+		denseAbove: 100
 	}
 ];
 
@@ -337,4 +550,14 @@ export function canonicalEcc(format: FormatId, ecc: string): string {
 	const d = FORMAT_BY_ID.get(format);
 	if (!d?.ecc || !isEccChoice(d, ecc) || ecc === d.ecc.defaultValue) return '';
 	return ecc;
+}
+
+/** Narrowing guard used by the engine, the page, the editor and canonicalLax. */
+export function isGs1(d: FormatDescriptor | undefined): d is BwipDescriptor & { gs1: Gs1Carrier } {
+	return d?.engine === 'bwipjs' && d.gs1 !== undefined;
+}
+
+/** A lax flag is meaningful only on a GS1 format. */
+export function canonicalLax(format: FormatId, lax: boolean): boolean {
+	return lax && isGs1(FORMAT_BY_ID.get(format));
 }

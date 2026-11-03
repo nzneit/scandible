@@ -212,10 +212,10 @@ describe('setup page', () => {
 		expect(container.querySelector('.validation-list li')?.textContent).toBe(originalFirst);
 	});
 
-	it('renders the grouped format dropdown with 25 options', () => {
+	it('renders the grouped format dropdown with 36 options', () => {
 		const { container } = render(SetupPage);
-		expect(container.querySelectorAll('.format-input optgroup').length).toBe(7);
-		expect(container.querySelectorAll('.format-input option').length).toBe(25);
+		expect(container.querySelectorAll('.format-input optgroup').length).toBe(8);
+		expect(container.querySelectorAll('.format-input option').length).toBe(36);
 		expect(q<HTMLSelectElement>(container, '.format-input').value).toBe('upc');
 	});
 

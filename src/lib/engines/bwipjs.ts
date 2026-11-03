@@ -1,9 +1,43 @@
-import { qrcode, datamatrix, pdf417, azteccode, drawingSVG } from 'bwip-js/browser';
+import {
+	qrcode,
+	datamatrix,
+	pdf417,
+	azteccode,
+	gs1_128,
+	databaromni,
+	databartruncated,
+	databarstacked,
+	databarstackedomni,
+	databarlimited,
+	databarexpanded,
+	databarexpandedstacked,
+	gs1datamatrix,
+	gs1qrcode,
+	gs1dotcode,
+	drawingSVG
+} from 'bwip-js/browser';
+import type { RenderOptions } from 'bwip-js/browser';
 import type { BwipDescriptor } from '$lib/formats';
 import type { SymbolOptions } from '$lib/types';
 import type { CheckResult, Engine } from './types';
 
-export const ENCODERS = { qrcode, datamatrix, pdf417, azteccode } as const;
+export const ENCODERS = {
+	qrcode,
+	datamatrix,
+	pdf417,
+	azteccode,
+	gs1_128,
+	databaromni,
+	databartruncated,
+	databarstacked,
+	databarstackedomni,
+	databarlimited,
+	databarexpanded,
+	databarexpandedstacked,
+	gs1datamatrix,
+	gs1qrcode,
+	gs1dotcode
+} as const;
 
 /** Maps a descriptor's ecc choice value to BWIPP options. fixedeclevel stops BWIPP from
  *  raising (QR) or adjusting (PDF417) the level behind the user's back. */
@@ -14,10 +48,21 @@ export const ECC_OPTIONS: Record<
 	qrcode: (v) => ({ eclevel: v, fixedeclevel: true }),
 	datamatrix: () => ({}),
 	pdf417: (v) => (v === 'auto' ? {} : { eclevel: Number(v), fixedeclevel: true }),
-	azteccode: (v) => ({ eclevel: Number(v) })
+	azteccode: (v) => ({ eclevel: Number(v) }),
+	gs1qrcode: (v) => ({ eclevel: v, fixedeclevel: true }),
+	gs1_128: () => ({}),
+	databaromni: () => ({}),
+	databartruncated: () => ({}),
+	databarstacked: () => ({}),
+	databarstackedomni: () => ({}),
+	databarlimited: () => ({}),
+	databarexpanded: () => ({}),
+	databarexpandedstacked: () => ({}),
+	gs1datamatrix: () => ({}),
+	gs1dotcode: () => ({})
 };
 
-const QUIET_ZONE_PX = 8; // 4 modules at 2 px/module for matrix codes; 8 X-modules for PDF417 (≥ 2 required)
+const LINEAR_PX_PER_MODULE = 3; // JsBarcode's bar width
 const NATURAL_PX = 1024; // longer side of the SVG's natural size; CSS max-* only ever shrink it
 
 /** Every BWIPP name that means "the payload does not fit". The name depends on the payload's
@@ -81,7 +126,8 @@ function encode(d: BwipDescriptor, value: string, options: SymbolOptions): Encod
 }
 
 /** `init(width, height)` on the drawing receives the symbol's pixel size WITHOUT padding
- *  (measured), so module counts are width/modulePx.x and height/modulePx.y. Spreading
+ *  (measured), so module counts are (width − offset.x)/modulePx.x and
+ *  (height − offset.y)/modulePx.y. Spreading
  *  drawingSVG() and overriding init is the measured, tree-shake-friendly way to learn the size;
  *  the default export's raw() would pull in every encoder. drawingSVG's methods are own closure
  *  properties, so the spread keeps them working. Captures whatever bwip-js throws. */
@@ -99,13 +145,24 @@ function tryEncode(d: BwipDescriptor, value: string, options: SymbolOptions): Ca
 	};
 	const extra: Record<string, unknown> =
 		d.ecc && options.ecc !== undefined ? ECC_OPTIONS[d.bcid](options.ecc) : {};
+	const encodeOptions: RenderOptions & Record<string, unknown> = {
+		...extra, // first: the fixed keys below must win over anything the ecc mapping returns
+		bcid: d.bcid,
+		text: value,
+		scale: 1,
+		padding: d.quietZone * d.modulePx.x // px at scale 1 (measurements §1): the quiet zone in modules
+	};
+	if (d.heightMm !== undefined) encodeOptions.height = d.heightMm;
 	try {
-		// `...extra` first: the fixed keys below must win over anything the ecc mapping returns.
-		const svg = ENCODERS[d.bcid](
-			{ ...extra, bcid: d.bcid, text: value, scale: 1, padding: QUIET_ZONE_PX },
-			drawing
-		);
-		return { ok: true, result: { svg, cols: w / d.modulePx.x, rows: h / d.modulePx.y } };
+		const svg = ENCODERS[d.bcid](encodeOptions, drawing);
+		return {
+			ok: true,
+			result: {
+				svg,
+				cols: (w - (d.moduleOffsetPx?.x ?? 0)) / d.modulePx.x,
+				rows: (h - (d.moduleOffsetPx?.y ?? 0)) / d.modulePx.y
+			}
+		};
 	} catch (error) {
 		return { ok: false, error };
 	}
@@ -113,9 +170,8 @@ function tryEncode(d: BwipDescriptor, value: string, options: SymbolOptions): Ca
 
 function summary(d: BwipDescriptor, cols: number, rows: number): string {
 	// PDF417 width is 17 × (dataColumns + 4) + 1 X-modules, so dataColumns = (cols − 69) / 17.
-	return d.bcid === 'pdf417'
-		? `${(cols - 69) / 17} columns × ${rows} rows`
-		: `${cols}×${rows} modules`;
+	if (d.bcid === 'pdf417') return `${(cols - 69) / 17} columns × ${rows} rows`;
+	return d.shape === 'linear' ? `${cols} modules wide` : `${cols}×${rows} modules`;
 }
 
 export function check(d: BwipDescriptor, value: string, options: SymbolOptions): CheckResult {
@@ -141,7 +197,7 @@ export function render(d: BwipDescriptor, value: string, options: SymbolOptions)
 	if (el.nodeName !== 'svg') throw new Error('bwip-js produced invalid SVG'); // e.g. 4.11.3's malformed fill-rule
 	// viewBox is always exactly "0 0 W H" and INCLUDES the padding (QR hello world: 58×58).
 	const [vw, vh] = (el.getAttribute('viewBox') ?? '0 0 1 1').split(' ').slice(2).map(Number);
-	const k = NATURAL_PX / Math.max(vw, vh);
+	const k = d.shape === 'linear' ? LINEAR_PX_PER_MODULE : NATURAL_PX / Math.max(vw, vh);
 	el.setAttribute('width', String(Math.round(vw * k)));
 	el.setAttribute('height', String(Math.round(vh * k)));
 	return el;

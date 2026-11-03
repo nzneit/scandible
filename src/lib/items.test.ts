@@ -42,4 +42,12 @@ describe('buildItems', () => {
 		expect(b.map((i) => i.style.transform)).toEqual(a.map((i) => i.style.transform));
 		expect(b[0]).not.toBe(a[0]);
 	});
+
+	it('marks linear GS1 items with --gs1128 only, and 2D GS1 items with --2d and --gs1qr', () => {
+		const S = '(01)09501101530003(17)261231(10)LOT42';
+		for (const i of buildItems(parseCodeList(S, 'gs1128'), DEFAULT_SETTINGS))
+			expect([has(i, 'barcode-item--2d'), has(i, 'barcode-item--gs1128')]).toEqual([false, true]);
+		for (const i of buildItems(parseCodeList(S, 'gs1qr'), DEFAULT_SETTINGS))
+			expect([has(i, 'barcode-item--2d'), has(i, 'barcode-item--gs1qr')]).toEqual([true, true]);
+	});
 });
