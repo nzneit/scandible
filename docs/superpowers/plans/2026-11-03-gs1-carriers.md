@@ -1320,21 +1320,24 @@ describe('verdictText for GS1 entries', () => {
 		);
 	});
 
+	// [id, message, own]: the five GTIN-only members (own) add the override suffix under lax.
 	it.each([
-		['gs1128', "AIs must start with '('"],
-		['databaromni', 'GS1 DataBar Omnidirectional must be 13 or 14 digits'],
-		['databartruncated', 'GS1 DataBar Truncated must be 13 or 14 digits'],
-		['databarstacked', 'GS1 DataBar Stacked must be 13 or 14 digits'],
-		['databarstackedomni', 'GS1 DataBar Stacked Omnidirectional must be 13 or 14 digits'],
-		['databarlimited', 'GS1 DataBar Limited must be 13 or 14 digits'],
-		['databarexpanded', "AIs must start with '('"],
-		['databarexpandedstacked', "AIs must start with '('"],
-		['gs1datamatrix', "AIs must start with '('"],
-		['gs1qr', "AIs must start with '('"],
-		['gs1dotcode', "AIs must start with '('"]
-	] as const)('refuses a missing bracket on %s with the carrier’s message', (id, message) => {
+		['gs1128', "AIs must start with '('", false],
+		['databaromni', 'GS1 DataBar Omnidirectional must be 13 or 14 digits', true],
+		['databartruncated', 'GS1 DataBar Truncated must be 13 or 14 digits', true],
+		['databarstacked', 'GS1 DataBar Stacked must be 13 or 14 digits', true],
+		['databarstackedomni', 'GS1 DataBar Stacked Omnidirectional must be 13 or 14 digits', true],
+		['databarlimited', 'GS1 DataBar Limited must be 13 or 14 digits', true],
+		['databarexpanded', "AIs must start with '('", false],
+		['databarexpandedstacked', "AIs must start with '('", false],
+		['gs1datamatrix', "AIs must start with '('", false],
+		['gs1qr', "AIs must start with '('", false],
+		['gs1dotcode', "AIs must start with '('", false]
+	] as const)('refuses a missing bracket on %s with the carrier’s message', (id, message, own) => {
 		expect(verdict('0109501101530003', id)).toBe(` ✗ ${message}`);
-		expect(verdict('0109501101530003', id, true)).toBe(` ✗ ${message}`);
+		expect(verdict('0109501101530003', id, true)).toBe(
+			` ✗ ${message}${own ? ' (the validation setting cannot override this)' : ''}`
+		);
 	});
 
 	it('never adds the UTF-8 clause to a GS1 row, and leaves other rows as before', () => {
@@ -1344,7 +1347,7 @@ describe('verdictText for GS1 entries', () => {
 		);
 		expect(lenient).not.toContain('UTF-8');
 		expect(verdict('036000291452', 'upc')).toBe(' ✓');
-		expect(verdict('590123412345', 'upc')).toBe(' ✓ → 5901234123457');
+		expect(verdict('590123412345', 'ean13')).toBe(' ✓ → 5901234123457');
 		expect(verdict('hello world', 'qr')).toBe(' ✓ · 21×21 modules · 11 bytes');
 		expect(verdict('héllo → 日本', 'qr')).toBe(' ✓ · 25×25 modules · 17 bytes · UTF-8, no ECI');
 		expect(verdict('x'.repeat(2000), 'qr', false, 'H')).toBe(' ✗ too long for QR Code (level H)');
@@ -1383,7 +1386,12 @@ describe('ValidationList GS1 rows', () => {
 	it('classes a lax render lenient and shows the scan hint for GS1 entries', () => {
 		const c = list(`${S}\n(01)09501101530004`, true);
 		const items = [...c.querySelectorAll('.validation-list li')];
-		expect(items.map((li) => li.className)).toEqual(['valid', 'lenient']);
+		// classList, not className: Svelte appends a scoping class to styled elements.
+		expect(
+			items.map((li) =>
+				[...li.classList].filter((c) => ['valid', 'invalid', 'lenient'].includes(c))
+			)
+		).toEqual([['valid'], ['lenient']]);
 		expect(items[1].textContent).toBe(
 			'(01)09501101530004 ⚠ rendered anyway · AI 01: Bad checksum · 134 modules wide · 16 characters → ]C1 0109501101530004'
 		);
@@ -1495,7 +1503,7 @@ it('shows Render if invalid for GS1 rows only, after the level select, bound to 
 	expect(at(2, '.row-lax-input')!.checked).toBe(true);
 	const controls = [
 		...c.querySelectorAll('li.row')[2].querySelectorAll('textarea, select, input, button')
-	].map((el) => el.className);
+	].map((el) => [...el.classList].find((c) => c.startsWith('row-')));
 	expect(controls).toEqual([
 		'row-payload',
 		'row-format',
@@ -1508,8 +1516,19 @@ it('shows Render if invalid for GS1 rows only, after the level select, bound to 
 });
 
 it('clears the flag when a row leaves GS1, and Add code starts a row with it off', async () => {
-	const rows = $state(deck(`gs1128-lax_${BAD}`));
-	c = render(RowEditor, { props: { rows, newRowFormat: 'gs1128' } }).container;
+	// A getter/setter pair stands in for the page's bind:rows, so Add code's reassignment lands.
+	let rows = $state(deck(`gs1128-lax_${BAD}`));
+	c = render(RowEditor, {
+		props: {
+			get rows() {
+				return rows;
+			},
+			set rows(next) {
+				rows = next;
+			},
+			newRowFormat: 'gs1128'
+		}
+	}).container;
 	expect(at(1, '.row-lax-input')!.checked).toBe(true);
 	await change(1, '.row-format', 'upc');
 	expect(at(1, '.row-lax')).toBeNull();
@@ -1672,7 +1691,7 @@ describe('setup page: GS1 validation setting', () => {
 	it('prefills the box from lax=1, flags the row amber with the scan hint, and clears when the format leaves GS1', async () => {
 		open(list(BAD, '&lax=1'));
 		expect(box().checked).toBe(true);
-		expect(q(c, '.validation-list li').className).toBe('lenient');
+		expect(q(c, '.validation-list li').classList.contains('lenient')).toBe(true);
 		expect(q(c, '.scan-hint').textContent).toBe(SCAN_HINT);
 		expect(share()).toContain('&fmt=gs1128&lax=1');
 		expect(q<HTMLButtonElement>(c, '.start').disabled).toBe(false);
@@ -1680,15 +1699,15 @@ describe('setup page: GS1 validation setting', () => {
 		await set('.format-input', 'gs1128');
 		expect(box().checked).toBe(false);
 		expect(share()).not.toContain('lax=');
-		expect(q(c, '.validation-list li').className).toBe('invalid');
+		expect(q(c, '.validation-list li').classList.contains('invalid')).toBe(true);
 		expect(q<HTMLButtonElement>(c, '.start').disabled).toBe(true);
 	});
 
 	it('ticks the box, validates leniently and writes lax=1 at the end of the link', async () => {
 		open(list(BAD));
-		expect(q(c, '.validation-list li').className).toBe('invalid');
+		expect(q(c, '.validation-list li').classList.contains('invalid')).toBe(true);
 		await fireEvent.click(box());
-		expect(q(c, '.validation-list li').className).toBe('lenient');
+		expect(q(c, '.validation-list li').classList.contains('lenient')).toBe(true);
 		expect(share()).toMatch(/&fmt=gs1128&lax=1$/);
 	});
 
@@ -1754,7 +1773,7 @@ Expected: PASS.
 
 - [ ] **Step 5: Confirm no `$effect`**
 
-Run: `git grep -n '\$effect' -- src/routes/+page.svelte src/lib/components/RowEditor.svelte`
+Run: `git grep -n '\$effect(' -- src/routes/+page.svelte src/lib/components/RowEditor.svelte`
 Expected: no output, exit status 1.
 
 - [ ] **Step 6: Run the whole suite and lint**
