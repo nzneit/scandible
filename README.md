@@ -18,12 +18,17 @@ one at a time, so you can point a scanner at the screen and let it read the whol
   pass them in the URL.
 - **25 barcode formats** — the 21 linear formats JsBarcode documents (CODE128 incl. force
   modes, EAN/UPC family, CODE39, CODE93, ITF, MSI variants, Pharmacode, Codabar) plus four 2D
-  formats: QR Code, Data Matrix, PDF417 and Aztec. Selected per list; unrenderable codes are
-  flagged and skipped, and the list shows the exact value your scanner will read when the
-  encoder adds check digits or normalizes input. 2D rows show the symbol size, the byte count
-  and whether the symbol is dense.
+  formats: QR Code, Data Matrix, PDF417 and Aztec. Selected per list, or per code in the
+  per-row editor; unrenderable codes are flagged and skipped, and the list shows the exact
+  value your scanner will read when the encoder adds check digits or normalizes input. 2D rows
+  show the symbol size, the byte count and whether the symbol is dense.
 - **Error correction** — for QR Code, PDF417 and Aztec, an **Error correction** select sets
-  the level for the whole list, and codes too long for that level are flagged.
+  the level for the whole list, or for each code in the per-row editor, and codes too long for
+  their level are flagged.
+- **Mixed-format decks and multi-line payloads** — the opt-in per-row editor gives each code
+  its own row, format and error-correction level, so one list can run a UPC, then a QR Code,
+  then a Data Matrix to test a scanner's auto-discrimination, and a 2D payload can span
+  several lines, as a vCard does.
 - **Scroll or Step playback** — GPU-composited scrolling with a live speed control
   (10–5000 px/s), or one code at a time for a set dwell (0.05–5 s) with an optional blank
   gap, both adjustable live.
@@ -35,7 +40,8 @@ one at a time, so you can point a scanner at the screen and let it read the whol
   correction, and a status line says when the link makes a dense QR or is too long for one,
   and why. Links keep the list in the URL fragment (`#codes=…`), so long lists are never
   refused by the server, and older `?codes=` links keep working. Step links add `mode=step`,
-  plus `dwell` and `gap` in milliseconds when they differ from 1000 and 0.
+  plus `dwell` and `gap` in milliseconds when they differ from 1000 and 0. Per-row links
+  carry one numbered parameter per code (`#r1=…&r2=…`) instead of `codes`.
 - **Distraction-free playback** — fullscreen column with an auto-hiding control overlay
   (play/pause, speed or dwell and gap, prev and next in Step, restart, back).
 
@@ -45,11 +51,43 @@ one at a time, so you can point a scanner at the screen and let it read the whol
 2. Pick a barcode format, then paste or upload your codes (one per line, or
    comma-separated for numeric formats such as UPC and EAN; 2D and other text formats are one
    per line, and commas are part of the code). For QR Code, PDF417 and Aztec, choose an
-   error-correction level or keep the default. Invalid entries are flagged.
+   error-correction level or keep the default. Invalid entries are flagged. To give each code
+   its own format or level, or a payload of several lines, choose **Per row** in the
+   **Editor** select (see _Per-row editing_).
 3. Set the scroll speed, or choose **Step** and set the dwell, and whether to loop, then press
    **Start**.
 4. Point your scanner at the centered barcodes. Lower the speed, or raise the dwell, if the
    scanner needs more time to lock on.
+
+### Per-row editing
+
+The **Editor** select above the code input chooses how you enter the list. **Plain text**, the
+default, is the textarea: one format and one error-correction level for the whole list, and one
+code per line. **Per row** gives each code its own row, with its own format and, for QR Code,
+PDF417 and Aztec, its own error-correction level, so one list can mix symbologies (a UPC, then a
+QR Code, then a Data Matrix) to test how a scanner tells them apart.
+
+In a row, Enter starts a new line inside the payload, so a 2D code can carry several lines, as a
+vCard does; numeric formats such as UPC drop line breaks along with other whitespace. A comma
+never splits a row: one row is one code. Each row shows whether it is valid, with the same
+details as the list in Plain text, and blank rows are skipped. **Add code** appends a row in the
+format chosen under **Format for new rows**; **Move up**, **Move down** and **Delete** reorder
+and remove rows. Uploading a file in Per row adds one row per code after the existing rows.
+
+Choosing Per row turns the current list into rows, each with the list's format and level (blank
+lines and commas between codes are not kept). Choosing Plain text again joins the rows back into
+the textarea, with the first code's format and level for the whole list. When that would lose
+something, a note says how many rows would lose their format or level, how many payloads would
+be cut at line breaks or commas, and which format every code will take, and it offers
+**Switch anyway** or **Cancel**. If a change made after the note appeared alters what would be
+lost, the first **Switch anyway** updates the note instead of switching, and the next click
+switches; if the switch now loses nothing, it switches at once. A switch that loses nothing
+happens at once.
+
+A per-row link carries one parameter per code, numbered from 1 in list order, skipping blank
+rows, and tagged with the code's format and, when it is not the default, its level:
+`#r1=upc_012345678905&r2=qr-H_…`. Such a link opens in Per row; every other link opens in Plain
+text.
 
 ### Playback modes
 

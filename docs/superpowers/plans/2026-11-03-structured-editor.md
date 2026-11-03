@@ -994,9 +994,9 @@ Expected: PASS, today's setup tests included, with no edit to any of them.
 
 - [ ] **Step 6: Confirm no `$effect` drives the switch or the editor**
 
-Run: `git grep -n -e '\$effect[.(]' -- src/routes/+page.svelte src/lib/components/RowEditor.svelte`
+Run: `git grep -n -F -e '$effect(' -e '$effect.pre(' -e '$effect.root(' -e '$effect.tracking(' -e '$effect.pending(' -- src/routes/+page.svelte src/lib/components/RowEditor.svelte`
 Expected: no output, exit status 1. (The comment above `selectFormat` names `$effect` without a
-call; the pattern skips it.)
+call; the fixed strings match only a call.)
 
 - [ ] **Step 7: Run the whole suite and lint**
 
@@ -1158,20 +1158,20 @@ row's checks in that browser, and the spec's row passes only when both halves pa
 it does. Row 9's Device column names the screen reader, the browser and their versions, and its
 notes say whether the refreshed note was announced.
 
-| #   | Check                                               | Status     | Device / browser, firmware, read mode | Output / notes |
-| --- | --------------------------------------------------- | ---------- | ------------------------------------- | -------------- |
-| 1   | Automated checks                                    | UNVERIFIED |                                       |                |
-| 2   | Mixed deck with a 2D imager, Scroll and Step        | UNVERIFIED |                                       |                |
-| 3   | Two-line QR Code payload, phone scanner app         | UNVERIFIED |                                       |                |
-| 4-c | Chromium: field growth, 390 px wrap, 1024 px column | UNVERIFIED |                                       |                |
-| 4-f | Firefox: field growth, 390 px wrap, 1024 px column  | UNVERIFIED |                                       |                |
-| 5-c | Chromium: Tab order, Move and Delete focus          | UNVERIFIED |                                       |                |
-| 5-f | Firefox: Tab order, Move and Delete focus           | UNVERIFIED |                                       |                |
-| 6   | Hand-edited numbering, `r1` and `r3` with no `r2`   | UNVERIFIED |                                       |                |
-| 7   | Lossy switch on the three-row mixed deck            | UNVERIFIED |                                       |                |
-| 8   | Real phone: build, reorder and delete rows          | UNVERIFIED |                                       |                |
-| 9   | Screen reader: the note, the verdict, the refresh   | UNVERIFIED |                                       |                |
-| 10  | vCard of 400 to 420 bytes at level H and level L    | UNVERIFIED |                                       |                |
+| #   | Check                                               | Status     | Device / browser, firmware, read mode | Output / notes                                                                                                                                                                                        |
+| --- | --------------------------------------------------- | ---------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Automated checks                                    | PASS       | Node v24.17.0                         | `npm run check` exit 0 (0 errors, 0 warnings); `npm test` exit 0 (Test Files 27 passed, Tests 406 passed); `npm run lint` exit 0 (clean); `npm run build` exit 0 (built, static site written to dist) |
+| 2   | Mixed deck with a 2D imager, Scroll and Step        | UNVERIFIED |                                       |                                                                                                                                                                                                       |
+| 3   | Two-line QR Code payload, phone scanner app         | UNVERIFIED |                                       |                                                                                                                                                                                                       |
+| 4-c | Chromium: field growth, 390 px wrap, 1024 px column | UNVERIFIED |                                       |                                                                                                                                                                                                       |
+| 4-f | Firefox: field growth, 390 px wrap, 1024 px column  | UNVERIFIED |                                       |                                                                                                                                                                                                       |
+| 5-c | Chromium: Tab order, Move and Delete focus          | UNVERIFIED |                                       |                                                                                                                                                                                                       |
+| 5-f | Firefox: Tab order, Move and Delete focus           | UNVERIFIED |                                       |                                                                                                                                                                                                       |
+| 6   | Hand-edited numbering, `r1` and `r3` with no `r2`   | UNVERIFIED |                                       |                                                                                                                                                                                                       |
+| 7   | Lossy switch on the three-row mixed deck            | UNVERIFIED |                                       |                                                                                                                                                                                                       |
+| 8   | Real phone: build, reorder and delete rows          | UNVERIFIED |                                       |                                                                                                                                                                                                       |
+| 9   | Screen reader: the note, the verdict, the refresh   | UNVERIFIED |                                       |                                                                                                                                                                                                       |
+| 10  | vCard of 400 to 420 bytes at level H and level L    | UNVERIFIED |                                       |                                                                                                                                                                                                       |
 
 A skipped step, or one whose checker died or returned nothing, stays UNVERIFIED. A step that ran
 and failed is recorded FAILED, with the evidence. The final report lists every UNVERIFIED and
