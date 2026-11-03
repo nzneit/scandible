@@ -4,7 +4,8 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { parseCodeList } from '$lib/codes';
-	import { decodeShareUrl, encodeShareUrl } from '$lib/shareUrl';
+	import { rowEntries } from '$lib/rows';
+	import { decodeShareUrl, encodeRowsShareUrl, encodeShareUrl } from '$lib/shareUrl';
 	import { formatFinishMessage, formatStepFinishMessage } from '$lib/finish';
 	import { formatSeconds, parseSeconds } from '$lib/seconds';
 	import { DEFAULT_SETTINGS, DWELL_RANGE, GAP_RANGE, type Settings } from '$lib/types';
@@ -20,7 +21,9 @@
 	if (decoded.settings.seed === undefined) {
 		settings.seed = Math.floor(Math.random() * 0x100000000) >>> 0;
 	}
-	const entries = parseCodeList(decoded.codes.join('\n'), settings.format, settings.ecc);
+	const entries = decoded.records
+		? rowEntries(decoded.records)
+		: parseCodeList(decoded.codes.join('\n'), settings.format, settings.ecc);
 	const hasValid = entries.some((e) => e.valid);
 	const count = entries.filter((e) => e.valid).length;
 
@@ -65,7 +68,11 @@
 	}
 	function back(): void {
 		// The decoded share state plus the live speed, dwell and gap, never the parsed entries.
-		const url = resolve('/') + encodeShareUrl(decoded.codes, currentSettings());
+		const url =
+			resolve('/') +
+			(decoded.records
+				? encodeRowsShareUrl(decoded.records, currentSettings())
+				: encodeShareUrl(decoded.codes, currentSettings()));
 		// eslint-disable-next-line svelte/no-navigation-without-resolve -- pathname IS resolve()-based; the rule cannot see through the fragment concatenation
 		goto(url);
 	}

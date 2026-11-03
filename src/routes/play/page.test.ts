@@ -400,3 +400,41 @@ describe('play page: step mode', () => {
 		);
 	});
 });
+
+describe('play page: records links', () => {
+	const DECK_URL = 'http://localhost/play#r1=upc_036000291452&r2=qr_hello&seed=7';
+
+	it('renders each entry with its own format classes', () => {
+		mockPage.url = new URL(DECK_URL);
+		const { container } = render(PlayPage);
+		const items = container.querySelectorAll('.barcode-item');
+		expect(items.length).toBe(4); // 2 valid × 2 copies
+		expect(items[0].classList.contains('barcode-item--2d')).toBe(false);
+		expect(items[0].classList.contains('barcode-item--qr')).toBe(false);
+		expect(items[1].classList.contains('barcode-item--2d')).toBe(true);
+		expect(items[1].classList.contains('barcode-item--qr')).toBe(true);
+	});
+
+	it('plays each row at its own level', () => {
+		mockPage.url = new URL('http://localhost/play#r1=qr-H_hello&r2=qr_hello&seed=7');
+		const { container } = render(PlayPage);
+		const items = container.querySelectorAll('.barcode-item');
+		expect(items[0].innerHTML).not.toBe(items[1].innerHTML);
+	});
+
+	it('bounces a records link whose every record is dropped', () => {
+		mockPage.url = new URL('http://localhost/play#r1=foo_bar&seed=7');
+		render(PlayPage);
+		expect(goto).toHaveBeenCalledWith('/#r1=foo_bar&seed=7', { replaceState: true });
+	});
+
+	it('carries the records and the live speed back to setup', async () => {
+		mockPage.url = new URL(DECK_URL);
+		const { container } = render(PlayPage);
+		await fireEvent.input(q(container, '.ctl-speed'), { target: { value: '120' } });
+		await fireEvent.click(q(container, '.ctl-back'));
+		expect(goto).toHaveBeenCalledWith(
+			'/#r1=upc_036000291452&r2=qr_hello&speed=120&loop=0&rot=0&rotmax=8&skew=0&skewmax=8&seed=7&fmt=upc'
+		);
+	});
+});
