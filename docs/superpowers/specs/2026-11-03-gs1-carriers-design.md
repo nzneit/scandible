@@ -28,10 +28,10 @@ sees each row's verdict, for example
 such as ` ✗ AI 01: Bad checksum`, and presses Start. A scanner with GS1 output enabled emits the
 string the verdict showed, GS characters where the verdict shows `␝`. With the opt-in
 **Render GS1 data that fails validation** box ticked, a GS1-128 with a wrong check digit renders
-anyway, flagged amber, so the lane's rejection path can be tested. Every link issued before this
-spec decodes as it did, and every existing format renders and validates exactly as today; three
-shared texts (the dense hint, the editor hint and the loss note's first sentence in one case) gain
-GS1 wording.
+anyway, flagged amber, so the lane's rejection path can be tested. Every link that decoded before
+this spec decodes as it did, and every existing format renders and validates exactly as today. Three
+existing texts gain GS1 wording (the dense hint, the editor hint and, when a render-if-invalid
+setting is lost, the loss note's first sentence) and four texts are added.
 
 ## Series
 
@@ -117,7 +117,8 @@ and the lint-message plumbing serve the coupon's messages unchanged.
   so GS1 formats split on newlines only.
 - **One name per control.** The page box is `Render GS1 data that fails validation`; a row's box
   is `Render if invalid`; the loss note calls it `the render-if-invalid setting`; the result tails
-  say `with invalid GS1 data rendered` or `skipped`.
+  say `with invalid GS1 data rendered` or `skipped`; the verdict's override suffix says `the
+  validation setting`, neutral between the two boxes.
 - **No `$effect`.** Function bindings and event handlers only, the project convention.
 
 ## The registry — `src/lib/formats.ts`
@@ -309,13 +310,14 @@ not last and whose `ai` does not start with a prefix in the set. On a null parse
 `{ aim, data: value }` so a row never crashes. `dataCharacters` counts code points after removing
 GS; `displayData` replaces each GS with `␝`.
 
-Examples:
+Examples (GS1-128 unless named; `␝` stands for the real GS character):
 
 - `(01)09501101530003(17)261231(10)LOT42` → `01095011015300031726123110LOT42`, 31 characters, no
   GS: (01) and (17) are predefined, (10) is last.
 - `(10)LOT42(01)09501101530003` → `10LOT42␝0109501101530003`, 23 characters (24 bytes).
 - `(3103)000123(10)X` → `3103000123` + `10X`, 13 characters: 31 is predefined.
-- `(8110)106141416543213500110000310123196000(10)X` → the (8110) value, then GS, then `10X`.
+- `(8110)106141416543213500110000310123196000(10)X` →
+  `8110106141416543213500110000310123196000␝10X`, 47 characters: 81 is not predefined.
 - `(10)A(` → the single pair 10/A, data `10A`.
 - `(01)0950110153000` on DataBar Omnidirectional → `0109501101530003`, 16 characters.
 - `(01)09501101530004(17)261231(10)LOT42` on DataBar Expanded under lax →
@@ -384,18 +386,21 @@ before the existing `facts` branch so that the ` · UTF-8, no ECI` clause, which
 | Valid GS1                | ` ✓ · SIZE · N characters[ · dense][ · over the 48-character GS1-128 limit] → AIM DATA`                     |
 | Rendered despite lint    | ` ⚠ rendered anyway · LINT · SIZE · N characters[ · dense][ · over …] → AIM DATA`                           |
 | Invalid, too long        | ` ✗ too long for LABEL` / ` ✗ too long for LABEL (level X)`, as today, taking precedence over `message`      |
-| Invalid with a message   | ` ✗ MESSAGE[ (Render if invalid cannot override this)]`                                                     |
+| Invalid with a message   | ` ✗ MESSAGE[ (parentheses inside a value are not supported)][ (the validation setting cannot override this)]` |
 | Invalid, no message      | ` ✗ invalid`                                                                                                 |
 
 - `SIZE` is `facts.summary`; `N characters` is `dataCharacters(gs1.data)` with `1 character`
   singular; `DATA` is `displayData(gs1.data)`.
 - The over-limit note appears when the descriptor sets `maxChars` and the character count exceeds
   it, worded from the descriptor: `over the ${maxChars}-character ${label} limit`.
-- The override suffix appears when the row's resolved `lax` is true, the descriptor's `gtinCheck`
-  is `'own'` and the entry is invalid with a message: the toggle cannot help on these five.
 - A parentheses suffix, ` (parentheses inside a value are not supported)`, is appended to a
   `message` or a `LINT` when `parseElementString(value)` yields any `ai` containing a non-digit,
   which only a `(` inside a value produces.
+- The override suffix, ` (the validation setting cannot override this)`, appears when the row's
+  resolved `lax` is true, the descriptor's `gtinCheck` is `'own'` and the entry is invalid with a
+  message: the toggle cannot help on these five. Its wording is neutral between the page box and
+  the row box, since only one of them is visible at a time. When both suffixes apply, the
+  parentheses suffix comes first and the override suffix ends the line.
 - Non-GS1 entries produce exactly today's strings.
 
 Worked examples, measured (measurements §1 and §2):
@@ -423,14 +428,16 @@ Worked examples, measured (measurements §1 and §2):
 - GS1-128, `(01)09501101530003(17)261345`: ` ✗ AI 17: Invalid month`
 - GS1 DataBar Omnidirectional, `(01)09501101530004`, not lax:
   ` ✗ Incorrect GS1 DataBar Omnidirectional check digit provided`; lax:
-  ` ✗ Incorrect GS1 DataBar Omnidirectional check digit provided (Render if invalid cannot override this)`
-- GS1-128, Expanded, Expanded Stacked and the three 2D carriers, `0109501101530003`:
-  ` ✗ AIs must start with '('`; the five GTIN-only members: ` ✗ GS1 DataBar Omnidirectional must be
-  13 or 14 digits` with each member's own name.
+  ` ✗ Incorrect GS1 DataBar Omnidirectional check digit provided (the validation setting cannot override this)`
+- `0109501101530003` on GS1-128, Expanded, Expanded Stacked and the three 2D carriers:
+  ` ✗ AIs must start with '('`; on the five GTIN-only members: ` ✗ GS1 DataBar Omnidirectional must
+  be 13 or 14 digits`, with `Omnidirectional` replaced by `Truncated`, `Stacked`, `Stacked
+  Omnidirectional` or `Limited` for the others (one string per carrier, eleven in all).
 - GS1-128, `(01)09501101530003(10)A(B)C`:
   ` ✗ AI B: Unrecognised AI (parentheses inside a value are not supported)`
 
-Two shared texts change and one is added, all in `verdict.ts`:
+`DENSE_HINT` changes and `SCAN_HINT`, `LAX_NOTE` and `GS1_HINT` are added, all exported from
+`verdict.ts`; `EDITOR_HINT`, a const in `+page.svelte`, also changes (see _Setup page_):
 
 - `DENSE_HINT`: `Dense: more than 100 modules across (PDF417 and the linear GS1 formats: 300), so
   each module is small on screen. If the scanner misses these, shorten the payload, lower error
@@ -473,7 +480,8 @@ the level is the first token for which `isEccChoice` holds for the format, throu
 `canonicalEcc`, else `''`; every other token is ignored, as an unknown level is today.
 `parseRecord` always sets `lax`, false for non-GS1 formats, so record equality tests gain the
 field. Today's links have at most one token and parse unchanged, including the empty token
-`qr-_hello`. The head ends at the first `_`, as today, because no token contains one.
+`qr-_hello`; a record with two tokens, which the old regex dropped, is now read. The head ends at
+the first `_`, as today, because no token contains one.
 
 Examples: `#r1=gs1128-lax_%2801%2909501101530004&r2=gs1qr-H_%2801%2909501101530003` decodes to
 row 1 `{ format: 'gs1128', ecc: '', lax: true }` and row 2 `{ format: 'gs1qr', ecc: 'H', lax: false }`;
@@ -545,7 +553,7 @@ Step playback are untouched: a lax-rendered entry is a valid entry.
 - **Lax on, syntax error** (`0109…`): both encodes fail; ` ✗ AIs must start with '('`, or the
   member's `must be 13 or 14 digits` on the five GTIN-only members.
 - **Lax on, GTIN-only member, wrong GTIN:** both encodes fail with the member's own message, and
-  the verdict adds ` (Render if invalid cannot override this)`.
+  the verdict adds ` (the validation setting cannot override this)`.
 - **Lax on, Expanded or Expanded Stacked, wrong check digit on a leading (01):** renders; the
   verdict is amber with `AI 01: Bad checksum`, and its data shows the corrected digit, which is
   what the symbol carries. A wrong digit on a (01) that is not first is encoded as typed.
@@ -574,8 +582,9 @@ Step playback are untouched: a lax-rendered entry is a valid entry.
   any unknown format does today.
 - **Encode cache.** GS1 SVGs without text are small, 0.6 to 5 kB for the linear carriers and a
   few kB for the 2D ones, but DotCode draws every dot as a path: 16 kB for the sample and
-  1.8 MB for a 2 000-character lax payload (measurements §1). The 32 M-character budget holds
-  hundreds of ordinary rows and about seventeen of the worst case before it clears.
+  1.8 MB for a 1 990-character lax payload, the longest that still renders (measurements §1 and
+  §3). The budget of 32 × 1024 × 1024 characters holds hundreds of ordinary rows and about
+  eighteen of the worst case before it clears.
 - **The `encoded` field** stays 1D-JsBarcode-only; GS1 entries carry `gs1.data` instead.
 
 ## Testing
@@ -625,8 +634,9 @@ plain form elsewhere.
   the five GTIN-only members gives `valid: false` with each member's own `Incorrect GS1 DataBar …
   check digit provided`; `(01)0950110153000` on each GTIN-only member is valid with `gs1.data`
   `'0109501101530003'`; `(01)` → `AI 01: Too short` on GS1-128 and `GS1 DataBar Omnidirectional
-  must be 13 or 14 digits` on Omnidirectional; `0109501101530003` with lax on GS1 QR Code → `AIs
-  must start with '('`; `(99999)123` strict → `AI 99999: Unrecognised AI`, lax → valid;
+  must be 13 or 14 digits` on Omnidirectional; `0109501101530003`, strict and lax, on all eleven →
+  invalid with `AIs must start with '('` where `gtinCheck` is not `'own'` and the member's `must be
+  13 or 14 digits` where it is; `(99999)123` strict → `AI 99999: Unrecognised AI`, lax → valid;
   `(10)A(10)B` → `Repeated AIs (10) must have the same value`; `(10)A(` on GS1-128 is valid with
   `gs1.data` `'10A'`; Expanded with the measurements §3 overflow payload → `reason: 'too-long'`;
   DotCode with lax and `(90)` + `x` to 1 998 characters → `reason: 'too-long'`, and to 2 100 →
@@ -678,7 +688,8 @@ plain form elsewhere.
   `lax` false; `r1=gs1128-LAX_…` → `lax` false; `r1=gs1128-foo_…` → `lax` false, `ecc` `''`;
   `r1=qr-H_hello` and `r1=qr-_hello` as today.
 - **`src/lib/verdict.test.ts`** (new; verdict text was tested only through components until now):
-  the sixteen worked examples under _Verdict_ byte-exact; the 48-character boundary with payloads
+  every string in the worked examples under _Verdict_, byte-exact, one test per carrier where a
+  bullet covers several; the 48-character boundary with payloads
   `(01)09501101530003(10)` + 20 `A` + `(21)` + 8 `B` (48 characters, no note) and 9 `B`
   (49 characters, note), asserting on the note's presence only; a GS1 entry never carries
   ` · UTF-8, no ECI`; `DENSE_HINT`, `SCAN_HINT`, `LAX_NOTE` and `GS1_HINT` texts; non-GS1 strings
