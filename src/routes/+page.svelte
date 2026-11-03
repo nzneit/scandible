@@ -203,6 +203,8 @@
 		} catch {
 			// Inline error only; the existing validation list is left untouched.
 			fileError = 'Could not read file';
+		} finally {
+			input.value = '';
 		}
 	}
 

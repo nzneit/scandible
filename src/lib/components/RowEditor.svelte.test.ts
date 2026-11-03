@@ -130,6 +130,8 @@ describe('RowEditor', () => {
 		await click(2, '.row-down');
 		expect(values('.row-payload')).toEqual(['036000291452', '', 'hello world']);
 		await focusIs(3, '.row-up');
+		await click(3, '.row-up');
+		await focusIs(2, '.row-up');
 	});
 
 	it('moves a row into the first place, focusing its Move down', async () => {

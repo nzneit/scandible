@@ -422,6 +422,13 @@ describe('play page: records links', () => {
 		expect(items[0].innerHTML).not.toBe(items[1].innerHTML);
 	});
 
+	it('renders equal rows alike when the levels match', () => {
+		mockPage.url = new URL('http://localhost/play#r1=qr_hello&r2=qr_hello&seed=7');
+		const { container } = render(PlayPage);
+		const items = container.querySelectorAll('.barcode-item');
+		expect(items[0].innerHTML).toBe(items[1].innerHTML);
+	});
+
 	it('bounces a records link whose every record is dropped', () => {
 		mockPage.url = new URL('http://localhost/play#r1=foo_bar&seed=7');
 		render(PlayPage);

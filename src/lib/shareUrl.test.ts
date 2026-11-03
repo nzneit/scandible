@@ -266,7 +266,11 @@ describe('rows links', () => {
 		['#r1=&r1=qr_x', undefined], // a key counts by its first value
 		['#r0=qr_a&rx=qr_b&r01=qr_c&r1=qr_d', deck('qr_d')],
 		['#r0=qr_a', undefined],
-		['#codes=036000291452&speed=60', undefined]
+		['#codes=036000291452&speed=60', undefined],
+		['#R1=qr_x', undefined], // an uppercase key is not a record key
+		['#r1=QR_x', []], // an uppercase format tag is dropped
+		['#r1=qr_a-b_c', deck('qr_a-b_c')], // `-` and `_` in the payload survive
+		['#r1=foo_bar&r1=qr_x', []] // a repeated key keeps its first value, even if invalid
 	])('decodes the records of %s', (hash, records) => {
 		expect(recs(hash)).toEqual(records);
 	});

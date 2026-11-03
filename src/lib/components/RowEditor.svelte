@@ -52,7 +52,7 @@
 	}
 </script>
 
-<ol class="row-editor" bind:this={listEl}>
+<ol class="row-editor" role="list" bind:this={listEl}>
 	{#each rows as row, i (row)}
 		{@const entry = rowEntry(row)}
 		{@const opt = FORMAT_BY_ID.get(row.format)?.ecc}

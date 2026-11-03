@@ -117,7 +117,7 @@ export function decodeShareUrl(url: URL): {
 			: keys
 					.map((key) => parseRecord(params.get(key) ?? ''))
 					.filter((row): row is Row => row !== null);
-	const codesRaw = records ? null : params.get('codes');
+	const codesRaw = records !== undefined ? null : params.get('codes');
 	const codes = codesRaw
 		? codesRaw
 				.split('\n')

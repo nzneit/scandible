@@ -88,9 +88,9 @@ export function describeLoss(
 		clauses.length === 3
 			? `${clauses[0]}, ${clauses[1]}, and ${clauses[2]}`
 			: clauses.join(' and ');
-	let result3 = `Every code will take the format of the first code, ${d?.label ?? result.format}`;
-	if (!d?.ecc) result3 += '.';
-	else if (result.ecc !== '') result3 += `, and ${eccChoice(d, result.ecc)?.label}.`;
-	else result3 += ", and the format's default level.";
-	return `Plain text keeps one format and one error-correction level for the whole list, and one code per line. Switching now ${joined}. ${result3}`;
+	let resultSentence = `Every code will take the format of the first code, ${d?.label ?? result.format}`;
+	if (!d?.ecc) resultSentence += '.';
+	else if (result.ecc !== '') resultSentence += `, and ${eccChoice(d, result.ecc)?.label}.`;
+	else resultSentence += ", and the format's default level.";
+	return `Plain text keeps one format and one error-correction level for the whole list, and one code per line. Switching now ${joined}. ${resultSentence}`;
 }

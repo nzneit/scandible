@@ -699,8 +699,7 @@ describe('setup page: per-row editor', () => {
 	});
 
 	it('appends an uploaded file as rows in Per row', async () => {
-		open(DECK);
-		await set(q(c, '.format-input'), 'qr');
+		open('http://localhost/#r1=upc_036000291452&r2=qr-H_hello&fmt=qr&ecc=H&seed=0');
 		await upload('a\nb');
 		await vi.waitFor(() => {
 			expect(rowCount()).toBe(4);
@@ -722,6 +721,11 @@ describe('setup page: per-row editor', () => {
 	});
 
 	it('clears the file error in Per row on a good read or a switch', async () => {
+		open();
+		await upload(null);
+		await vi.waitFor(() => expect(q<HTMLElement>(c, '.file-error').hidden).toBe(false));
+		await editor('rows');
+		expect(q<HTMLElement>(c, '.file-error').hidden).toBe(true);
 		open('http://localhost/#r1=upc_036000291452&seed=0');
 		await upload(null);
 		await vi.waitFor(() => {
@@ -742,6 +746,9 @@ describe('setup page: per-row editor', () => {
 		await upload(null);
 		await vi.waitFor(() => expect(q<HTMLElement>(c, '.file-error').hidden).toBe(false));
 		await editor('text');
+		expect(q<HTMLElement>(c, '.file-error').hidden).toBe(true);
+		await upload(null);
+		await vi.waitFor(() => expect(q<HTMLElement>(c, '.file-error').hidden).toBe(false));
 		await fireEvent.click(q(c, '.switch-anyway'));
 		expect(q<HTMLElement>(c, '.file-error').hidden).toBe(true);
 	});
