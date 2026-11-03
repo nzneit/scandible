@@ -331,3 +331,10 @@ export function isEccChoice(d: FormatDescriptor, value: string | undefined): boo
 export function eccChoice(d: FormatDescriptor, value: string | undefined): EccChoice | undefined {
 	return d.ecc?.choices.find((c) => c.value === value);
 }
+
+/** The canonical form of a level for a format, as Settings.ecc and Row.ecc hold it. */
+export function canonicalEcc(format: FormatId, ecc: string): string {
+	const d = FORMAT_BY_ID.get(format);
+	if (!d?.ecc || !isEccChoice(d, ecc) || ecc === d.ecc.defaultValue) return '';
+	return ecc;
+}

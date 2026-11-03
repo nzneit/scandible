@@ -4,7 +4,7 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { parseCodeList } from '$lib/codes';
-	import { FORMAT_BY_ID, FORMAT_GROUPS, isEccChoice, type FormatId } from '$lib/formats';
+	import { FORMAT_BY_ID, FORMAT_GROUPS, canonicalEcc, type FormatId } from '$lib/formats';
 	import { readCodesFile } from '$lib/fileInput';
 	import { decodeShareUrl, encodeShareUrl } from '$lib/shareUrl';
 	import {
@@ -93,14 +93,7 @@
 	// Keep `ecc` canonical across a format switch: drop a level the next format does not offer,
 	// or one that is its default. Done in the binding's setter, never an $effect.
 	function selectFormat(next: FormatId): void {
-		const nextDescriptor = FORMAT_BY_ID.get(next);
-		if (
-			!nextDescriptor ||
-			!isEccChoice(nextDescriptor, ecc) ||
-			ecc === nextDescriptor.ecc?.defaultValue
-		) {
-			ecc = '';
-		}
+		ecc = canonicalEcc(next, ecc);
 		format = next;
 	}
 

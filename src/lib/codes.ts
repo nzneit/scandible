@@ -54,17 +54,20 @@ export function buildEntry(
 	return { raw: token, value, format, options, ...checkCode(value, format, options) };
 }
 
-/** Tokenize + clean + validate a raw text blob for one format. Numeric formats split
- *  on newlines AND commas and strip internal whitespace (the pre-existing UPC
- *  behavior); text formats split on newlines only — internal spaces and commas are
- *  data. Drop-empties runs on the trimmed token BEFORE cleanup/validation, so no
- *  CodeEntry ever has an empty value. */
-export function parseCodeList(raw: string, format: FormatId, ecc = ''): CodeEntry[] {
-	const descriptor = FORMAT_BY_ID.get(format);
-	const numeric = descriptor?.numeric ?? true;
-	return raw
+/** Split (newline; plus comma for numeric formats) → trim → drop empties. An unknown format
+ *  splits as numeric, as parseCodeList always has. Text formats split on newlines only:
+ *  internal spaces and commas are data. */
+export function tokenize(text: string, format: FormatId): string[] {
+	const numeric = FORMAT_BY_ID.get(format)?.numeric ?? true;
+	return text
 		.split(numeric ? /[\n,]/ : /\n/)
 		.map((t) => t.trim())
-		.filter((t) => t.length > 0)
-		.map((token) => buildEntry(token, format, { format, ecc }));
+		.filter((t) => t.length > 0);
+}
+
+/** One entry per `tokenize` token, cleaned and validated for one format (numeric formats
+ *  strip internal whitespace). Empty tokens are dropped before cleanup, so no CodeEntry ever
+ *  has an empty value. */
+export function parseCodeList(raw: string, format: FormatId, ecc = ''): CodeEntry[] {
+	return tokenize(raw, format).map((token) => buildEntry(token, format, { format, ecc }));
 }
