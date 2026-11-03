@@ -23,7 +23,7 @@
 	}
 	const entries = decoded.records
 		? rowEntries(decoded.records)
-		: parseCodeList(decoded.codes.join('\n'), settings.format, settings.ecc);
+		: parseCodeList(decoded.codes.join('\n'), settings.format, settings.ecc, settings.lax);
 	const hasValid = entries.some((e) => e.valid);
 	const count = entries.filter((e) => e.valid).length;
 

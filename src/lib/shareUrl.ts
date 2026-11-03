@@ -1,5 +1,13 @@
 import { DEFAULT_SETTINGS, DWELL_RANGE, GAP_RANGE, type Settings } from './types';
-import { DEFAULT_FORMAT, FORMAT_BY_ID, canonicalEcc, isEccChoice, isFormatId } from './formats';
+import {
+	DEFAULT_FORMAT,
+	FORMAT_BY_ID,
+	canonicalEcc,
+	canonicalLax,
+	isEccChoice,
+	isFormatId,
+	isGs1
+} from './formats';
 import { rowToken, type Row } from './rows';
 
 const SPEED_MIN = 10;
@@ -24,7 +32,7 @@ function stepMs(
 }
 
 /** Build the share fragment "#codes=…&speed=…&…&fmt=…" from raw code strings + settings.
- *  Params after `fmt` (`ecc`, `mode`, `dwell`, `gap`) appear only when they differ from their default, in a
+ *  Params after `fmt` (`ecc`, `lax`, `mode`, `dwell`, `gap`) appear only when they differ from their default, in a
  *  fixed order; `dwell` and `gap` appear only in step links. Codes are joined with "\n" so commas and spaces survive URLSearchParams
  *  encoding. */
 export function encodeShareUrl(codes: string[], settings: Settings): string {
@@ -36,7 +44,7 @@ export function encodeShareUrl(codes: string[], settings: Settings): string {
 
 /** Build a per-row share fragment "#r1=…&r2=…&speed=…&…&fmt=…": one record per non-blank row,
  *  numbered from 1 in editor order (an empty `codes` when there is none), then the settings tail
- *  of encodeShareUrl without `ecc`. */
+ *  of encodeShareUrl without `ecc` or `lax`. */
 export function encodeRowsShareUrl(rows: Row[], settings: Settings): string {
 	const params = new URLSearchParams();
 	let n = 0;
@@ -44,7 +52,10 @@ export function encodeRowsShareUrl(rows: Row[], settings: Settings): string {
 		const token = rowToken(row.payload);
 		if (token === '') continue;
 		n += 1;
-		params.set(`r${n}`, `${row.format}${row.ecc ? '-' + row.ecc : ''}_${token}`);
+		params.set(
+			`r${n}`,
+			`${row.format}${row.ecc ? '-' + row.ecc : ''}${row.lax ? '-lax' : ''}_${token}`
+		);
 	}
 	if (n === 0) params.set('codes', '');
 	appendSettings(params, settings, false);
@@ -52,8 +63,12 @@ export function encodeRowsShareUrl(rows: Row[], settings: Settings): string {
 }
 
 /** Module-private. Writes speed, loop, rot, rotmax, skew, skewmax, seed and fmt; then ecc under
- *  today's rule, only when withEcc holds; then mode, dwell and gap under today's rules. */
-function appendSettings(params: URLSearchParams, settings: Settings, withEcc: boolean): void {
+ *  today's rule, then `lax=1` for a lax GS1 list, both only when withListOptions holds; then mode, dwell and gap under today's rules. */
+function appendSettings(
+	params: URLSearchParams,
+	settings: Settings,
+	withListOptions: boolean
+): void {
 	params.set('speed', String(settings.speedPxPerSec));
 	params.set('loop', settings.loop ? '1' : '0');
 	params.set('rot', settings.rotate ? '1' : '0');
@@ -64,13 +79,14 @@ function appendSettings(params: URLSearchParams, settings: Settings, withEcc: bo
 	params.set('fmt', settings.format);
 	const descriptor = FORMAT_BY_ID.get(settings.format);
 	if (
-		withEcc &&
+		withListOptions &&
 		descriptor?.ecc &&
 		isEccChoice(descriptor, settings.ecc) &&
 		settings.ecc !== descriptor.ecc.defaultValue
 	) {
 		params.set('ecc', settings.ecc);
 	}
+	if (withListOptions && settings.lax && isGs1(descriptor)) params.set('lax', '1');
 	if (settings.mode === 'step') {
 		params.set('mode', 'step');
 		if (settings.dwellMs !== DEFAULT_SETTINGS.dwellMs)
@@ -86,15 +102,27 @@ function recordKeys(params: URLSearchParams): string[] {
 		.sort((a, b) => a.length - b.length || (a < b ? -1 : a > b ? 1 : 0));
 }
 
-/** One record value, `format[-level]_payload`, as a row; null when it is unusable. */
+/** One record value, `format[-token]*_payload`, as a row; null when it is unusable. The level is
+ *  the first token the format accepts, `lax` is read case-sensitively, other tokens are ignored. */
 function parseRecord(value: string): Row | null {
-	const match = /^([a-z0-9]+)(?:-([A-Za-z0-9]*))?_([\s\S]*)$/.exec(value);
+	const match = /^([a-z0-9]+)((?:-[A-Za-z0-9]*)*)_([\s\S]*)$/.exec(value);
 	if (!match) return null;
-	const [, format, level, payload] = match;
+	const [, format, tail, payload] = match;
 	if (!isFormatId(format)) return null;
 	const token = rowToken(payload);
 	if (token === '') return null;
-	return { payload: token, format, ecc: canonicalEcc(format, level ?? ''), lax: false };
+	const tokens = tail
+		.split('-')
+		.slice(1)
+		.filter((t) => t !== '');
+	const descriptor = FORMAT_BY_ID.get(format);
+	const level = (descriptor && tokens.find((t) => isEccChoice(descriptor, t))) ?? '';
+	return {
+		payload: token,
+		format,
+		ecc: canonicalEcc(format, level),
+		lax: canonicalLax(format, tokens.includes('lax'))
+	};
 }
 
 /** Parse a page URL into codes or records, plus partial settings. The fragment is the source
@@ -181,6 +209,7 @@ export function decodeShareUrl(url: URL): {
 	) {
 		settings.ecc = eccRaw;
 	}
+	if (params.get('lax') === '1' && isGs1(descriptor)) settings.lax = true;
 	if (params.get('mode') === 'step') settings.mode = 'step';
 	const dwellMs = stepMs(params.get('dwell'), DWELL_RANGE);
 	if (dwellMs !== undefined) settings.dwellMs = dwellMs;

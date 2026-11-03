@@ -231,6 +231,30 @@ describe('step params', () => {
 	});
 });
 
+describe('lax param', () => {
+	const enc = (over: Partial<Settings>) => encodeShareUrl(['1'], { ...DEFAULT_SETTINGS, ...over });
+	const dec = (hash: string) => decodeShareUrl(at(hash)).settings;
+
+	it('follows ecc, before mode, for a lax GS1 list only', () => {
+		expect(enc({ format: 'gs1128', lax: true })).toMatch(/&fmt=gs1128&lax=1$/);
+		expect(enc({ format: 'gs1qr', ecc: 'H', lax: true })).toMatch(/&fmt=gs1qr&ecc=H&lax=1$/);
+		expect(enc({ format: 'gs1128', lax: true, mode: 'step', dwellMs: 500 })).toMatch(
+			/&fmt=gs1128&lax=1&mode=step&dwell=500$/
+		);
+		expect(enc({ format: 'upc', lax: true })).not.toContain('lax=');
+		expect(enc({ format: 'gs1128', lax: false })).not.toContain('lax=');
+	});
+
+	it('decodes lax=1 for a GS1 fmt only, in either param order', () => {
+		expect(dec('#codes=1&fmt=gs1128&lax=1').lax).toBe(true);
+		expect(dec('#codes=1&lax=1&fmt=gs1128').lax).toBe(true);
+		expect('lax' in dec('#codes=1&fmt=upc&lax=1')).toBe(false);
+		expect('lax' in dec('#codes=1&fmt=gs1128&lax=0')).toBe(false);
+		expect('lax' in dec('#codes=1&fmt=gs1128&lax=yes')).toBe(false);
+		expect('lax' in dec('#codes=1&lax=1')).toBe(false);
+	});
+});
+
 describe('rows links', () => {
 	const TAIL = '&speed=60&loop=0&rot=0&rotmax=8&skew=0&skewmax=8&seed=0&fmt=upc';
 	const enc = (rows: Row[], over: Partial<Settings> = {}) =>
@@ -277,9 +301,30 @@ describe('rows links', () => {
 		['#R1=qr_x', undefined], // an uppercase key is not a record key
 		['#r1=QR_x', []], // an uppercase format tag is dropped
 		['#r1=qr_a-b_c', deck('qr_a-b_c')], // `-` and `_` in the payload survive
+		['#r1=gs1128-lax_x', deck('gs1128-lax_x')],
+		['#r1=gs1qr-lax-H_x', deck('gs1qr-H-lax_x')], // tokens in either order
+		['#r1=gs1qr-foo-H_x', deck('gs1qr-H_x')], // an unknown token beside a level
+		['#r1=gs1qr--H_x', deck('gs1qr-H_x')], // an empty token
+		['#r1=upc-lax_036000291452', deck('upc_036000291452')], // lax on a non-GS1 format
+		['#r1=gs1128-LAX_x', deck('gs1128_x')], // tokens are case-sensitive
+		['#r1=gs1128-foo_x', deck('gs1128_x')], // an unknown token alone
 		['#r1=foo_bar&r1=qr_x', []] // a repeated key keeps its first value, even if invalid
 	])('decodes the records of %s', (hash, records) => {
 		expect(recs(hash)).toEqual(records);
+	});
+
+	it('writes the lax token after the level, never the lax param, and reads the spec’s two-record link', () => {
+		const BAD = '(01)09501101530004';
+		expect(enc(deck(`gs1128-lax_${BAD}`))).toBe(`#r1=gs1128-lax_%2801%2909501101530004${TAIL}`);
+		expect(enc(deck(`gs1qr-H-lax_${BAD}`))).toBe(`#r1=gs1qr-H-lax_%2801%2909501101530004${TAIL}`);
+		expect(enc(deck(`gs1128-lax_${BAD}`), { format: 'gs1128', lax: true })).toMatch(/&fmt=gs1128$/);
+		expect(recs('#r1=gs1128-lax_%2801%2909501101530004&r2=gs1qr-H_%2801%2909501101530003')).toEqual(
+			[
+				{ payload: BAD, format: 'gs1128', ecc: '', lax: true },
+				{ payload: '(01)09501101530003', format: 'gs1qr', ecc: 'H', lax: false }
+			]
+		);
+		expect(decodeShareUrl(at('#r1=upc_1&fmt=gs1128&lax=1')).settings.lax).toBe(true); // read whatever the mode
 	});
 
 	it('leaves a list ecc at the list level, and round-trips reserved characters', () => {
