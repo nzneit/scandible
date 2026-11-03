@@ -27,15 +27,10 @@ const parentheses = (entry: CodeEntry) =>
 		? ' (parentheses inside a value are not supported)'
 		: '';
 
-/** A suffix when the lax flag is set on a carrier that checks the GTIN itself. Not for a value
- *  without brackets: the setting could not help there on any carrier. */
+/** A suffix when the lax flag is set on a carrier that checks the GTIN itself. */
 const override = (entry: CodeEntry) => {
 	const d = FORMAT_BY_ID.get(entry.format);
-	return entry.options.lax === true &&
-		d &&
-		isGs1(d) &&
-		d.gs1.gtinCheck === 'own' &&
-		parseElementString(entry.value) !== null
+	return entry.options.lax === true && d && isGs1(d) && d.gs1.gtinCheck === 'own'
 		? ' (the validation setting cannot override this)'
 		: '';
 };

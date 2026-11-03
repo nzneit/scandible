@@ -73,20 +73,22 @@ describe('verdictText for GS1 entries', () => {
 	});
 
 	it.each([
-		['gs1128', "AIs must start with '('"],
-		['databaromni', 'GS1 DataBar Omnidirectional must be 13 or 14 digits'],
-		['databartruncated', 'GS1 DataBar Truncated must be 13 or 14 digits'],
-		['databarstacked', 'GS1 DataBar Stacked must be 13 or 14 digits'],
-		['databarstackedomni', 'GS1 DataBar Stacked Omnidirectional must be 13 or 14 digits'],
-		['databarlimited', 'GS1 DataBar Limited must be 13 or 14 digits'],
-		['databarexpanded', "AIs must start with '('"],
-		['databarexpandedstacked', "AIs must start with '('"],
-		['gs1datamatrix', "AIs must start with '('"],
-		['gs1qr', "AIs must start with '('"],
-		['gs1dotcode', "AIs must start with '('"]
-	] as const)('refuses a missing bracket on %s with the carrier’s message', (id, message) => {
+		['gs1128', "AIs must start with '('", false],
+		['databaromni', 'GS1 DataBar Omnidirectional must be 13 or 14 digits', true],
+		['databartruncated', 'GS1 DataBar Truncated must be 13 or 14 digits', true],
+		['databarstacked', 'GS1 DataBar Stacked must be 13 or 14 digits', true],
+		['databarstackedomni', 'GS1 DataBar Stacked Omnidirectional must be 13 or 14 digits', true],
+		['databarlimited', 'GS1 DataBar Limited must be 13 or 14 digits', true],
+		['databarexpanded', "AIs must start with '('", false],
+		['databarexpandedstacked', "AIs must start with '('", false],
+		['gs1datamatrix', "AIs must start with '('", false],
+		['gs1qr', "AIs must start with '('", false],
+		['gs1dotcode', "AIs must start with '('", false]
+	] as const)('refuses a missing bracket on %s with the carrier’s message', (id, message, own) => {
 		expect(verdict('0109501101530003', id)).toBe(` ✗ ${message}`);
-		expect(verdict('0109501101530003', id, true)).toBe(` ✗ ${message}`);
+		expect(verdict('0109501101530003', id, true)).toBe(
+			` ✗ ${message}${own ? ' (the validation setting cannot override this)' : ''}`
+		);
 	});
 
 	it('never adds the UTF-8 clause to a GS1 row, and leaves other rows as before', () => {

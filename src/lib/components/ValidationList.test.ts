@@ -176,7 +176,11 @@ describe('ValidationList GS1 rows', () => {
 	it('classes a lax render lenient and shows the scan hint for GS1 entries', () => {
 		const c = list(`${S}\n(01)09501101530004`, true);
 		const items = [...c.querySelectorAll('.validation-list li')];
-		expect(items.map((li) => li.classList[0])).toEqual(['valid', 'lenient']);
+		expect(
+			items.map((li) =>
+				[...li.classList].filter((c) => ['valid', 'invalid', 'lenient'].includes(c))
+			)
+		).toEqual([['valid'], ['lenient']]);
 		expect(items[1].textContent).toBe(
 			'(01)09501101530004 ⚠ rendered anyway · AI 01: Bad checksum · 134 modules wide · 16 characters → ]C1 0109501101530004'
 		);
