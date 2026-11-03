@@ -62,7 +62,8 @@ Spec 1 built the seams this spec uses, and this spec uses them as built:
 
 This spec supersedes four details of spec 1's forecast. Spec 1 forecast "a tagged-record param",
 one parameter; this spec writes one numbered parameter per row (`r1`, `r2`, …), so no record
-separator exists. The decoder accepts both forms, and a link carrying both is read as records.
+separator exists. The decoder reads `codes` links and records links, and a link carrying both is
+read as records.
 Only error correction is per row; the other symbology options stay out of scope. 1D users see
 one new select, the Editor select above the textarea, and one hint line under it; nothing else
 changes for them. And in a rows link records replace `codes`, `ecc` is dropped, and `fmt` means
@@ -80,11 +81,13 @@ the format for new rows.
 - **Rejected: editing `CodeEntry` objects directly.** Entries are a derived view, and URLs must
   never read them.
 - **The switch converts both ways and asks only when it loses something.** Plain text to Per row
-  never loses a code and happens at once. Per row to Plain text happens at once when it is
+  never loses a code (a lone CR, which the textarea shows as a line break, becomes a line break:
+  see `rowsFromText`) and happens at once. Per row to Plain text happens at once when it is
   lossless; otherwise an inline note, a snapshot taken at that moment, says what would be lost
   and what every code will become, and offers Switch anyway and Cancel. Switch anyway checks
-  again and, when the loss has changed since the snapshot, refreshes the note instead of
-  switching. No browser dialog.
+  again: it switches when the list is now lossless or when the counts, the format and the level
+  it would name are the snapshot's, and otherwise refreshes the note instead of switching. No
+  browser dialog.
 - **The editor mode belongs to the link, not to playback.** `Settings` gains no field. A link with
   records opens in Per row; any other link, or none, opens in Plain text.
 - **One URL parameter per row, numbered, tag always explicit** (option A, with numbered keys).
@@ -132,6 +135,7 @@ does not change. `tokenize` lives in `codes.ts` beside `parseCodeList`. `rows.ts
 ### `src/lib/rows.ts`
 
 ```ts
+import { buildEntry, tokenize } from './codes';
 import type { FormatId } from './formats';
 import type { CodeEntry } from './types';
 
@@ -345,11 +349,14 @@ to exactly:
   `codes` **or any key matching `/^r([1-9][0-9]*)$/` with a non-empty value**; otherwise the
   legacy query string is. Without the extension a rows link would never be read from the
   fragment at all. So `?codes=1#r1=qr_x` reads the fragment, and `?r1=qr_x` and `?r1=qr_x#top`
-  read the query. A key with an empty value does not count, so a bare `#r1` anchor leaves a
-  legacy link as it is: `?codes=036000291452#r1` decodes as today.
+  read the query. A key counts by its first value, the one `params.get` returns and the record
+  would use, so a key with an empty first value does not count: a bare `#r1` anchor leaves a
+  legacy link as it is (`?codes=036000291452#r1` decodes as today), and `#r1=&r1=qr_x` has no
+  records.
 - **When records exist.** The result's `records` is defined whenever any key of the source
-  matches `/^r([1-9][0-9]*)$/` and has a non-empty value, even if every record is then dropped
-  (`records` is `[]`); `#codes=x&r1=` gives `codes: ['x']` and `records: undefined`. The
+  matches `/^r([1-9][0-9]*)$/` and whose first value is non-empty, even if every record is then
+  dropped (`records` is `[]`); `#codes=x&r1=` gives `codes: ['x']` and `records: undefined`, and
+  so does `#r1=&r1=qr_x`. The
   matching keys are taken in numeric order of their digits (`r2` before `r10`): compared by digit
   count, then lexicographically, which is exact numeric order because the pattern admits no
   leading zero. Gaps are compacted: a hand-deleted `r2` leaves rows 1 and 3 as rows 1 and 2. A
@@ -398,6 +405,9 @@ Switch note, second button      Cancel
   only; `ShareLink`; Start. The Editor field sits outside `.settings-row`, directly above the
   input area. `p.editor-hint`, under the Editor field, holds the Editor hint from the copy above,
   so a Plain text user learns what Per row offers. The textarea and `RowEditor` are rendered
+  The hint is rendered from a script constant, `EDITOR_HINT`, not written as markup text:
+  Prettier reflows markup text at 100 columns and Svelte keeps the newline and the tab, which
+  would break the exact-text test (the dense hint is a constant for the same reason).
   with `{#if editor === 'text'} … {:else} … {/if}`, so exactly one is mounted. The page binds the
   select with `bind:this={editorSelect}`, so the switch handlers can return focus to it.
 - **State.** `let editor: 'text' | 'rows' = $state(decoded.records ? 'rows' : 'text')`;
@@ -438,7 +448,8 @@ function cancelSwitch(): Promise<void>;
   `pending = c`: the note shows this snapshot.
 - **`switchAnyway()`**, the handler of Switch anyway, recomputes
   `const c = textFromRows(rows, { format, ecc })`. When `c` is lossless, or when `c.loses`,
-  `c.format` and `c.ecc` all equal `pending`'s, it calls `applyConversion(c)`. Otherwise it sets
+  `c.format` and `c.ecc` all equal `pending`'s (the three counts compared one by one), it calls
+  `applyConversion(c)`. Otherwise it sets
   `pending = c`: the note refreshes with the new counts and nothing switches, so the note never
   understates what the switch will do, and a second click applies it.
 - **`applyConversion(c)`** sets
@@ -452,10 +463,11 @@ function cancelSwitch(): Promise<void>;
   `p` with `describeLoss(pending.loses, pending)`, then `button.switch-anyway` with
   `onclick={switchAnyway}` and `button.switch-cancel` with `onclick={cancelSwitch}`, both
   `type="button"`. The note mounts with its content, so a screen reader announces it on each
-  attempt; an alert region is live and atomic by default, so the changed text is announced again
-  when Switch anyway refreshes it. The note is not live: its text is
-  the snapshot's, and edits made while it shows do not change it; Switch anyway checks them.
-  Choosing Plain text again while the note shows runs `selectEditor` again: a fresh snapshot, or
+  attempt that mounts or changes it (choosing Plain text again with unchanged rows changes nothing
+  in the DOM and announces nothing). An alert region is live and atomic by default, so a refresh
+  by Switch anyway may be announced again, depending on the screen reader (verification row 9
+  records it). The note's text does not follow the rows: it is the snapshot's, and edits made
+  while it shows do not change it; Switch anyway checks them. Choosing Plain text again while the note shows runs `selectEditor` again: a fresh snapshot, or
   the switch when it is now lossless. No state outlives the note. There is no browser dialog.
 - **No `$effect`** for any of this: function bindings and event handlers only.
 
@@ -568,6 +580,7 @@ Move down, Delete, skipping a disabled Move button.
 
 Below the list, `button.row-add`, then `p.row-hint`, always shown, holding the row hint from the
 copy above, then `p.dense-hint` holding `DENSE_HINT` when any row's entry has `facts.dense`.
+The row hint is a script constant, `ROW_HINT`, for the reason `EDITOR_HINT` is.
 Every button is `type="button"`.
 
 **Handlers.** The editor binds the `ol` and `.row-add` with `bind:this` and finds a row's control
@@ -735,6 +748,9 @@ case says otherwise, `textFromRows` takes the fallback `{ format: 'upc', ecc: ''
     `036000291452`.
   - `rowNumbers` is parallel to `rowEntries`: for [`qr_` + `' '`, `qr_a`, `qr_`, `qr_b`] (rows 1
     and 3 blank) it gives `[2, 4]`, and `[]` for no rows.
+  - Commas and newlines in 1D rows: a UPC row whose payload is `012345678905,036000291452` is
+    invalid; a Pharmacode row whose payload is `12,34` is valid with `encoded` `'12,34'` (the
+    recorded leniency); a CODE128 (auto) row whose payload is `a\nb` is valid with `value` `'a\nb'`.
   - `textFromRows`, lossless: [`qr-H_a`, `qr-H_b`] gives exactly
     `{ text: 'a\nb', format: 'qr', ecc: 'H', loses: { formats: 0, levels: 0, splits: 0 } }`: the
     chosen format and level come from the first row.
@@ -786,6 +802,7 @@ case says otherwise, `textFromRows` takes the fallback `{ format: 'upc', ecc: ''
   - A hand-edited CRLF arrives as LF: `#r1=qr_a%0D%0Ab` gives the payload `'a\nb'`.
   - `codes` is ignored beside records: `#codes=036000291452&r1=qr_x` gives `codes: []` and one
     record.
+  - A repeated key counts by its first value: `#r1=&r1=qr_x` gives `records: undefined`.
   - `r0` and `rx` are ignored: `#r0=qr_a&rx=qr_b&r01=qr_c&r1=qr_d` gives one row, `d`;
     `#r0=qr_a` alone gives `records: undefined`.
   - Only a key with a value counts: `http://localhost/?codes=036000291452#r1` gives
@@ -905,6 +922,10 @@ case says otherwise, `textFromRows` takes the fallback `{ format: 'upc', ecc: ''
     `.format-input` to `qr`, a file read mocked to `'a\nb'` leaves four rows: `036000291452` at
     `upc`, `hello` at `qr` with `.row-ecc` reading `H`, then `a` and `b`, each at `qr` with
     `.row-ecc` reading `M`.
+  - The file error in Per row: a file read mocked to fail shows `.file-error` reading
+    `Could not read file`; a later read mocked to `'c'` clears it and appends a row; after another
+    failed read, a lossless change of `.editor-input` to `text` clears it; and after a failed read
+    on row 7's link, a change to `text` and a click on `.switch-anyway` clear it.
   - The duplicate-neighbour hint names editor rows: with
     `http://localhost/#r1=qr_x&r2=qr_a&r3=qr_a&mode=step&seed=0`, an input of `''` on row 1's
     `.row-payload` leaves the rows a blank row, `qr_a` and `qr_a`, and `.dup-hint` starts with
@@ -919,7 +940,8 @@ case says otherwise, `textFromRows` takes the fallback `{ format: 'upc', ecc: ''
     the default level M make different symbols.
   - A records link whose every record is dropped bounces: `http://localhost/play#r1=foo_bar&seed=7`
     calls `goto` with `/#r1=foo_bar&seed=7` and `{ replaceState: true }`.
-  - Back carries the records with the live settings: on the same link, after an input of 120 on
+  - Back carries the records with the live settings: on the first records link,
+    `http://localhost/play#r1=upc_036000291452&r2=qr_hello&seed=7`, after an input of 120 on
     `.ctl-speed`, a click on `.ctl-back` navigates to exactly
     `/#r1=upc_036000291452&r2=qr_hello&speed=120&loop=0&rot=0&rotmax=8&skew=0&skewmax=8&seed=7&fmt=upc`,
     whose fragment starts with `#r1=`.
@@ -964,9 +986,10 @@ lines and commas between codes are not kept). Choosing Plain text again joins th
 the textarea, with the first code's format and level for the whole list. When that would lose
 something, a note says how many rows would lose their format or level, how many payloads would
 be cut at line breaks or commas, and which format every code will take, and it offers
-**Switch anyway** or **Cancel**. If the rows changed after the note appeared, the first **Switch
-anyway** updates the note instead of switching, and the next click switches. A switch that loses
-nothing happens at once.
+**Switch anyway** or **Cancel**. If a change made after the note appeared alters what would be
+lost, the first **Switch anyway** updates the note instead of switching, and the next click
+switches; if the switch now loses nothing, it switches at once. A switch that loses nothing
+happens at once.
 
 A per-row link carries one parameter per code, numbered from 1 in list order, skipping blank
 rows, and tagged with the code's format and, when it is not the default, its level:
@@ -1110,13 +1133,15 @@ they stand. "Read" for a scan means the scanner outputs exactly the payload, onc
    recorded.
 9. **Screen reader.** With NVDA and Firefox, or VoiceOver and Safari, on the local preview: on
    row 7's link, choosing Plain text announces the note, and focusing a row's payload field reads
-   that row's verdict. Pass: both are heard; the screen reader, the browser and their versions
-   are recorded.
+   that row's verdict; then changing row 2's format to UPC-A and pressing Switch anyway refreshes
+   the note, and whether the refresh is announced is recorded. Pass: the first two are heard; the
+   screen reader, the browser and their versions are recorded.
 10. **Long payload.** A QR Code row holding a vCard 3.0 (`BEGIN:VCARD` to `END:VCARD`, with FN,
     N, ORG, TITLE, two TEL, EMAIL, ADR, URL and a NOTE line padded until the row's verdict reports
-    400 to 420 bytes), played once at level H and once at level L, read by a 2D imager. Pass: for each level the record states whether the verdict
-    shows ` · dense` and whether the imager read the code, with the imager model, firmware and
-    read mode.
+    400 to 420 bytes), played once at level H and once at level L, read by a 2D imager. Pass: the
+    record holds the vCard text and, for each level, the verdict's symbol size, whether it shows
+    ` · dense` and whether the imager read the code, with the imager model, firmware and read
+    mode.
 
 ## Out of scope
 
