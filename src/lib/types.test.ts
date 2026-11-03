@@ -2,6 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { DEFAULT_SETTINGS, DWELL_RANGE, GAP_RANGE } from './types';
 
 describe('DEFAULT_SETTINGS', () => {
+	it('defaults lax to false: GS1 data that fails validation is skipped', () => {
+		expect(DEFAULT_SETTINGS.lax).toBe(false);
+	});
+
 	it('defaults to 60 px/s, loop off, rotation off, skew off', () => {
 		expect(DEFAULT_SETTINGS.speedPxPerSec).toBe(60);
 		expect(DEFAULT_SETTINGS.loop).toBe(false);

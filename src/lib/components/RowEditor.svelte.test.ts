@@ -6,13 +6,18 @@ import { DENSE_HINT } from '$lib/verdict';
 import type { FormatId } from '$lib/formats';
 import type { Row } from '$lib/rows';
 
-/** Rows in the spec's record form, `format[-level]_payload`; the payload is everything after
- *  the first `_`. */
+/** Rows in the spec's record form, `format[-level][-lax]_payload`, tokens in either order; the
+ *  payload is everything after the first `_`. */
 const deck = (...records: string[]): Row[] =>
 	records.map((record) => {
 		const tag = record.slice(0, record.indexOf('_'));
-		const [format, ecc = ''] = tag.split('-');
-		return { payload: record.slice(tag.length + 1), format: format as FormatId, ecc };
+		const [format, ...tokens] = tag.split('-');
+		return {
+			payload: record.slice(tag.length + 1),
+			format: format as FormatId,
+			ecc: tokens.find((t) => t !== 'lax') ?? '',
+			lax: tokens.includes('lax')
+		};
 	});
 const ROW_HINT =
 	'Each row is one code. Enter adds a line to the code. To enter many codes at once, use Plain text or upload a file.';

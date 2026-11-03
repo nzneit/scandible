@@ -98,7 +98,7 @@ const BAD_SVG =
 describe('render', () => {
 	it.each(IDS)('draws %s hello world as an svg, 1024 px on its longer side, with a path', (id) => {
 		const d = row(id);
-		const el = render(d, 'hello world', resolveOptions(d, { format: id, ecc: '' }));
+		const el = render(d, 'hello world', resolveOptions(d, { format: id, ecc: '', lax: false }));
 		expect(el.nodeName).toBe('svg');
 		const [w, h] = [el.getAttribute('width'), el.getAttribute('height')].map(Number);
 		expect(Math.max(w, h)).toBe(1024);
@@ -198,13 +198,13 @@ describe('ECC_OPTIONS', () => {
 describe('file snapshots', () => {
 	it.each(GS1_SIZES)('%s sample at the default level', async (id, sample) => {
 		const d = row(id);
-		const el = render(d, sample, resolveOptions(d, { format: id, ecc: '' }));
+		const el = render(d, sample, resolveOptions(d, { format: id, ecc: '', lax: false }));
 		await expect(el.outerHTML).toMatchFileSnapshot(`./__snapshots__/bwipjs.${id}.svg`);
 	});
 
 	it.each(IDS)('%s hello world at the default level', async (id) => {
 		const d = row(id);
-		const el = render(d, 'hello world', resolveOptions(d, { format: id, ecc: '' }));
+		const el = render(d, 'hello world', resolveOptions(d, { format: id, ecc: '', lax: false }));
 		await expect(el.outerHTML).toMatchFileSnapshot(`./__snapshots__/bwipjs.${id}.svg`);
 	});
 });

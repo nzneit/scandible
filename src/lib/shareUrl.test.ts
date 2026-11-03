@@ -6,13 +6,18 @@ import type { Row } from './rows';
 
 const at = (s: string) => new URL('http://localhost/' + s);
 
-/** Rows in the spec's record form, `format[-level]_payload`; the payload is everything after
- *  the first `_`. */
+/** Rows in the spec's record form, `format[-level][-lax]_payload`, tokens in either order; the
+ *  payload is everything after the first `_`. */
 const deck = (...records: string[]): Row[] =>
 	records.map((record) => {
 		const tag = record.slice(0, record.indexOf('_'));
-		const [format, ecc = ''] = tag.split('-');
-		return { payload: record.slice(tag.length + 1), format: format as FormatId, ecc };
+		const [format, ...tokens] = tag.split('-');
+		return {
+			payload: record.slice(tag.length + 1),
+			format: format as FormatId,
+			ecc: tokens.find((t) => t !== 'lax') ?? '',
+			lax: tokens.includes('lax')
+		};
 	});
 
 describe('shareUrl', () => {
@@ -27,6 +32,7 @@ describe('shareUrl', () => {
 			seed: 0,
 			format: 'upc',
 			ecc: '',
+			lax: false,
 			mode: 'scroll',
 			dwellMs: 1000,
 			gapMs: 0
@@ -72,6 +78,7 @@ describe('shareUrl', () => {
 			seed: 123456,
 			format: 'upc',
 			ecc: '',
+			lax: false,
 			mode: 'scroll',
 			dwellMs: 1000,
 			gapMs: 0
@@ -278,7 +285,7 @@ describe('rows links', () => {
 	it('leaves a list ecc at the list level, and round-trips reserved characters', () => {
 		const listEcc = decodeShareUrl(at('#r1=qr_x&fmt=qr&ecc=H'));
 		expect(listEcc.settings.ecc).toBe('H');
-		expect(listEcc.records).toEqual([{ payload: 'x', format: 'qr', ecc: '' }]);
+		expect(listEcc.records).toEqual([{ payload: 'x', format: 'qr', ecc: '', lax: false }]);
 		const roundTrip = deck('qr_a b\n#1 & 50% x_y+z');
 		expect(recs(enc(roundTrip))).toEqual(roundTrip);
 	});

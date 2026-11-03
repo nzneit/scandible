@@ -34,6 +34,7 @@ describe('createScroller', () => {
 			seed: 0,
 			format: 'upc',
 			ecc: '',
+			lax: false,
 			mode: 'scroll',
 			dwellMs: 1000,
 			gapMs: 0
@@ -55,6 +56,7 @@ describe('createScroller', () => {
 			seed: 0,
 			format: 'upc',
 			ecc: '',
+			lax: false,
 			mode: 'scroll',
 			dwellMs: 1000,
 			gapMs: 0
@@ -79,6 +81,7 @@ describe('createScroller', () => {
 			seed: 0,
 			format: 'upc',
 			ecc: '',
+			lax: false,
 			mode: 'scroll',
 			dwellMs: 1000,
 			gapMs: 0
@@ -132,6 +135,7 @@ describe('createScroller', () => {
 					seed: 0,
 					format: 'upc',
 					ecc: '',
+					lax: false,
 					mode: 'scroll',
 					dwellMs: 1000,
 					gapMs: 0
@@ -160,6 +164,7 @@ describe('createScroller', () => {
 			seed: 5,
 			format: 'upc',
 			ecc: '',
+			lax: false,
 			mode: 'scroll',
 			dwellMs: 1000,
 			gapMs: 0
@@ -184,6 +189,7 @@ describe('createScroller', () => {
 			seed: 5,
 			format: 'upc',
 			ecc: '',
+			lax: false,
 			mode: 'scroll',
 			dwellMs: 1000,
 			gapMs: 0
@@ -204,6 +210,7 @@ describe('createScroller', () => {
 			seed: 0,
 			format: 'upc',
 			ecc: '',
+			lax: false,
 			mode: 'scroll',
 			dwellMs: 1000,
 			gapMs: 0
@@ -225,6 +232,7 @@ describe('createScroller', () => {
 			seed: 5,
 			format: 'upc',
 			ecc: '',
+			lax: false,
 			mode: 'scroll',
 			dwellMs: 1000,
 			gapMs: 0

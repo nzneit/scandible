@@ -41,31 +41,47 @@ const row = (id: FormatId) => FORMAT_BY_ID.get(id)!;
 
 describe('resolveOptions: override → list → default', () => {
 	it('returns {} for formats without ecc', () => {
-		expect(resolveOptions(row('upc'), { format: 'upc', ecc: 'H' }, { ecc: 'H' })).toEqual({});
 		expect(
-			resolveOptions(row('datamatrix'), { format: 'datamatrix', ecc: 'H' }, { ecc: 'H' })
+			resolveOptions(row('upc'), { format: 'upc', ecc: 'H', lax: false }, { ecc: 'H' })
+		).toEqual({});
+		expect(
+			resolveOptions(
+				row('datamatrix'),
+				{ format: 'datamatrix', ecc: 'H', lax: false },
+				{ ecc: 'H' }
+			)
 		).toEqual({});
 	});
 
 	it('takes the first accepted layer and skips invalid ones', () => {
 		const qr = row('qr');
-		expect(resolveOptions(qr, { format: 'qr', ecc: '' })).toEqual({ ecc: 'M' });
-		expect(resolveOptions(qr, { format: 'qr', ecc: 'H' })).toEqual({ ecc: 'H' });
-		expect(resolveOptions(qr, { format: 'qr', ecc: 'H' }, { ecc: 'L' })).toEqual({ ecc: 'L' });
-		expect(resolveOptions(qr, { format: 'qr', ecc: 'H' }, { ecc: 'X' })).toEqual({ ecc: 'H' });
-		expect(resolveOptions(qr, { format: 'qr', ecc: 'Z' }, { ecc: '23' })).toEqual({ ecc: 'M' });
+		expect(resolveOptions(qr, { format: 'qr', ecc: '', lax: false })).toEqual({ ecc: 'M' });
+		expect(resolveOptions(qr, { format: 'qr', ecc: 'H', lax: false })).toEqual({ ecc: 'H' });
+		expect(resolveOptions(qr, { format: 'qr', ecc: 'H', lax: false }, { ecc: 'L' })).toEqual({
+			ecc: 'L'
+		});
+		expect(resolveOptions(qr, { format: 'qr', ecc: 'H', lax: false }, { ecc: 'X' })).toEqual({
+			ecc: 'H'
+		});
+		expect(resolveOptions(qr, { format: 'qr', ecc: 'Z', lax: false }, { ecc: '23' })).toEqual({
+			ecc: 'M'
+		});
 	});
 
 	it('never applies the list level to another format', () => {
-		expect(resolveOptions(row('aztec'), { format: 'qr', ecc: 'H' })).toEqual({ ecc: '23' });
+		expect(resolveOptions(row('aztec'), { format: 'qr', ecc: 'H', lax: false })).toEqual({
+			ecc: '23'
+		});
 		// '10' is an Aztec value, but the list format is qr, so it is not inherited.
-		expect(resolveOptions(row('aztec'), { format: 'qr', ecc: '10' })).toEqual({ ecc: '23' });
+		expect(resolveOptions(row('aztec'), { format: 'qr', ecc: '10', lax: false })).toEqual({
+			ecc: '23'
+		});
 	});
 });
 
 describe('buildEntry', () => {
 	it('keeps raw, cleans value and stamps format and options', () => {
-		expect(buildEntry('0360 00291452', 'upc', { format: 'upc', ecc: '' })).toEqual({
+		expect(buildEntry('0360 00291452', 'upc', { format: 'upc', ecc: '', lax: false })).toEqual({
 			raw: '0360 00291452',
 			value: '036000291452',
 			format: 'upc',
@@ -122,5 +138,46 @@ describe('tokenize', () => {
 		expect(tokenize(qr, 'qr')).toEqual(['a, b', 'c']);
 		expect(tokenize(upc, 'upc')).toEqual(parseCodeList(upc, 'upc').map((e) => e.raw));
 		expect(tokenize(qr, 'qr')).toEqual(parseCodeList(qr, 'qr').map((e) => e.raw));
+	});
+});
+
+describe('resolveOptions: lax', () => {
+	const list = { format: 'gs1128', ecc: '', lax: true } as const;
+
+	it('resolves lax for GS1 formats only: override, then the list format’s flag, then false', () => {
+		expect(resolveOptions(row('gs1128'), list)).toEqual({ lax: true });
+		expect(resolveOptions(row('gs1128'), list, { lax: false })).toEqual({ lax: false });
+		expect(resolveOptions(row('gs1qr'), list)).toEqual({ ecc: 'M', lax: false });
+		expect(
+			resolveOptions(row('gs1qr'), { format: 'gs1qr', ecc: 'H', lax: true }, { ecc: 'L' })
+		).toEqual({ ecc: 'L', lax: true });
+		expect(
+			resolveOptions(row('upc'), { format: 'upc', ecc: '', lax: true }, { lax: true })
+		).toEqual({});
+		expect(resolveOptions(row('qr'), { format: 'qr', ecc: '', lax: true })).toEqual({ ecc: 'M' });
+	});
+});
+
+describe('GS1 formats through parseCodeList and buildEntry', () => {
+	const S = '(01)09501101530003(17)261231(10)LOT42';
+
+	it('passes the list lax into every entry', () => {
+		for (const e of parseCodeList(`${S}\n(01)09501101530004`, 'gs1128', '', true))
+			expect(e.options).toEqual({ lax: true });
+		expect(parseCodeList(S, 'gs1128')[0].options).toEqual({ lax: false });
+	});
+
+	it('strips whitespace into value, keeps raw, and keeps a comma as data', () => {
+		expect(
+			buildEntry('(01) 0950 1101 5300 03', 'gs1128', { format: 'gs1128', ecc: '', lax: false })
+		).toMatchObject({
+			raw: '(01) 0950 1101 5300 03',
+			value: '(01)09501101530003',
+			valid: true,
+			gs1: { aim: ']C1', data: '0109501101530003' }
+		});
+		const comma = parseCodeList('(01)09501101530003(10)A,B', 'gs1128');
+		expect(comma).toHaveLength(1);
+		expect(comma[0]).toMatchObject({ valid: true, gs1: { data: '010950110153000310A,B' } });
 	});
 });

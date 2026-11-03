@@ -46,7 +46,7 @@
 
 	/** Append a blank row at the format for new rows, then focus its payload. */
 	async function add(): Promise<void> {
-		rows = [...rows, { payload: '', format: newRowFormat, ecc: '' }];
+		rows = [...rows, { payload: '', format: newRowFormat, ecc: '', lax: false }];
 		await tick();
 		controlOf(rows.length - 1, '.row-payload')?.focus();
 	}

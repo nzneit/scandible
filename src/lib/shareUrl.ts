@@ -94,7 +94,7 @@ function parseRecord(value: string): Row | null {
 	if (!isFormatId(format)) return null;
 	const token = rowToken(payload);
 	if (token === '') return null;
-	return { payload: token, format, ecc: canonicalEcc(format, level ?? '') };
+	return { payload: token, format, ecc: canonicalEcc(format, level ?? ''), lax: false };
 }
 
 /** Parse a page URL into codes or records, plus partial settings. The fragment is the source

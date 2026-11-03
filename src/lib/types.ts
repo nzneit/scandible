@@ -42,6 +42,7 @@ export interface Settings {
 	seed: number; // uint32 PRNG seed — shared by both axes; makes the arrangement reproducible
 	format: FormatId; // barcode symbology applied to the whole list
 	ecc: string; // list-level error-correction choice value for `format`; '' = the format's default
+	lax: boolean; // render GS1 data that fails validation; canonical: true only for a GS1 format
 	mode: PlaybackMode; // 'scroll' moves the column; 'step' shows one code at a time
 	dwellMs: number; // step mode: ms each code stays on screen, within DWELL_RANGE
 	gapMs: number; // step mode: ms of blank screen between codes, within GAP_RANGE; 0 = instant
@@ -58,6 +59,7 @@ export const DEFAULT_SETTINGS: Settings = {
 	seed: 0,
 	format: DEFAULT_FORMAT,
 	ecc: '',
+	lax: false,
 	mode: 'scroll',
 	dwellMs: 1000,
 	gapMs: 0

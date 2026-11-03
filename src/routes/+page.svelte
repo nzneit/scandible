@@ -13,7 +13,13 @@
 		type Row,
 		type TextConversion
 	} from '$lib/rows';
-	import { FORMAT_BY_ID, FORMAT_GROUPS, canonicalEcc, type FormatId } from '$lib/formats';
+	import {
+		FORMAT_BY_ID,
+		FORMAT_GROUPS,
+		canonicalEcc,
+		canonicalLax,
+		type FormatId
+	} from '$lib/formats';
 	import { readCodesFile } from '$lib/fileInput';
 	import { decodeShareUrl, encodeRowsShareUrl, encodeShareUrl } from '$lib/shareUrl';
 	import {
@@ -48,6 +54,7 @@
 	let skewMaxDeg = $state(initial.skewMaxDeg);
 	let format = $state(initial.format);
 	let ecc = $state(initial.ecc);
+	let lax = $state(initial.lax);
 	let mode = $state(initial.mode);
 	let dwellMs = $state(initial.dwellMs);
 	let gapMs = $state(initial.gapMs);
@@ -55,7 +62,7 @@
 	let fileError = $state('');
 
 	const entries: CodeEntry[] = $derived(
-		editor === 'rows' ? rowEntries(rows) : parseCodeList(text, format, ecc)
+		editor === 'rows' ? rowEntries(rows) : parseCodeList(text, format, ecc, lax)
 	);
 	const rawCodes: string[] = $derived(entries.map((e) => e.raw));
 	const canStart: boolean = $derived(entries.some((e) => e.valid));
@@ -74,6 +81,7 @@
 		seed,
 		format,
 		ecc,
+		lax,
 		mode,
 		dwellMs,
 		gapMs
@@ -120,6 +128,7 @@
 	// or one that is its default. Done in the binding's setter, never an $effect.
 	function selectFormat(next: FormatId): void {
 		ecc = canonicalEcc(next, ecc);
+		lax = canonicalLax(next, lax);
 		format = next;
 	}
 
@@ -131,18 +140,23 @@
 	}
 
 	function isLossless(c: TextConversion): boolean {
-		return c.loses.formats === 0 && c.loses.levels === 0 && c.loses.splits === 0;
+		return (
+			c.loses.formats === 0 &&
+			c.loses.levels === 0 &&
+			c.loses.splits === 0 &&
+			c.loses.validation === 0
+		);
 	}
 
 	function selectEditor(next: 'text' | 'rows'): void {
 		if (next === editor) return;
 		fileError = '';
 		if (next === 'rows') {
-			rows = rowsFromText(text, format, ecc);
+			rows = rowsFromText(text, format, ecc, lax);
 			editor = 'rows';
 			return;
 		}
-		const c = textFromRows(rows, { format, ecc });
+		const c = textFromRows(rows, { format, ecc, lax });
 		if (isLossless(c)) applyConversion(c);
 		else pending = c;
 	}
@@ -150,14 +164,16 @@
 	// The note shows the snapshot taken when Plain text was chosen; the rows may have changed
 	// since. Switch only when the switch now does what the note says, else refresh the note.
 	function switchAnyway(): void {
-		const c = textFromRows(rows, { format, ecc });
+		const c = textFromRows(rows, { format, ecc, lax });
 		const same =
 			pending !== null &&
 			c.loses.formats === pending.loses.formats &&
 			c.loses.levels === pending.loses.levels &&
 			c.loses.splits === pending.loses.splits &&
+			c.loses.validation === pending.loses.validation &&
 			c.format === pending.format &&
-			c.ecc === pending.ecc;
+			c.ecc === pending.ecc &&
+			c.lax === pending.lax;
 		if (isLossless(c) || same) applyConversion(c);
 		else pending = c;
 	}
@@ -168,6 +184,7 @@
 		text = c.text;
 		format = c.format;
 		ecc = c.ecc;
+		lax = c.lax;
 		editor = 'text';
 		pending = null;
 		fileError = '';
@@ -197,7 +214,7 @@
 		try {
 			const fileText = await readCodesFile(file);
 			// Per row appends, so an upload never destroys a deck already built.
-			if (editor === 'rows') rows = [...rows, ...rowsFromText(fileText, format, '')];
+			if (editor === 'rows') rows = [...rows, ...rowsFromText(fileText, format, '', false)];
 			else text = fileText;
 			fileError = '';
 		} catch {
