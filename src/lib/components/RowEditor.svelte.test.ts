@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { render, fireEvent } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import RowEditor from './RowEditor.svelte';
-import { DENSE_HINT } from '$lib/verdict';
+import { DENSE_HINT, GS1_HINT, LAX_NOTE, SCAN_HINT } from '$lib/verdict';
 import type { FormatId } from '$lib/formats';
 import type { Row } from '$lib/rows';
 
@@ -178,5 +178,87 @@ describe('RowEditor', () => {
 		expect(c.querySelector('.dense-hint')).toBeNull();
 		mount(deck('upc_036000291452', 'qr-H_hello world', 'qr_', 'qr-L_' + X2000));
 		expect(c.querySelector('.dense-hint')!.textContent).toBe(DENSE_HINT);
+	});
+
+	const S = '(01)09501101530003(17)261231(10)LOT42';
+	const BAD = '(01)09501101530004';
+	const pClasses = () => [...c.querySelectorAll('p')].map((p) => p.className);
+
+	it('shows Render if invalid for GS1 rows only, after the level select, bound to the row', async () => {
+		const rows = $state(deck('upc_036000291452', `gs1128_${S}`, `gs1qr-H_${S}`));
+		c = render(RowEditor, { props: { rows, newRowFormat: 'upc' } }).container;
+		expect(at(1, '.row-lax')).toBeNull();
+		expect(at(2, '.row-lax-input')!.checked).toBe(false);
+		expect(at(2, '.row-lax')!.textContent!.trim()).toBe('Render if invalid');
+		expect(labels('.row-lax-input')).toEqual([
+			'Render code 2 if invalid',
+			'Render code 3 if invalid'
+		]);
+		await fireEvent.click(at(2, '.row-lax-input')!);
+		expect(rows[1].lax).toBe(true);
+		expect(at(2, '.row-lax-input')!.checked).toBe(true);
+		const controls = [
+			...c.querySelectorAll('li.row')[2].querySelectorAll('textarea, select, input, button')
+		].map((el) => el.classList[0]);
+		expect(controls).toEqual([
+			'row-payload',
+			'row-format',
+			'row-ecc',
+			'row-lax-input',
+			'row-up',
+			'row-down',
+			'row-delete'
+		]);
+	});
+
+	it('clears the flag when a row leaves GS1, and Add code starts a row with it off', async () => {
+		let rows = $state(deck(`gs1128-lax_${BAD}`));
+		c = render(RowEditor, {
+			props: {
+				get rows() {
+					return rows;
+				},
+				set rows(next: Row[]) {
+					rows = next;
+				},
+				newRowFormat: 'gs1128'
+			}
+		}).container;
+		expect(at(1, '.row-lax-input')!.checked).toBe(true);
+		await change(1, '.row-format', 'upc');
+		expect(at(1, '.row-lax')).toBeNull();
+		expect(rows[0].lax).toBe(false);
+		await change(1, '.row-format', 'gs1128');
+		expect(at(1, '.row-lax-input')!.checked).toBe(false);
+		await fireEvent.click(c.querySelector('.row-add')!);
+		expect(rows[1]).toEqual({ payload: '', format: 'gs1128', ecc: '', lax: false });
+	});
+
+	it('shows the amber verdict with the lenient class for a lax row that fails lint', () => {
+		mount(deck(`gs1128-lax_${BAD}`, `gs1128_${BAD}`, `gs1128_${S}`));
+		expect(texts('.row-verdict')).toEqual([
+			' ⚠ rendered anyway · AI 01: Bad checksum · 134 modules wide · 16 characters → ]C1 0109501101530004',
+			' ✗ AI 01: Bad checksum',
+			' ✓ · 255 modules wide · 31 characters → ]C1 01095011015300031726123110LOT42'
+		]);
+		expect(
+			all('.row-verdict').map((el) =>
+				[...el.classList].filter((name) => ['valid', 'invalid', 'lenient'].includes(name))
+			)
+		).toEqual([['lenient'], ['invalid'], ['valid']]);
+	});
+
+	it('shows the GS1 hint and lax note for a GS1 row or new-row format, and the scan hint for a GS1 entry', () => {
+		mount();
+		expect(pClasses()).toEqual(['row-hint']);
+		mount(deck('upc_036000291452'), 'gs1128');
+		expect(c.querySelector('.gs1-hint')!.textContent).toBe(GS1_HINT);
+		expect(c.querySelector('.lax-note')!.textContent).toBe(LAX_NOTE);
+		expect(pClasses()).toEqual(['row-hint', 'gs1-hint', 'lax-note']);
+		mount(deck('gs1128_'), 'upc');
+		expect(pClasses()).toEqual(['row-hint', 'gs1-hint', 'lax-note']);
+		mount(deck(`gs1128_${S}`, 'qr-L_' + X2000), 'upc');
+		expect(c.querySelector('.scan-hint')!.textContent).toBe(SCAN_HINT);
+		expect(pClasses()).toEqual(['row-hint', 'gs1-hint', 'lax-note', 'scan-hint', 'dense-hint']);
 	});
 });

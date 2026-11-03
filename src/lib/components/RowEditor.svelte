@@ -1,8 +1,15 @@
 <script lang="ts">
 	import { tick } from 'svelte';
-	import { FORMAT_BY_ID, FORMAT_GROUPS, canonicalEcc, type FormatId } from '$lib/formats';
+	import {
+		FORMAT_BY_ID,
+		FORMAT_GROUPS,
+		canonicalEcc,
+		canonicalLax,
+		isGs1,
+		type FormatId
+	} from '$lib/formats';
 	import { rowEntry, type Row } from '$lib/rows';
-	import { DENSE_HINT, verdictText } from '$lib/verdict';
+	import { DENSE_HINT, GS1_HINT, LAX_NOTE, SCAN_HINT, verdictText } from '$lib/verdict';
 
 	interface RowEditorProps {
 		rows: Row[]; // bound by the page to its deep $state rows; the editor mutates and reassigns it
@@ -69,7 +76,8 @@
 			<div class="row-controls">
 				<span
 					class="row-verdict"
-					class:valid={entry?.valid === true}
+					class:valid={entry?.valid === true && entry.lint === undefined}
+					class:lenient={entry?.lint !== undefined}
 					class:invalid={entry?.valid === false}
 					id="{uid}-verdict-{i}">{entry ? verdictText(entry) : ' skipped (empty)'}</span
 				>
@@ -80,6 +88,7 @@
 						() => row.format,
 						(next) => {
 							row.ecc = canonicalEcc(next, row.ecc);
+							row.lax = canonicalLax(next, row.lax);
 							row.format = next;
 						}
 					}
@@ -104,6 +113,16 @@
 							<option value={c.value}>{c.note ? `${c.label} (${c.note})` : c.label}</option>
 						{/each}
 					</select>
+				{/if}
+				{#if isGs1(FORMAT_BY_ID.get(row.format))}
+					<label class="row-lax"
+						><input
+							type="checkbox"
+							class="row-lax-input"
+							aria-label="Render code {i + 1} if invalid"
+							bind:checked={row.lax}
+						/> Render if invalid</label
+					>
 				{/if}
 				<button
 					type="button"
@@ -131,6 +150,13 @@
 </ol>
 <button type="button" class="row-add" bind:this={addEl} onclick={add}>Add code</button>
 <p class="row-hint">{ROW_HINT}</p>
+{#if rows.some((r) => isGs1(FORMAT_BY_ID.get(r.format))) || isGs1(FORMAT_BY_ID.get(newRowFormat))}
+	<p class="gs1-hint">{GS1_HINT}</p>
+	<p class="lax-note">{LAX_NOTE}</p>
+{/if}
+{#if rows.some((r) => rowEntry(r)?.gs1)}
+	<p class="scan-hint">{SCAN_HINT}</p>
+{/if}
 {#if rows.some((r) => rowEntry(r)?.facts?.dense)}
 	<p class="dense-hint">{DENSE_HINT}</p>
 {/if}
@@ -186,5 +212,8 @@
 	}
 	.row-verdict.invalid {
 		color: #c00;
+	}
+	.row-verdict.lenient {
+		color: #9a6700;
 	}
 </style>
