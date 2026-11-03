@@ -1,17 +1,20 @@
 <script lang="ts">
 	import type { CodeEntry } from '$lib/types';
-	import { DENSE_HINT, verdictText } from '$lib/verdict';
+	import { DENSE_HINT, SCAN_HINT, verdictText } from '$lib/verdict';
 
 	let { entries }: { entries: CodeEntry[] } = $props();
 </script>
 
 <ul class="validation-list">
 	{#each entries as entry, i (i)}
-		<li class={entry.valid ? 'valid' : 'invalid'}>
+		<li class={entry.lint !== undefined ? 'lenient' : entry.valid ? 'valid' : 'invalid'}>
 			<span class="raw">{entry.raw}</span><span class="verdict">{verdictText(entry)}</span>
 		</li>
 	{/each}
 </ul>
+{#if entries.some((e) => e.gs1)}
+	<p class="scan-hint">{SCAN_HINT}</p>
+{/if}
 {#if entries.some((e) => e.facts?.dense)}
 	<p class="dense-hint">{DENSE_HINT}</p>
 {/if}
@@ -43,5 +46,8 @@
 	}
 	.validation-list .invalid {
 		color: #c00;
+	}
+	.validation-list .lenient {
+		color: #9a6700;
 	}
 </style>

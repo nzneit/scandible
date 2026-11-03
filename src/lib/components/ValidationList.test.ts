@@ -3,6 +3,8 @@ import { render } from '@testing-library/svelte';
 import ValidationList from './ValidationList.svelte';
 import type { CodeEntry, SymbolFacts } from '$lib/types';
 import type { FormatId } from '$lib/formats';
+import { parseCodeList } from '$lib/codes';
+import { SCAN_HINT } from '$lib/verdict';
 
 const entry = (raw: string, valid: boolean): CodeEntry => ({
 	raw,
@@ -89,7 +91,7 @@ const rowTexts = (entries: CodeEntry[]) =>
 	);
 const X2000 = 'x'.repeat(2000);
 const DENSE_HINT =
-	'Dense: more than 100 modules across (PDF417: 300), so each module is small on screen. If the scanner misses these, shorten the payload, lower error correction if the format offers it, or go full screen.';
+	'Dense: more than 100 modules across (PDF417 and the linear GS1 formats: 300), so each module is small on screen. If the scanner misses these, shorten the payload, lower error correction if the format offers it, or go full screen.';
 const qrHello = ok('hello world', 'qr', 'M', [11, 21, 21, '21×21 modules']);
 const qrDense = ok(X2000, 'qr', 'L', [2000, 149, 149, '149×149 modules', true]);
 
@@ -163,5 +165,29 @@ describe('ValidationList 2D rows', () => {
 			render(ValidationList, { entries }).container.querySelector('.dense-hint');
 		expect(hint([qrHello, qrDense])?.textContent).toBe(DENSE_HINT);
 		expect(hint([qrHello])).toBeNull();
+	});
+});
+
+describe('ValidationList GS1 rows', () => {
+	const S = '(01)09501101530003(17)261231(10)LOT42';
+	const list = (text: string, lax: boolean) =>
+		render(ValidationList, { entries: parseCodeList(text, 'gs1128', '', lax) }).container;
+
+	it('classes a lax render lenient and shows the scan hint for GS1 entries', () => {
+		const c = list(`${S}\n(01)09501101530004`, true);
+		const items = [...c.querySelectorAll('.validation-list li')];
+		expect(items.map((li) => li.classList[0])).toEqual(['valid', 'lenient']);
+		expect(items[1].textContent).toBe(
+			'(01)09501101530004 ⚠ rendered anyway · AI 01: Bad checksum · 134 modules wide · 16 characters → ]C1 0109501101530004'
+		);
+		expect(c.querySelector('.scan-hint')?.textContent).toBe(SCAN_HINT);
+		expect(list('(01)09501101530004', false).querySelectorAll('li.invalid').length).toBe(1);
+	});
+
+	it('shows no scan hint without a GS1 entry, invalid GS1 rows included', () => {
+		expect(
+			render(ValidationList, { entries: [qrHello] }).container.querySelector('.scan-hint')
+		).toBeNull();
+		expect(list('0109501101530003', false).querySelector('.scan-hint')).toBeNull();
 	});
 });
