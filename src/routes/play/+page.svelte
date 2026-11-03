@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
@@ -32,6 +32,7 @@
 	let stepFinish: StepSummary | null = $state(null);
 	let overlayVisible = $state(true);
 	let overlayEl: HTMLDivElement | undefined = $state();
+	let finishRestartEl: HTMLButtonElement | undefined = $state();
 	let dwell = $state(settings.dwellMs);
 	let gap = $state(settings.gapMs);
 	let position = $state({ index: 0, count });
@@ -154,11 +155,20 @@
 				onFinish={(s) => {
 					stepFinish = s;
 					playing = false;
+					tick().then(() => finishRestartEl?.focus());
 				}}
 				onIndex={(index, count) => (position = { index, count })}
 			/>
 		{:else}
-			<ScrollColumn bind:this={scroll} {entries} {settings} onFinish={(s) => (finish = s)} />
+			<ScrollColumn
+				bind:this={scroll}
+				{entries}
+				{settings}
+				onFinish={(s) => {
+					finish = s;
+					tick().then(() => finishRestartEl?.focus());
+				}}
+			/>
 		{/if}
 		{#if settings.mode === 'step'}
 			<p class="readout" aria-hidden="true">
@@ -252,7 +262,9 @@
 		{#if finishText !== null}
 			<div class="finish-screen">
 				<p class="finish-text">{finishText}</p>
-				<button type="button" class="finish-restart" onclick={restart}>Restart</button>
+				<button type="button" class="finish-restart" bind:this={finishRestartEl} onclick={restart}
+					>Restart</button
+				>
 				<button type="button" class="finish-back" onclick={back}>Back</button>
 			</div>
 		{/if}

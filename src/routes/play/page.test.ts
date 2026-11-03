@@ -242,7 +242,9 @@ describe('play page: step mode', () => {
 		};
 		await settle();
 		expect(q(c, '.overlay').classList.contains('hidden')).toBe(false);
-		await click('.ctl-playpause'); // a mouse click holds nothing open
+		// fireEvent.click moves no focus in jsdom, and nwsapi's :focus-visible is :focus; this pins
+		// "playing, nothing focused, so it hides". The mouse case is verification row 6d.
+		await click('.ctl-playpause');
 		await settle();
 		expect(q(c, '.overlay').classList.contains('hidden')).toBe(true);
 		await fireEvent.pointerMove(window);
@@ -341,6 +343,28 @@ describe('play page: step mode', () => {
 		await click('.ctl-next');
 		await click('.ctl-next');
 		expect(txt('.finish-text')).toContain('dwell changed from 0.50 s to 0.30 s');
+	});
+
+	it('shows Play and a paused readout behind the finish screen when the run ends while playing', async () => {
+		open();
+		await click('.ctl-playpause');
+		// The 0 frame counts nothing; then twenty 100 ms intervals: the swap at 1000, the finish at 2000.
+		for (let ts = 0; ts <= 2000; ts += 100) frames.shift()?.(ts);
+		await tick();
+		expect(txt('.finish-text')).toBe(
+			'Finished stepping 2 barcodes in 2.00 seconds at 1.00 s dwell. Display about 10 Hz.'
+		);
+		expect(txt('.ctl-playpause')).toBe('Play');
+		expect(txt('.readout')).toMatch(/ · paused$/);
+	});
+
+	it("moves focus to the finish screen's Restart when a run finishes", async () => {
+		open();
+		q<HTMLButtonElement>(c, '.ctl-next').focus();
+		await click('.ctl-next');
+		await click('.ctl-next');
+		await tick();
+		expect(document.activeElement).toBe(q(c, '.finish-restart'));
 	});
 
 	it("returns to code 1 on Restart, and the finish screen's Restart lands paused", async () => {

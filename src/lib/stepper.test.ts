@@ -458,3 +458,70 @@ describe('createStepper', () => {
 		expect(onFinish).toHaveBeenCalledTimes(0);
 	});
 });
+
+describe('createStepper frame requests', () => {
+	// A counting fake: every request is kept, so a doubled request shows as two pending callbacks.
+	let pending: FrameRequestCallback[];
+	const caf = vi.fn();
+	beforeEach(() => {
+		pending = [];
+		caf.mockClear();
+		globalThis.requestAnimationFrame = (cb: FrameRequestCallback) => pending.push(cb); // index + 1
+		globalThis.cancelAnimationFrame = caf;
+	});
+	afterEach(() => {
+		globalThis.requestAnimationFrame = realRaf;
+		globalThis.cancelAnimationFrame = realCaf;
+	});
+	/** Run the oldest pending callback at each `ts`, one per tick. */
+	const run = (...ts: number[]) => ts.forEach((t) => pending.shift()?.(t));
+
+	it('requests one frame for play() called twice and none while paused', () => {
+		const { s } = make();
+		expect(pending).toHaveLength(0);
+		s.play();
+		s.play();
+		expect(pending).toHaveLength(1);
+		s.pause();
+		expect(caf).toHaveBeenCalledTimes(1);
+		expect(caf).toHaveBeenCalledWith(1);
+		run(0); // a frame that fires after pause() requests nothing
+		expect(pending).toHaveLength(0);
+	});
+
+	it('toggle() flips isPlaying()', () => {
+		const { s } = make();
+		s.toggle();
+		expect(s.isPlaying()).toBe(true);
+		expect(pending).toHaveLength(1);
+		s.toggle();
+		expect(s.isPlaying()).toBe(false);
+		expect(caf).toHaveBeenLastCalledWith(1);
+	});
+
+	it('requests exactly one next frame when an onIndex handler pauses and plays during a frame', () => {
+		const { s, onIndex } = make({ dwellMs: 50 });
+		onIndex.mockImplementation((index) => {
+			if (index !== 1) return;
+			s.pause();
+			s.play();
+		});
+		s.play();
+		run(0, 16, 32, 48, 64);
+		expect(onIndex).toHaveBeenLastCalledWith(1, 2);
+		expect(pending).toHaveLength(1);
+		expect(s.isPlaying()).toBe(true);
+	});
+
+	it('requests no frame when an onIndex handler pauses during a frame', () => {
+		const { s, onIndex } = make({ dwellMs: 50 });
+		onIndex.mockImplementation((index) => {
+			if (index === 1) s.pause();
+		});
+		s.play();
+		run(0, 16, 32, 48, 64);
+		expect(onIndex).toHaveBeenLastCalledWith(1, 2);
+		expect(pending).toHaveLength(0);
+		expect(s.isPlaying()).toBe(false);
+	});
+});

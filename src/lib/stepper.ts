@@ -82,6 +82,7 @@ export function createStepper(
 	};
 	const frame = (ts: number) => {
 		if (!playing) return;
+		rafId = null;
 		// The first frame after play() or a go-to has no previous timestamp: it counts no time and
 		// is not an interval, so it counts toward neither frameCount nor stalls.
 		let deltaMs = 0;
@@ -107,7 +108,7 @@ export function createStepper(
 		}
 		if (state.index !== before.index || state.phase !== before.phase) show();
 		if (state.index !== before.index) onIndex?.(state.index, count);
-		rafId = requestAnimationFrame(frame);
+		if (playing && rafId === null) rafId = requestAnimationFrame(frame);
 	};
 	const start = () => {
 		if (playing || finished) return;
