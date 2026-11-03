@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, fireEvent } from '@testing-library/svelte';
+import { tick } from 'svelte';
 import SetupPage from './+page.svelte';
 import { readCodesFile } from '$lib/fileInput';
 import { encodeShareUrl } from '$lib/shareUrl';
@@ -502,5 +503,297 @@ describe('setup page: step playback', () => {
 		expect(v('.mode-input')).toBe('step');
 		expect(v('.dwell-input')).toBe('500');
 		expect(v('.dwell-seconds')).toBe('0.50');
+	});
+});
+
+describe('setup page: per-row editor', () => {
+	const DECK = 'http://localhost/#r1=upc_036000291452&r2=qr-H_hello&seed=0';
+	const MIXED =
+		'http://localhost/#r1=upc_036000291452&r2=qr-H_hello&r3=datamatrix_line+1%0Aline+2&seed=0';
+	const EMPTY = '#codes=&speed=60&loop=0&rot=0&rotmax=8&skew=0&skewmax=8&seed=0&fmt=upc';
+	const LIMIT =
+		'Plain text keeps one format and one error-correction level for the whole list, and one code per line.';
+	let c: HTMLElement;
+	const open = (url = 'http://localhost/?codes=036000291452&seed=0') => {
+		mockPage.url = new URL(url);
+		c = render(SetupPage).container;
+	};
+	const has = (sel: string) => c.querySelector(sel) !== null;
+	const v = (sel: string) => q<HTMLInputElement>(c, sel).value;
+	const at = (k: number, sel: string) =>
+		c.querySelectorAll('li.row')[k - 1].querySelector(sel) as HTMLInputElement;
+	const values = (sel: string) =>
+		[...c.querySelectorAll<HTMLInputElement>(sel)].map((el) => el.value);
+	const rowCount = () => c.querySelectorAll('li.row').length;
+	const set = (el: Element, value: string) => fireEvent.change(el, { target: { value } });
+	const editor = (value: string) => set(q(c, '.editor-input'), value);
+	const note = () => q(c, '.switch-note p').textContent;
+	/** The Format field's label: its first text node, trimmed. */
+	const formatLabel = () => q(c, '.format-input').parentElement!.firstChild!.textContent!.trim();
+	const start = async () => {
+		await fireEvent.click(q(c, '.start'));
+		return goto.mock.calls.at(-1)?.[0];
+	};
+	/** Mock one readCodesFile call to resolve to `text`, or reject when it is null, then pick a
+	 *  file in .file-input. */
+	const upload = async (text: string | null) => {
+		if (text === null) vi.mocked(readCodesFile).mockRejectedValueOnce(new Error('boom'));
+		else vi.mocked(readCodesFile).mockResolvedValueOnce(text);
+		const fileInput = q<HTMLInputElement>(c, '.file-input');
+		const file = new File(['x'], 'codes.txt', { type: 'text/plain' });
+		Object.defineProperty(fileInput, 'files', { value: [file], configurable: true });
+		await fireEvent.change(fileInput);
+	};
+	const share = () => v('.share-url');
+	const lossy = async () => {
+		open(MIXED);
+		await editor('text');
+	};
+
+	it('opens in Plain text by default', () => {
+		open();
+		expect(v('.editor-input')).toBe('text');
+		expect(has('.code-input')).toBe(true);
+		expect(has('.row-editor')).toBe(false);
+	});
+
+	it('opens a records link in Per row with its rows', () => {
+		open(DECK);
+		expect(v('.editor-input')).toBe('rows');
+		expect(has('.code-input')).toBe(false);
+		expect(has('.validation-list')).toBe(false);
+		expect(values('.row-payload')).toEqual(['036000291452', 'hello']);
+		expect(values('.row-format')).toEqual(['upc', 'qr']);
+		expect(at(2, '.row-ecc').value).toBe('H');
+	});
+
+	it('shows the Editor hint in Plain text only', async () => {
+		open();
+		expect(q(c, '.editor-hint').textContent).toBe(
+			'Per row gives each code its own format and error-correction level, and lets a code span several lines.'
+		);
+		await editor('rows');
+		expect(has('.editor-hint')).toBe(false);
+	});
+
+	it('turns the list into one row per code at the list format', async () => {
+		open('http://localhost/#codes=036000291452%2C012345678905&seed=0');
+		await editor('rows');
+		expect(values('.row-payload')).toEqual(['036000291452', '012345678905']);
+		expect(values('.row-format')).toEqual(['upc', 'upc']);
+	});
+
+	it('copies the list level into the rows and swaps the list controls', async () => {
+		open('http://localhost/#codes=hello%0Aworld&seed=0&fmt=qr&ecc=H');
+		expect(formatLabel()).toBe('Format');
+		await editor('rows');
+		expect(values('.row-format')).toEqual(['qr', 'qr']);
+		expect(at(1, '.row-ecc').value).toBe('H');
+		expect(at(2, '.row-ecc').value).toBe('H');
+		expect(has('.ecc-input')).toBe(false);
+		expect(formatLabel()).toBe('Format for new rows');
+	});
+
+	it('switches back at once when nothing is lost', async () => {
+		open('http://localhost/#codes=hello%0Aworld&seed=0&fmt=qr&ecc=H');
+		await editor('rows');
+		await editor('text');
+		expect(v('.code-input')).toBe('hello\nworld');
+		expect(v('.format-input')).toBe('qr');
+		expect(v('.ecc-input')).toBe('H');
+		expect(v('.editor-input')).toBe('text');
+		expect(has('.switch-note')).toBe(false);
+	});
+
+	it('opens an empty codes= link in Plain text with its settings', () => {
+		open('http://localhost/#codes=&speed=120&seed=0&fmt=qr');
+		expect(v('.editor-input')).toBe('text');
+		expect(v('.code-input')).toBe('');
+		expect(v('.format-input')).toBe('qr');
+		expect(v('.speed-input')).toBe('120');
+	});
+
+	it('shows the loss note on a lossy switch and stays in Per row', async () => {
+		await lossy();
+		expect(q(c, '.switch-note').getAttribute('role')).toBe('alert');
+		expect(note()).toBe(
+			`${LIMIT} Switching now drops the format of 2 rows and cuts 1 payload at line breaks or commas. Every code will take the format of the first code, UPC-A.`
+		);
+		expect(v('.editor-input')).toBe('rows');
+		expect(rowCount()).toBe(3);
+	});
+
+	it('keeps the note as a snapshot, and Switch anyway applies a list now lossless', async () => {
+		await lossy();
+		const before = note();
+		await fireEvent.click(at(3, '.row-delete'));
+		await fireEvent.click(at(2, '.row-delete'));
+		expect(note()).toBe(before);
+		await fireEvent.click(q(c, '.switch-anyway'));
+		expect(v('.code-input')).toBe('036000291452');
+		expect(v('.editor-input')).toBe('text');
+	});
+
+	it('refreshes a stale note on Switch anyway, and switches on the second click', async () => {
+		await lossy();
+		const before = note();
+		await set(at(2, '.row-format'), 'upc');
+		expect(note()).toBe(before);
+		await fireEvent.click(q(c, '.switch-anyway'));
+		expect(note()).toBe(
+			`${LIMIT} Switching now drops the format of 1 row and cuts 1 payload at line breaks or commas. Every code will take the format of the first code, UPC-A.`
+		);
+		expect(v('.editor-input')).toBe('rows');
+		expect(rowCount()).toBe(3);
+		await fireEvent.click(q(c, '.switch-anyway'));
+		expect(v('.editor-input')).toBe('text');
+	});
+
+	it('takes a fresh snapshot when Plain text is chosen again', async () => {
+		await lossy();
+		await fireEvent.click(at(3, '.row-delete'));
+		await editor('text');
+		expect(note()).toBe(
+			`${LIMIT} Switching now drops the format of 1 row. Every code will take the format of the first code, UPC-A.`
+		);
+	});
+
+	it("applies the first code's format on Switch anyway and returns focus to the Editor select", async () => {
+		await lossy();
+		await fireEvent.click(q(c, '.switch-anyway'));
+		expect(v('.code-input')).toBe('036000291452\nhello\nline 1\nline 2');
+		expect(v('.format-input')).toBe('upc');
+		expect(v('.editor-input')).toBe('text');
+		expect(has('.switch-note')).toBe(false);
+		expect(c.querySelectorAll('.validation-list li').length).toBe(4);
+		await tick();
+		expect(document.activeElement).toBe(q(c, '.editor-input'));
+	});
+
+	it('closes the note on Cancel, keeping the rows and returning focus', async () => {
+		await lossy();
+		await fireEvent.click(q(c, '.switch-cancel'));
+		expect(has('.switch-note')).toBe(false);
+		expect(v('.editor-input')).toBe('rows');
+		expect(rowCount()).toBe(3);
+		await tick();
+		expect(document.activeElement).toBe(q(c, '.editor-input'));
+	});
+
+	it("carries records in the share link and Start, storing a default level as ''", async () => {
+		open(DECK);
+		expect(share()).toContain('#r1=upc_036000291452&r2=qr-H_hello&speed=60');
+		expect(share()).not.toContain('codes=');
+		expect(await start()).toBe(
+			'/play#r1=upc_036000291452&r2=qr-H_hello&speed=60&loop=0&rot=0&rotmax=8&skew=0&skewmax=8&seed=0&fmt=upc'
+		);
+		await set(at(2, '.row-ecc'), 'M');
+		expect(share()).toContain('r2=qr_hello&');
+	});
+
+	it('gives Add code the Format for new rows', async () => {
+		open(DECK);
+		await set(q(c, '.format-input'), 'datamatrix');
+		await fireEvent.click(q(c, '.row-add'));
+		expect(at(3, '.row-format').value).toBe('datamatrix');
+	});
+
+	it('appends an uploaded file as rows in Per row', async () => {
+		open(DECK);
+		await set(q(c, '.format-input'), 'qr');
+		await upload('a\nb');
+		await vi.waitFor(() => {
+			expect(rowCount()).toBe(4);
+			expect(values('.row-payload')).toEqual(['036000291452', 'hello', 'a', 'b']);
+			expect(values('.row-format')).toEqual(['upc', 'qr', 'qr', 'qr']);
+			expect(at(2, '.row-ecc').value).toBe('H');
+			expect(at(3, '.row-ecc').value).toBe('M');
+			expect(at(4, '.row-ecc').value).toBe('M');
+		});
+	});
+
+	it('appends a CRLF file as rows with no CR left', async () => {
+		open(DECK);
+		await upload('a\r\nb\r\n');
+		await vi.waitFor(() => {
+			expect(rowCount()).toBe(4);
+			expect(values('.row-payload')).toEqual(['036000291452', 'hello', 'a', 'b']);
+		});
+	});
+
+	it('clears the file error in Per row on a good read or a switch', async () => {
+		open('http://localhost/#r1=upc_036000291452&seed=0');
+		await upload(null);
+		await vi.waitFor(() => {
+			expect(q<HTMLElement>(c, '.file-error').hidden).toBe(false);
+			expect(q(c, '.file-error').textContent).toBe('Could not read file');
+		});
+		await upload('c');
+		await vi.waitFor(() => {
+			expect(rowCount()).toBe(2);
+			expect(q<HTMLElement>(c, '.file-error').hidden).toBe(true);
+		});
+		await upload(null);
+		await vi.waitFor(() => expect(q<HTMLElement>(c, '.file-error').hidden).toBe(false));
+		await editor('text');
+		expect(v('.editor-input')).toBe('text');
+		expect(q<HTMLElement>(c, '.file-error').hidden).toBe(true);
+		open(MIXED);
+		await upload(null);
+		await vi.waitFor(() => expect(q<HTMLElement>(c, '.file-error').hidden).toBe(false));
+		await editor('text');
+		await fireEvent.click(q(c, '.switch-anyway'));
+		expect(q<HTMLElement>(c, '.file-error').hidden).toBe(true);
+	});
+
+	it('names editor rows in the duplicate hint', async () => {
+		open('http://localhost/#r1=qr_x&r2=qr_a&r3=qr_a&mode=step&seed=0');
+		await fireEvent.input(at(1, '.row-payload'), { target: { value: '' } });
+		expect(q(c, '.dup-hint').textContent).toMatch(/^Codes 2 and 3 are identical/);
+	});
+
+	it('switches an empty list to no rows, and a blank row changes neither Start nor the link', async () => {
+		open('http://localhost/#codes=&seed=0');
+		await editor('rows');
+		expect(rowCount()).toBe(0);
+		expect(q<HTMLButtonElement>(c, '.start').disabled).toBe(true);
+		expect(share().endsWith(EMPTY)).toBe(true);
+		await fireEvent.click(q(c, '.row-add'));
+		expect(rowCount()).toBe(1);
+		expect(q<HTMLButtonElement>(c, '.start').disabled).toBe(true);
+		expect(share().endsWith(EMPTY)).toBe(true);
+	});
+
+	it("keeps each record's format on a link without fmt, and Start writes fmt=upc", async () => {
+		open('http://localhost/#r1=qr_x&r2=datamatrix_y&seed=0');
+		expect(values('.row-format')).toEqual(['qr', 'datamatrix']);
+		expect(v('.format-input')).toBe('upc');
+		expect(formatLabel()).toBe('Format for new rows');
+		expect(await start()).toBe(
+			'/play#r1=qr_x&r2=datamatrix_y&speed=60&loop=0&rot=0&rotmax=8&skew=0&skewmax=8&seed=0&fmt=upc'
+		);
+	});
+
+	it('writes no record for a blank new row, and its record once typed', async () => {
+		open(DECK);
+		await set(q(c, '.format-input'), 'qr');
+		const before = share();
+		await fireEvent.click(q(c, '.row-add'));
+		expect(at(3, '.row-ecc').value).toBe('M');
+		expect(share()).toBe(before);
+		await fireEvent.input(at(3, '.row-payload'), { target: { value: 'x' } });
+		expect(share()).toContain('&r2=qr-H_hello&r3=qr_x&speed=60&');
+		expect(share().endsWith('&fmt=qr')).toBe(true);
+	});
+
+	it('empties the deck on the last Delete, focusing Add code', async () => {
+		open(DECK);
+		await fireEvent.click(at(1, '.row-delete'));
+		await fireEvent.click(at(1, '.row-delete'));
+		await tick();
+		expect(document.activeElement).toBe(q(c, '.row-add'));
+		expect(rowCount()).toBe(0);
+		expect(q<HTMLButtonElement>(c, '.start').disabled).toBe(true);
+		expect(share().endsWith(EMPTY)).toBe(true);
 	});
 });
