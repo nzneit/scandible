@@ -1,37 +1,14 @@
 <script lang="ts">
 	import type { CodeEntry } from '$lib/types';
-	import { FORMAT_BY_ID, eccChoice } from '$lib/formats';
+	import { DENSE_HINT, verdictText } from '$lib/verdict';
 
 	let { entries }: { entries: CodeEntry[] } = $props();
-
-	const DENSE_HINT =
-		'Dense: more than 100 modules across (PDF417: 300), so each module is small on screen. If the scanner misses these, shorten the payload, lower error correction if the format offers it, or go full screen.';
-
-	const labelOf = (entry: CodeEntry) => FORMAT_BY_ID.get(entry.format)?.label;
-	const levelOf = (entry: CodeEntry) => {
-		const d = FORMAT_BY_ID.get(entry.format);
-		return d && eccChoice(d, entry.options.ecc);
-	};
-
-	// Single expression per row so exact-textContent tests stay byte-stable.
-	const verdict = (entry: CodeEntry): string =>
-		entry.valid
-			? entry.facts
-				? ` ✓ · ${entry.facts.summary} · ${entry.facts.bytes === 1 ? '1 byte' : `${entry.facts.bytes} bytes`}${entry.facts.bytes !== entry.value.length ? ' · UTF-8, no ECI' : ''}${entry.facts.dense ? ' · dense' : ''}`
-				: entry.encoded !== undefined && entry.encoded !== entry.value
-					? ` ✓ → ${entry.encoded}`
-					: ' ✓'
-			: entry.reason === 'too-long'
-				? levelOf(entry)
-					? ` ✗ too long for ${labelOf(entry)} (${levelOf(entry)?.label})`
-					: ` ✗ too long for ${labelOf(entry)}`
-				: ' ✗ invalid';
 </script>
 
 <ul class="validation-list">
 	{#each entries as entry, i (i)}
 		<li class={entry.valid ? 'valid' : 'invalid'}>
-			<span class="raw">{entry.raw}</span><span class="verdict">{verdict(entry)}</span>
+			<span class="raw">{entry.raw}</span><span class="verdict">{verdictText(entry)}</span>
 		</li>
 	{/each}
 </ul>

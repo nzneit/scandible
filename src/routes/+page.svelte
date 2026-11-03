@@ -1,12 +1,21 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { parseCodeList } from '$lib/codes';
-	import { FORMAT_BY_ID, FORMAT_GROUPS, isEccChoice, type FormatId } from '$lib/formats';
+	import {
+		describeLoss,
+		rowEntries,
+		rowNumbers,
+		rowsFromText,
+		textFromRows,
+		type Row,
+		type TextConversion
+	} from '$lib/rows';
+	import { FORMAT_BY_ID, FORMAT_GROUPS, canonicalEcc, type FormatId } from '$lib/formats';
 	import { readCodesFile } from '$lib/fileInput';
-	import { decodeShareUrl, encodeShareUrl } from '$lib/shareUrl';
+	import { decodeShareUrl, encodeRowsShareUrl, encodeShareUrl } from '$lib/shareUrl';
 	import {
 		DEFAULT_SETTINGS,
 		DWELL_RANGE,
@@ -17,6 +26,7 @@
 	import { formatSeconds, parseSeconds } from '$lib/seconds';
 	import { duplicateNeighbours } from '$lib/duplicates';
 	import ValidationList from '$lib/components/ValidationList.svelte';
+	import RowEditor from '$lib/components/RowEditor.svelte';
 	import ShareLink from '$lib/components/ShareLink.svelte';
 
 	const decoded = decodeShareUrl(page.url);
@@ -24,6 +34,12 @@
 	const seed = decoded.settings.seed ?? Math.floor(Math.random() * 0x100000000) >>> 0;
 
 	let text = $state(decoded.codes.join('\n'));
+	let editor: 'text' | 'rows' = $state(decoded.records ? 'rows' : 'text');
+	let rows: Row[] = $state(decoded.records ?? []);
+	let pending: TextConversion | null = $state(null);
+	let editorSelect: HTMLSelectElement | undefined = $state();
+	const EDITOR_HINT =
+		'Per row gives each code its own format and error-correction level, and lets a code span several lines.';
 	let speedPxPerSec = $state(initial.speedPxPerSec);
 	let loop = $state(initial.loop);
 	let rotate = $state(initial.rotate);
@@ -38,7 +54,9 @@
 	const descriptor = $derived(FORMAT_BY_ID.get(format));
 	let fileError = $state('');
 
-	const entries: CodeEntry[] = $derived(parseCodeList(text, format, ecc));
+	const entries: CodeEntry[] = $derived(
+		editor === 'rows' ? rowEntries(rows) : parseCodeList(text, format, ecc)
+	);
 	const rawCodes: string[] = $derived(entries.map((e) => e.raw));
 	const canStart: boolean = $derived(entries.some((e) => e.valid));
 	const placeholder: string = $derived(
@@ -60,7 +78,9 @@
 		dwellMs,
 		gapMs
 	});
-	const shareHash = $derived(encodeShareUrl(rawCodes, settings));
+	const shareHash = $derived(
+		editor === 'rows' ? encodeRowsShareUrl(rows, settings) : encodeShareUrl(rawCodes, settings)
+	);
 
 	function onDwellSeconds(e: Event & { currentTarget: HTMLInputElement }): void {
 		const ms = parseSeconds(e.currentTarget.value, DWELL_RANGE);
@@ -81,11 +101,17 @@
 	const dupHint = $derived.by(() => {
 		if (dupPairs.length === 0) return '';
 		const [a, b] = dupPairs[0];
+		// In Per row the pair names the editor's rows, whose numbers count blank and invalid rows.
+		let [first, second] = [a + 1, b + 1];
+		if (editor === 'rows') {
+			const valid = rowNumbers(rows).filter((_, k) => entries[k].valid);
+			[first, second] = [valid[a], valid[b]];
+		}
 		const extra = dupPairs.length - 1;
 		const more =
 			extra === 0 ? '' : `, and ${extra} more neighboring ${extra === 1 ? 'pair' : 'pairs'}`;
 		return (
-			`Codes ${a + 1} and ${b + 1} are identical${more}. Many scanners skip a repeat read: ` +
+			`Codes ${first} and ${second} are identical${more}. Many scanners skip a repeat read: ` +
 			`set a gap of 1.00 s or more, or lower the scanner's reread delay.`
 		);
 	});
@@ -93,15 +119,66 @@
 	// Keep `ecc` canonical across a format switch: drop a level the next format does not offer,
 	// or one that is its default. Done in the binding's setter, never an $effect.
 	function selectFormat(next: FormatId): void {
-		const nextDescriptor = FORMAT_BY_ID.get(next);
-		if (
-			!nextDescriptor ||
-			!isEccChoice(nextDescriptor, ecc) ||
-			ecc === nextDescriptor.ecc?.defaultValue
-		) {
-			ecc = '';
-		}
+		ecc = canonicalEcc(next, ecc);
 		format = next;
+	}
+
+	// The select is not bound: after a lossy attempt `editor` is still 'rows', and only this write
+	// snaps the select back to Per row.
+	function onEditorChange(e: Event & { currentTarget: HTMLSelectElement }): void {
+		selectEditor(e.currentTarget.value as 'text' | 'rows');
+		e.currentTarget.value = editor;
+	}
+
+	function isLossless(c: TextConversion): boolean {
+		return c.loses.formats === 0 && c.loses.levels === 0 && c.loses.splits === 0;
+	}
+
+	function selectEditor(next: 'text' | 'rows'): void {
+		if (next === editor) return;
+		fileError = '';
+		if (next === 'rows') {
+			rows = rowsFromText(text, format, ecc);
+			editor = 'rows';
+			return;
+		}
+		const c = textFromRows(rows, { format, ecc });
+		if (isLossless(c)) applyConversion(c);
+		else pending = c;
+	}
+
+	// The note shows the snapshot taken when Plain text was chosen; the rows may have changed
+	// since. Switch only when the switch now does what the note says, else refresh the note.
+	function switchAnyway(): void {
+		const c = textFromRows(rows, { format, ecc });
+		const same =
+			pending !== null &&
+			c.loses.formats === pending.loses.formats &&
+			c.loses.levels === pending.loses.levels &&
+			c.loses.splits === pending.loses.splits &&
+			c.format === pending.format &&
+			c.ecc === pending.ecc;
+		if (isLossless(c) || same) applyConversion(c);
+		else pending = c;
+	}
+
+	// `c.ecc` is already canonical for `c.format`, so `format` is set directly, not through
+	// selectFormat. Focus returns to the select, so it does not fall to body when the note unmounts.
+	async function applyConversion(c: TextConversion): Promise<void> {
+		text = c.text;
+		format = c.format;
+		ecc = c.ecc;
+		editor = 'text';
+		pending = null;
+		fileError = '';
+		await tick();
+		editorSelect?.focus();
+	}
+
+	async function cancelSwitch(): Promise<void> {
+		pending = null;
+		await tick();
+		editorSelect?.focus();
 	}
 
 	// A pasted share link or an edited fragment on the same path is a same-document navigation,
@@ -118,11 +195,16 @@
 		const file = input.files?.[0];
 		if (!file) return;
 		try {
-			text = await readCodesFile(file);
+			const fileText = await readCodesFile(file);
+			// Per row appends, so an upload never destroys a deck already built.
+			if (editor === 'rows') rows = [...rows, ...rowsFromText(fileText, format, '')];
+			else text = fileText;
 			fileError = '';
 		} catch {
 			// Inline error only; the existing validation list is left untouched.
 			fileError = 'Could not read file';
+		} finally {
+			input.value = '';
 		}
 	}
 
@@ -134,17 +216,38 @@
 
 <div class="setup">
 	<h1>scandible</h1>
-	<textarea
-		class="code-input"
-		rows="8"
-		{placeholder}
-		bind:value={text}
-		oninput={() => (fileError = '')}></textarea>
+	<label class="field"
+		>Editor
+		<select class="editor-input" bind:this={editorSelect} value={editor} onchange={onEditorChange}>
+			<option value="text">Plain text</option>
+			<option value="rows">Per row</option>
+		</select>
+	</label>
+	{#if editor === 'text'}
+		<p class="editor-hint">{EDITOR_HINT}</p>
+	{/if}
+	{#if pending}
+		<div class="switch-note" role="alert">
+			<p>{describeLoss(pending.loses, pending)}</p>
+			<button type="button" class="switch-anyway" onclick={switchAnyway}>Switch anyway</button>
+			<button type="button" class="switch-cancel" onclick={cancelSwitch}>Cancel</button>
+		</div>
+	{/if}
+	{#if editor === 'text'}
+		<textarea
+			class="code-input"
+			rows="8"
+			{placeholder}
+			bind:value={text}
+			oninput={() => (fileError = '')}></textarea>
+	{:else}
+		<RowEditor bind:rows newRowFormat={format} />
+	{/if}
 	<input type="file" class="file-input" accept=".txt,.csv" onchange={onFileChange} />
 	<p class="file-error" hidden={!fileError}>{fileError}</p>
 	<div class="settings-row">
 		<label class="field"
-			>Format
+			>{editor === 'rows' ? 'Format for new rows' : 'Format'}
 			<select class="format-input" bind:value={() => format, (v) => selectFormat(v)}>
 				{#each FORMAT_GROUPS as { group, formats } (group)}
 					<optgroup label={group}>
@@ -155,7 +258,7 @@
 				{/each}
 			</select>
 		</label>
-		{#if descriptor?.ecc}
+		{#if editor === 'text' && descriptor?.ecc}
 			{@const opt = descriptor.ecc}
 			<label class="field ecc-field"
 				>Error correction
@@ -282,7 +385,9 @@
 			/>
 		</label>
 	</div>
-	<ValidationList {entries} />
+	{#if editor === 'text'}
+		<ValidationList {entries} />
+	{/if}
 	<ShareLink hash={shareHash} />
 	<button type="button" class="start" disabled={!canStart} onclick={start}>Start</button>
 </div>

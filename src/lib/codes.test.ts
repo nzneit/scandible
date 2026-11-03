@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildEntry, parseCodeList, resolveOptions } from './codes';
+import { buildEntry, parseCodeList, resolveOptions, tokenize } from './codes';
 import { FORMAT_BY_ID, type FormatId } from './formats';
 
 describe('parseCodeList tokenization', () => {
@@ -111,5 +111,16 @@ describe('2D formats through parseCodeList', () => {
 		expect(entries.map((e) => e.value)).toEqual(['hello world', 'line two']);
 		// 11 bytes, not 12: no trailing \r reached the encoder.
 		expect(entries[0]).toMatchObject({ valid: true, facts: { bytes: 11, cols: 21 } });
+	});
+});
+
+describe('tokenize', () => {
+	it('splits exactly as parseCodeList does, for a numeric and a text format', () => {
+		const upc = ' 036000291452, 012345678905\n\n4006381333931 ';
+		const qr = 'a, b\n\n c ';
+		expect(tokenize(upc, 'upc')).toEqual(['036000291452', '012345678905', '4006381333931']);
+		expect(tokenize(qr, 'qr')).toEqual(['a, b', 'c']);
+		expect(tokenize(upc, 'upc')).toEqual(parseCodeList(upc, 'upc').map((e) => e.raw));
+		expect(tokenize(qr, 'qr')).toEqual(parseCodeList(qr, 'qr').map((e) => e.raw));
 	});
 });

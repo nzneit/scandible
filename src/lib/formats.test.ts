@@ -6,6 +6,7 @@ import {
 	FORMATS,
 	FORMAT_BY_ID,
 	FORMAT_GROUPS,
+	canonicalEcc,
 	eccChoice,
 	isEccChoice,
 	isFormatId,
@@ -260,5 +261,15 @@ describe('2D rows and error-correction choices', () => {
 		expect(eccChoice(row('qr'), undefined)).toBeUndefined();
 		expect(eccChoice(row('qr'), 'Z')).toBeUndefined();
 		expect(eccChoice(row('datamatrix'), 'M')).toBeUndefined();
+	});
+});
+
+describe('canonicalEcc', () => {
+	it('keeps only a level the format accepts that is not its default', () => {
+		expect(canonicalEcc('nope' as FormatId, 'H')).toBe('');
+		expect(canonicalEcc('datamatrix', 'H')).toBe('');
+		expect(canonicalEcc('qr', 'auto')).toBe('');
+		expect(canonicalEcc('qr', 'M')).toBe('');
+		expect(canonicalEcc('qr', 'H')).toBe('H');
 	});
 });

@@ -1,8 +1,19 @@
 import { describe, it, expect } from 'vitest';
-import { encodeShareUrl, decodeShareUrl } from './shareUrl';
+import { decodeShareUrl, encodeRowsShareUrl, encodeShareUrl } from './shareUrl';
 import { DEFAULT_SETTINGS, type Settings } from './types';
+import type { FormatId } from './formats';
+import type { Row } from './rows';
 
 const at = (s: string) => new URL('http://localhost/' + s);
+
+/** Rows in the spec's record form, `format[-level]_payload`; the payload is everything after
+ *  the first `_`. */
+const deck = (...records: string[]): Row[] =>
+	records.map((record) => {
+		const tag = record.slice(0, record.indexOf('_'));
+		const [format, ecc = ''] = tag.split('-');
+		return { payload: record.slice(tag.length + 1), format: format as FormatId, ecc };
+	});
 
 describe('shareUrl', () => {
 	it('round-trips codes and settings', () => {
@@ -210,5 +221,75 @@ describe('step params', () => {
 		expect(dec('#codes=1&gap=0')).toEqual({ gapMs: 0 });
 		expect(dec('#codes=1&gap=2000')).toEqual({ gapMs: 2000 });
 		expect(dec('#codes=1&gap=')).toEqual({ gapMs: 0 }); // as seed= decodes to 0
+	});
+});
+
+describe('rows links', () => {
+	const TAIL = '&speed=60&loop=0&rot=0&rotmax=8&skew=0&skewmax=8&seed=0&fmt=upc';
+	const enc = (rows: Row[], over: Partial<Settings> = {}) =>
+		encodeRowsShareUrl(rows, { ...DEFAULT_SETTINGS, ...over });
+	const recs = (hash: string) => decodeShareUrl(at(hash)).records;
+	const from = (url: string) => decodeShareUrl(new URL(url));
+
+	it('writes one record per non-blank row, numbered densely, then the tail without ecc', () => {
+		const pair = deck('upc_012345678905', 'qr-H_WIFI:S:home;\nP:secret');
+		expect(enc(pair)).toBe(
+			'#r1=upc_012345678905&r2=qr-H_WIFI%3AS%3Ahome%3B%0AP%3Asecret&speed=60&loop=0&rot=0&rotmax=8&skew=0&skewmax=8&seed=0&fmt=upc'
+		);
+		expect(enc(pair, { format: 'qr', ecc: 'H' })).toMatch(/&fmt=qr$/);
+		expect(enc(pair, { format: 'qr', ecc: 'H' })).not.toContain('ecc=');
+		expect(enc(deck('qr_a', 'qr_', 'qr_b'))).toBe(`#r1=qr_a&r2=qr_b${TAIL}`);
+		expect(enc(deck('qr_ a\r\nb '))).toBe(`#r1=qr_a%0Ab${TAIL}`);
+		// No non-blank row: an empty codes=, as an empty list writes it.
+		expect(enc(deck('qr_'))).toBe(`#codes=${TAIL}`);
+		expect(encodeShareUrl([], DEFAULT_SETTINGS)).toBe(`#codes=${TAIL}`);
+		expect(enc(deck('qr_a'), { mode: 'step', dwellMs: 500, gapMs: 250 })).toBe(
+			'#r1=qr_a&speed=60&loop=0&rot=0&rotmax=8&skew=0&skewmax=8&seed=0&fmt=upc&mode=step&dwell=500&gap=250'
+		);
+	});
+
+	it.each<[string, Row[] | undefined]>([
+		['#r1=upc_036000291452&r3=qr_hello', deck('upc_036000291452', 'qr_hello')], // gap compacted
+		['#r10=qr_ten&r2=qr_two', deck('qr_two', 'qr_ten')], // numeric key order
+		['#r3=qr_c&r12=qr_l&r2=qr_b', deck('qr_b', 'qr_c', 'qr_l')], // digit count first
+		['#r1=qr_first&r1=qr_second', deck('qr_first')], // a repeated key keeps its first value
+		['#r1=qrhello&r2=qr_ok', deck('qr_ok')], // no `_`: dropped on its own
+		['#r1=foo_bar', []], // unknown format
+		['#r1=qr_+++', []], // blank payload
+		['#r1=qr_%0A', []],
+		['#r1=qr-auto_x', deck('qr_x')], // a foreign level
+		['#r1=qr-M_x', deck('qr_x')], // the default level
+		['#r1=qr-_x', deck('qr_x')], // an empty level
+		['#r1=datamatrix-H_x', deck('datamatrix_x')], // a format with no levels
+		['#r1=qr-H_x', deck('qr-H_x')],
+		['#r1=qr_a%0D%0Ab', deck('qr_a\nb')], // a hand-edited CRLF arrives as LF
+		['#r1=&r1=qr_x', undefined], // a key counts by its first value
+		['#r0=qr_a&rx=qr_b&r01=qr_c&r1=qr_d', deck('qr_d')],
+		['#r0=qr_a', undefined],
+		['#codes=036000291452&speed=60', undefined],
+		['#R1=qr_x', undefined], // an uppercase key is not a record key
+		['#r1=QR_x', []], // an uppercase format tag is dropped
+		['#r1=qr_a-b_c', deck('qr_a-b_c')], // `-` and `_` in the payload survive
+		['#r1=foo_bar&r1=qr_x', []] // a repeated key keeps its first value, even if invalid
+	])('decodes the records of %s', (hash, records) => {
+		expect(recs(hash)).toEqual(records);
+	});
+
+	it('leaves a list ecc at the list level, and round-trips reserved characters', () => {
+		const listEcc = decodeShareUrl(at('#r1=qr_x&fmt=qr&ecc=H'));
+		expect(listEcc.settings.ecc).toBe('H');
+		expect(listEcc.records).toEqual([{ payload: 'x', format: 'qr', ecc: '' }]);
+		const roundTrip = deck('qr_a b\n#1 & 50% x_y+z');
+		expect(recs(enc(roundTrip))).toEqual(roundTrip);
+	});
+
+	it('picks the source by the extended rule, and ignores codes beside records', () => {
+		const pick = (url: string) => [from(url).codes, from(url).records];
+		expect(pick('http://localhost/#codes=036000291452&r1=qr_x')).toEqual([[], deck('qr_x')]);
+		expect(pick('http://localhost/?codes=1#r1=qr_x')).toEqual([[], deck('qr_x')]);
+		expect(pick('http://localhost/?codes=036000291452#r1')).toEqual([['036000291452'], undefined]);
+		expect(pick('http://localhost/#codes=x&r1=')).toEqual([['x'], undefined]);
+		expect(from('http://localhost/?r1=qr_x').records).toEqual(deck('qr_x'));
+		expect(from('http://localhost/?r1=qr_x#top').records).toEqual(deck('qr_x'));
 	});
 });
