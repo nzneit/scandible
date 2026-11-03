@@ -32,8 +32,12 @@ fixed dwell, and the finish summary is the record: the dwell and gap (flagged if
 changed during the run), the time on the playback clock, the display's frame rate and the number
 of frames over 100 ms, if any. Each code is on screen for at least its dwell and less than one
 frame longer when no frame exceeds 100 ms. An operator can pause and walk the list by hand.
-Scroll playback and scroll links behave exactly as before; the overlay's only change is that it
-no longer hides while paused or keyboard-focused.
+Scroll playback and scroll links behave exactly as before, with two deliberate changes: the
+overlay no longer hides while paused or keyboard-focused, and a finish moves focus to the finish
+screen's Restart button. The `.overlay` width rules
+(`width: max-content; max-width: calc(100vw - 32px); flex-wrap: wrap`) also apply to the scroll
+overlay, which on a narrow viewport is now content-wide and centred instead of a shrink-to-fit
+box limited to 50 vw: a deliberate, spec-mandated scroll-mode layout change.
 
 ## Series
 
@@ -517,6 +521,7 @@ summary, and, unlike the scroller's, runs the schedule on a delta-0 frame too:
 ```ts
 const frame = (ts: number) => {
 	if (!playing) return;
+	rafId = null;
 	// The first frame after play() or a go-to has no previous timestamp: it counts no time and
 	// is not an interval, so it counts toward neither frameCount nor stalls.
 	let deltaMs = 0;
@@ -542,9 +547,13 @@ const frame = (ts: number) => {
 	}
 	if (state.index !== before.index || state.phase !== before.phase) show();
 	if (state.index !== before.index) onIndex?.(state.index, count);
-	rafId = requestAnimationFrame(frame);
+	if (playing && rafId === null) rafId = requestAnimationFrame(frame);
 };
 ```
+
+Clearing `rafId` on entry marks the firing frame as no longer pending, and the next frame is
+requested only when `playing && rafId === null`, so a handler that pauses, destroys, restarts or
+pauses-and-plays inside `onIndex` leaves exactly one pending frame or none.
 
 Running the schedule on the delta-0 frame (rule 4) means a dwell or gap lowered while paused
 below the time already spent ends on the first frame after Play. A phase that is not past its
@@ -878,7 +887,8 @@ click does not hold the overlay open, while a slider or field reached by keyboar
 selector engine (nwsapi 2.2.24) supports `:focus-visible`, and `element.focus()` matches it there.
 `restart()` is identical to today for the scroller, whose `restart()` always ends playing. A
 `focusout` on the overlay also calls `showOverlay()`, so the timer restarts when focus leaves.
-This applies in both modes; it is the one deliberate change to the scroll-mode overlay. The
+This applies in both modes; it is the one deliberate change to the scroll-mode overlay's
+behaviour (its width rules are a deliberate layout change; see _Edge cases_). The
 existing play-page overlay tests do not pin hiding while paused: `src/routes/play/page.test.ts`
 mentions the overlay only in "renders the scroll column and overlay controls".
 
@@ -982,6 +992,11 @@ It is `$derived.by`, not a bare `$derived`, because svelte-check narrows
 `formatStepFinishMessage(stepFinish)` and scroll mode keeps
 `formatFinishMessage(finish.count, finish.seconds)`.
 
+On a finish, in either mode, focus moves to the finish screen's Restart button: `.finish-restart`
+is bound as `finishRestartEl`, and both `onFinish` handlers under _Engine choice_ also run
+`tick().then(() => finishRestartEl?.focus())`, so a keyboard or screen-reader user is not left on
+an overlay control the finish screen covers.
+
 The announcement comes from a separate live region, mounted for the page's life outside that
 `{#if}` and visually hidden:
 
@@ -1061,9 +1076,14 @@ scroll mode the codec drops dwell and gap, so scroll Back URLs are unchanged.
   than about 560 px with rotation or skew near 30°, the corners of a 2D symbol can leave the
   viewport. Recorded, not mitigated.
 - **Scroll mode must not move.** The existing scroller tests, assertions unchanged, are the
-  regression guard, together with the byte-identical scroll link. The one deliberate change to
-  scroll mode is the overlay, which no longer hides while paused or while one of its controls has
-  focus.
+  regression guard, together with the byte-identical scroll link. Scroll mode has two deliberate
+  behaviour changes: the overlay no longer hides while paused or while one of its controls has
+  focus, and a finish moves focus to the finish screen's Restart button, so a keyboard or
+  screen-reader user is not left on a covered overlay control. It also has one deliberate,
+  spec-mandated layout change: the `.overlay` width rules
+  (`width: max-content; max-width: calc(100vw - 32px); flex-wrap: wrap`) apply to the scroll
+  overlay too, which on a narrow viewport is now content-wide and centred instead of a
+  shrink-to-fit box limited to 50 vw.
 - **Accessibility.** The counter is a plain `span`, not a live region: at 50 ms swaps it would be
   noise. The corner readout is `aria-hidden`, because the overlay carries the same facts. Prev
   and Next are labelled by their text, the overlay sliders by `aria-label` beside a visible
@@ -1240,6 +1260,13 @@ Each file is named by its path; "new" files do not exist today.
   - Restart: `.ctl-restart` after two `.ctl-next` clicks (the second finishes the run, since
     `PLAY_URL` has loop off) returns the counter to `1 / 2`; `.finish-restart` on the finish
     screen clears it and shows `1 / 2` paused, with `.ctl-playpause` reading `Play`.
+  - Finish while playing: at the default dwell 1000 and gap 0, a click on `.ctl-playpause` and
+    fake frames every 100 ms from 0 to 2000 (the 0 frame counts nothing; the swap comes at 1000
+    and the finish at 2000) show `.finish-text` reading exactly
+    `Finished stepping 2 barcodes in 2.00 seconds at 1.00 s dwell. Display about 10 Hz.`, while
+    behind the finish screen `.ctl-playpause` reads `Play` and `.readout` ends with `· paused`.
+  - Focus on finish: with `.ctl-next` focused, two clicks on it finish the run, and after a tick
+    `document.activeElement` is `.finish-restart`.
   - Inputs of 300 on `.ctl-dwell` and 100 on `.ctl-gap`, then `.ctl-back`, navigate to
     `'/' + encodeShareUrl(CODES, { ...DEFAULT_SETTINGS, seed: 7, mode: 'step', dwellMs: 300, gapMs: 100 })`.
     Every existing scroll-mode test stays as it is.
@@ -1369,9 +1396,13 @@ they stand. "Read" for a scan means the scanner outputs exactly the payload, onc
    (15.00 plus at most three frame overshoots; the clamped 100 ms on return is progress within the
    dwell, not an addition, and 15.20 leaves headroom), and the summary says `1 frame over 100 ms`
    (the first frame after return; more if the browser drops another frame on return, recorded).
-   Pass: all five checks in both browsers.
+   Pass: all five checks in both browsers. For the mouse-click hide check: a mouse click into a
+   seconds field matches `:focus-visible` in browsers (text-entry inputs always do), so the
+   overlay stays until focus leaves; that is spec-consistent and not a failure.
    Recorded, not mitigated: on a landscape phone (about 360 px high) the wrapped overlay can
    cover the lower part of a tall symbol while it is visible; it hides after 3 s while playing.
+   At 390×667 portrait the four-row step overlay covers about the bottom 34 px of a square 2D
+   symbol while it is visible, which includes the paused start state; 1D codes do not overlap.
 7. **Schedule check, not display check.** One loop-off run of 20 codes at dwell `0.50 s` and gap
    `0.25 s`. Pass: a `MutationObserver` on `.step-stage` records `performance.now()` at every
    child change (headless Firefox is fine for this); every measurable code interval (codes 2 to
