@@ -41,6 +41,8 @@ describe('parseElementString', () => {
 			{ ai: 'B', value: 'C' }
 		]);
 		expect(parseElementString('(10)A(')).toEqual([{ ai: '10', value: 'A' }]);
+		expect(parseElementString('')).toEqual([]);
+		expect(parseElementString('(')).toEqual([]);
 		expect(parseElementString('0109')).toBeNull();
 		expect(parseElementString('(10)A((')).toBeNull();
 		expect(parseElementString('(10)A)B')).toEqual([{ ai: '10', value: 'A)B' }]);

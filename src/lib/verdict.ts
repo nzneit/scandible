@@ -21,9 +21,10 @@ const levelOf = (entry: CodeEntry) => {
 	return d && eccChoice(d, entry.options.ecc);
 };
 
-/** A suffix when a value holds a non-numeric "AI", which is how nested parentheses read. */
+/** A suffix when a pair after the first holds a non-numeric "AI", which is how nested
+ *  parentheses read. */
 const parentheses = (entry: CodeEntry) =>
-	parseElementString(entry.value)?.some((e) => /\D/.test(e.ai))
+	parseElementString(entry.value)?.some((e, i) => i > 0 && /\D/.test(e.ai))
 		? ' (parentheses inside a value are not supported)'
 		: '';
 

@@ -82,6 +82,8 @@ the text do not.
 | `gs1_128` `(01)09501101530003(3103)000123(3922)1234`                              | renders (4-digit AIs)                                                                    |                               |
 | `gs1_128` `(10)LOT42(01)09501101530003`                                           | renders, 222 × 37 (a variable-length AI before a fixed one)                              |                               |
 
+**`lintreqs` defaults differ per encoder.** `gs1_128` leaves requisite-AI checks off; `gs1qrcode`, `gs1datamatrix`, `gs1dotcode`, `databarexpanded` and `databarexpandedstacked` turn them on: strict `(10)LOT42` renders on GS1-128 (123 × 37) and fails on the other five with `GS1missingAIs`: `One of more requisite AIs for AI (10) are missing: 01 OR 02 OR 03 OR 8006 OR 8026`. Passing `lintreqs: false` renders it on all six, byte-identical to the `dontlint` output, and leaves S's symbol unchanged.
+
 So `dontlint` bypasses every `GS1*` lint error except the bracket-syntax ones, and never bypasses
 the GTIN-only DataBar members' own checks (`databar<member>Bad*`).
 

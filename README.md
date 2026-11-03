@@ -53,7 +53,7 @@ one at a time, so you can point a scanner at the screen and let it read the whol
 1. Open **https://nzneit.github.io/scandible/**.
 2. Pick a barcode format, then paste or upload your codes (one per line, or
    comma-separated for numeric formats such as UPC and EAN; 2D and other text formats are one
-   per line, and commas are part of the code). For QR Code, PDF417 and Aztec, choose an
+   per line, and commas are part of the code). For QR Code, GS1 QR Code, PDF417 and Aztec, choose an
    error-correction level or keep the default. Invalid entries are flagged. To give each code
    its own format or level, or a payload of several lines, choose **Per row** in the
    **Editor** select (see _Per-row editing_).

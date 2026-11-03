@@ -67,6 +67,8 @@ describe('verdictText for GS1 entries', () => {
 		expect(verdict('(01)09501101530003(10)A(B)C', 'gs1128')).toBe(
 			' ✗ AI B: Unrecognised AI (parentheses inside a value are not supported)'
 		);
+		expect(verdict('(', 'gs1128')).toBe(' ✗ invalid');
+		expect(verdict('(1A)x', 'gs1128')).toBe(' ✗ AI 1A: Unrecognised AI');
 		expect(verdict('(90)' + 'x'.repeat(3000), 'gs1qr', true, 'H')).toBe(
 			' ✗ too long for GS1 QR Code (level H)'
 		);

@@ -18,7 +18,7 @@ import {
 } from 'bwip-js/browser';
 import type { RenderOptions } from 'bwip-js/browser';
 import { isGs1, type BwipDescriptor } from '$lib/formats';
-import { scanData } from '$lib/gs1';
+import { parseElementString, scanData } from '$lib/gs1';
 import type { SymbolOptions } from '$lib/types';
 import type { CheckResult, Engine } from './types';
 
@@ -146,7 +146,8 @@ function encode(d: BwipDescriptor, value: string, ecc: string | undefined, lax: 
  *  the default export's raw() would pull in every encoder. drawingSVG's methods are own closure
  *  properties, so the spread keeps them working. Captures whatever bwip-js throws. `lax` sets
  *  BWIPP's `dontlint`, which skips the GS1 lint (checksums, dates, AI table) but not the encoder's
- *  own checks. */
+ *  own checks. Every GS1 encode sets `lintreqs: false`, because BWIPP turns requisite-AI pairing
+ *  checks on by default for five of the carriers and they reject partial element strings. */
 function tryEncode(
 	d: BwipDescriptor,
 	value: string,
@@ -173,6 +174,7 @@ function tryEncode(
 		padding: d.quietZone * d.modulePx.x // px at scale 1 (measurements §1): the quiet zone in modules
 	};
 	if (d.heightMm !== undefined) encodeOptions.height = d.heightMm;
+	if (isGs1(d)) encodeOptions.lintreqs = false;
 	if (lax) encodeOptions.dontlint = true;
 	try {
 		const svg = ENCODERS[d.bcid](encodeOptions, drawing);
@@ -225,6 +227,7 @@ export function check(d: BwipDescriptor, value: string, options: SymbolOptions):
 	try {
 		const { encoded, lint } = encodeResolved(d, value, options);
 		const { cols, rows } = encoded;
+		if (isGs1(d) && parseElementString(value)?.length === 0) return { valid: false };
 		const gs1 = isGs1(d) ? scanData(d, value) : undefined;
 		const bytes = new TextEncoder().encode(gs1?.data ?? value).length;
 		return {

@@ -388,3 +388,29 @@ describe('bwippErrorText', () => {
 		expect(bwippErrorText('bwip-js: bar code text not specified.')).toBeUndefined();
 	});
 });
+
+describe('GS1 carriers: requisite pairings stay off', () => {
+	it.each(LINTED)('%s accepts (10)LOT42 without its paired AI', (id) => {
+		expect(check(row(id), '(10)LOT42', {})).toMatchObject({
+			valid: true,
+			gs1: { data: '10LOT42' }
+		});
+		expect('lint' in check(row(id), '(10)LOT42', {})).toBe(false);
+	});
+
+	it('accepts (02) without (37) and (3922) without (30) on the 2D carriers', () => {
+		expect(check(row('gs1datamatrix'), '(02)09501101530003', {}).valid).toBe(true);
+		expect(check(row('gs1qr'), '(01)09501101530003(3922)1234', {}).valid).toBe(true);
+	});
+
+	it('refuses a lone ( on every carrier, strict and lax', () => {
+		for (const id of ['gs1128', 'gs1datamatrix', 'gs1qr', 'gs1dotcode'] as const) {
+			expect(check(row(id), '(', {}), id).toStrictEqual({ valid: false });
+			expect(check(row(id), '(', LAX), id).toStrictEqual({ valid: false });
+		}
+		expect(check(row('databaromni'), '(', {})).toStrictEqual({
+			valid: false,
+			message: 'GS1 DataBar Omnidirectional must be 13 or 14 digits'
+		});
+	});
+});
