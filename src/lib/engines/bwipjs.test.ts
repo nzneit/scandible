@@ -5,7 +5,7 @@ import { FORMAT_BY_ID, type BwipDescriptor, type FormatId } from '$lib/formats';
 import { resolveOptions } from '$lib/codes';
 import type { SymbolFacts } from '$lib/types';
 import type { CheckResult } from './types';
-import { bwippErrorName, check, ECC_OPTIONS, render, TOO_LONG } from './bwipjs';
+import { bwippErrorName, bwippErrorText, check, ECC_OPTIONS, render, TOO_LONG } from './bwipjs';
 
 vi.mock('bwip-js/browser', async (importOriginal) => {
 	const mod = await importOriginal<typeof import('bwip-js/browser')>();
@@ -133,12 +133,14 @@ describe('bwippErrorName', () => {
 });
 
 describe('TOO_LONG', () => {
-	it('holds exactly the twelve over-capacity names', () => {
+	it('holds exactly the twenty over-capacity names', () => {
 		const names = [
 			'qrcodeNoValidSymbol qrcodeInputTooLong qrcodeInputTooLarge',
 			'datamatrixTooMuchData datamatrixInputTooLong datamatrixNoValidSymbol',
 			'pdf417inputTooLong pdf417dataTooLong pdf417insufficientCapacity',
-			'azteccodeInputTooLong azteccodeInputTooLarge aztecNoValidSymbol'
+			'azteccodeInputTooLong azteccodeInputTooLarge aztecNoValidSymbol',
+			'gs1128inputTooLong gs1datamatrixinputTooLong gs1qrcodeinputTooLong gs1dotcodeinputTooLong',
+			'gs1databarexpandedTooLong dotcodeinputTooLong dotcodeTooLong dotcodeSymbolTooLarge'
 		].flatMap((group) => group.split(' '));
 		expect([...TOO_LONG].sort()).toEqual(names.sort());
 	});
@@ -236,5 +238,153 @@ describe('GS1 carriers: measured geometry', () => {
 		expect(size(render(row('databaromni'), G, {}))).toEqual([348, 162]);
 		expect(render(row('gs1qr'), S, {}).getAttribute('viewBox')).toBe('0 0 66 66');
 		expect(Math.max(...size(render(row('gs1qr'), S, {})))).toBe(1024);
+	});
+});
+
+const LAX = { lax: true };
+const BAD = '(01)09501101530004';
+const CHECKSUM = 'AI 01: Bad checksum';
+const GTIN_ONLY = [
+	'databaromni',
+	'databartruncated',
+	'databarstacked',
+	'databarstackedomni',
+	'databarlimited'
+] as const;
+const LINTED = [
+	'gs1128',
+	'databarexpanded',
+	'databarexpandedstacked',
+	'gs1datamatrix',
+	'gs1qr',
+	'gs1dotcode'
+] as const;
+const MEMBER: Record<(typeof GTIN_ONLY)[number], string> = {
+	databaromni: 'Omnidirectional',
+	databartruncated: 'Truncated',
+	databarstacked: 'Stacked',
+	databarstackedomni: 'Stacked Omnidirectional',
+	databarlimited: 'Limited'
+};
+
+describe('GS1 carriers: lint, lax and messages', () => {
+	it.each(LINTED)('%s reports a bad checksum strictly and renders it anyway under lax', (id) => {
+		expect(check(row(id), BAD, {})).toStrictEqual({ valid: false, message: CHECKSUM });
+		expect(check(row(id), BAD, LAX)).toMatchObject({
+			valid: true,
+			lint: CHECKSUM,
+			gs1: { data: id.startsWith('databarexpanded') ? '0109501101530003' : '0109501101530004' }
+		});
+	});
+
+	it('reports scan-data bytes, the lax width, and no lint on a valid row', () => {
+		expect(check(row('gs1128'), BAD, LAX)).toMatchObject({
+			facts: { cols: 134, bytes: 16 },
+			gs1: { aim: ']C1', data: '0109501101530004' }
+		});
+		const ok = check(row('gs1128'), S, {});
+		expect(ok).toMatchObject({ facts: { bytes: 31 }, gs1: { aim: ']C1' } });
+		expect('lint' in ok).toBe(false);
+	});
+
+	it.each(GTIN_ONLY)('%s keeps its own GTIN checks under lax and accepts 13 digits', (id) => {
+		const digit = {
+			valid: false,
+			message: `Incorrect GS1 DataBar ${MEMBER[id]} check digit provided`
+		};
+		const length = { valid: false, message: `GS1 DataBar ${MEMBER[id]} must be 13 or 14 digits` };
+		expect(check(row(id), BAD, {})).toStrictEqual(digit);
+		expect(check(row(id), BAD, LAX)).toStrictEqual(digit);
+		expect(check(row(id), '0109501101530003', {})).toStrictEqual(length);
+		expect(check(row(id), '0109501101530003', LAX)).toStrictEqual(length);
+		expect(check(row(id), '(01)', {})).toStrictEqual(length);
+		expect(check(row(id), '(01)0950110153000', {})).toMatchObject({
+			valid: true,
+			gs1: { aim: ']e0', data: '0109501101530003' }
+		});
+	});
+
+	it.each(LINTED)('%s refuses a missing bracket, strict and lax', (id) => {
+		const expected = { valid: false, message: "AIs must start with '('" };
+		expect(check(row(id), '0109501101530003', {})).toStrictEqual(expected);
+		expect(check(row(id), '0109501101530003', LAX)).toStrictEqual(expected);
+	});
+
+	it('surfaces the other lint messages verbatim and renders them under lax', () => {
+		const d = row('gs1128');
+		expect(check(d, '(01)', {})).toStrictEqual({ valid: false, message: 'AI 01: Too short' });
+		expect(check(d, '(01)09501101530003(17)261345', {})).toStrictEqual({
+			valid: false,
+			message: 'AI 17: Invalid month'
+		});
+		expect(check(d, '(99999)123', {})).toStrictEqual({
+			valid: false,
+			message: 'AI 99999: Unrecognised AI'
+		});
+		expect(check(d, '(99999)123', LAX)).toMatchObject({
+			valid: true,
+			lint: 'AI 99999: Unrecognised AI',
+			gs1: { data: '99999123' }
+		});
+		expect(check(d, '(10)A(10)B', {})).toStrictEqual({
+			valid: false,
+			message: 'Repeated AIs (10) must have the same value'
+		});
+		expect(check(d, '(10)A(10)B', LAX)).toMatchObject({
+			valid: true,
+			gs1: { data: '10A\u001d10B' }
+		});
+		expect(check(d, '(10)A(', {})).toMatchObject({ valid: true, gs1: { data: '10A' } });
+		expect(check(d, '(01)09501101530003(10)A(B)C', {})).toStrictEqual({
+			valid: false,
+			message: 'AI B: Unrecognised AI'
+		});
+	});
+
+	it('reports capacity failures as too-long without a message, and a nameless lax death with the strict message', () => {
+		const overflow =
+			'(01)09501101530003(10)' +
+			'A'.repeat(20) +
+			'(21)' +
+			'B'.repeat(20) +
+			'(240)' +
+			'C'.repeat(30);
+		expect(check(row('databarexpanded'), overflow, {})).toStrictEqual(TOO_LONG_RESULT);
+		expect(check(row('gs1dotcode'), '(90)' + x(1994), LAX)).toStrictEqual(TOO_LONG_RESULT);
+		expect(check(row('gs1dotcode'), '(90)' + x(2096), LAX)).toStrictEqual(TOO_LONG_RESULT);
+		expect(check(row('gs1qr'), '(90)' + x(3000), { ecc: 'H', lax: true })).toStrictEqual(
+			TOO_LONG_RESULT
+		);
+		expect(check(row('databarexpanded'), '(01)09501101530003(10)Aé', LAX)).toStrictEqual({
+			valid: false,
+			message: 'AI 10: Invalid CSET 82 character'
+		});
+	});
+
+	it('keeps strict and lax encodes in separate cache entries', () => {
+		expect(check(row('gs1128'), BAD, {}).valid).toBe(false);
+		expect(check(row('gs1128'), BAD, LAX).valid).toBe(true);
+		expect(check(row('gs1128'), BAD, {}).valid).toBe(false);
+	});
+
+	it('renders the lint-off symbol for a lax row and throws for the strict one', () => {
+		const el = render(row('gs1128'), BAD, LAX);
+		expect([el.getAttribute('width'), el.getAttribute('height')]).toEqual(['462', '219']);
+		expect(() => render(row('gs1128'), BAD, {})).toThrow();
+	});
+
+	it('leaves the plain 2D formats without messages', () => {
+		expect(check(row('qr'), x(5000), { ecc: 'M' })).toStrictEqual(TOO_LONG_RESULT);
+		expect(check(row('qr'), 'x', { ecc: 'X' })).toStrictEqual({ valid: false });
+	});
+});
+
+describe('bwippErrorText', () => {
+	it('returns the text after the name and line number, else undefined', () => {
+		expect(bwippErrorText('bwipp.GS1badChecksum#3251: AI 01: Bad checksum')).toBe(
+			'AI 01: Bad checksum'
+		);
+		expect(bwippErrorText('boom')).toBeUndefined();
+		expect(bwippErrorText('bwip-js: bar code text not specified.')).toBeUndefined();
 	});
 });

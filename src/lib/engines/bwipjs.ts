@@ -17,7 +17,8 @@ import {
 	drawingSVG
 } from 'bwip-js/browser';
 import type { RenderOptions } from 'bwip-js/browser';
-import type { BwipDescriptor } from '$lib/formats';
+import { isGs1, type BwipDescriptor } from '$lib/formats';
+import { scanData } from '$lib/gs1';
 import type { SymbolOptions } from '$lib/types';
 import type { CheckResult, Engine } from './types';
 
@@ -79,13 +80,26 @@ export const TOO_LONG: ReadonlySet<string> = new Set([
 	'pdf417insufficientCapacity',
 	'azteccodeInputTooLong',
 	'azteccodeInputTooLarge',
-	'aztecNoValidSymbol'
+	'aztecNoValidSymbol',
+	'gs1128inputTooLong',
+	'gs1datamatrixinputTooLong',
+	'gs1qrcodeinputTooLong',
+	'gs1dotcodeinputTooLong',
+	'gs1databarexpandedTooLong',
+	'dotcodeinputTooLong',
+	'dotcodeTooLong',
+	'dotcodeSymbolTooLarge'
 ]);
 
 /** Stable part of a BWIPP error: `bwipp.<errorName>`. The `#NNNNN` suffix is a source line
  *  number that changes between bwip-js versions. */
 export function bwippErrorName(message: string): string | undefined {
 	return /^bwipp\.([A-Za-z0-9]+)/.exec(message)?.[1];
+}
+
+/** The text after `bwipp.<name>#<line>: `, or undefined when the message is not of that form. */
+export function bwippErrorText(message: string): string | undefined {
+	return /^bwipp\.[A-Za-z0-9]+#\d+: ([\s\S]*)$/.exec(message)?.[1];
 }
 
 interface Encoded {
@@ -104,15 +118,15 @@ export const CACHE_BUDGET_CHARS = 32 * 1024 * 1024;
 const cache = new Map<string, CacheEntry>();
 let cacheChars = 0;
 
-/** One encode, memoised by bcid + ecc + value, failures included: an over-capacity line must
+/** One encode, memoised by bcid + ecc + lax flag + value, failures included: an over-capacity line must
  *  not re-encode on every keystroke. Rethrows the cached error on a hit. The cache is cleared
  *  when the retained text would pass CACHE_BUDGET_CHARS; below the budget a keystroke
  *  re-encodes only the edited line. */
-function encode(d: BwipDescriptor, value: string, options: SymbolOptions): Encoded {
-	const key = `${d.bcid}\u0000${options.ecc ?? ''}\u0000${value}`;
+function encode(d: BwipDescriptor, value: string, ecc: string | undefined, lax: boolean): Encoded {
+	const key = `${d.bcid}\u0000${ecc ?? ''}\u0000${lax ? 'lax' : ''}\u0000${value}`;
 	let entry = cache.get(key);
 	if (entry === undefined) {
-		entry = tryEncode(d, value, options);
+		entry = tryEncode(d, value, ecc, lax);
 		const cost = key.length + (entry.ok ? entry.result.svg.length : 0);
 		if (cacheChars + cost > CACHE_BUDGET_CHARS) {
 			cache.clear();
@@ -130,8 +144,15 @@ function encode(d: BwipDescriptor, value: string, options: SymbolOptions): Encod
  *  (height − offset.y)/modulePx.y. Spreading
  *  drawingSVG() and overriding init is the measured, tree-shake-friendly way to learn the size;
  *  the default export's raw() would pull in every encoder. drawingSVG's methods are own closure
- *  properties, so the spread keeps them working. Captures whatever bwip-js throws. */
-function tryEncode(d: BwipDescriptor, value: string, options: SymbolOptions): CacheEntry {
+ *  properties, so the spread keeps them working. Captures whatever bwip-js throws. `lax` sets
+ *  BWIPP's `dontlint`, which skips the GS1 lint (checksums, dates, AI table) but not the encoder's
+ *  own checks. */
+function tryEncode(
+	d: BwipDescriptor,
+	value: string,
+	ecc: string | undefined,
+	lax: boolean
+): CacheEntry {
 	let w = 0;
 	let h = 0;
 	const base = drawingSVG();
@@ -143,8 +164,7 @@ function tryEncode(d: BwipDescriptor, value: string, options: SymbolOptions): Ca
 			base.init(W, H); // runtime also passes two text-scale args; they are unused for these symbologies
 		}
 	};
-	const extra: Record<string, unknown> =
-		d.ecc && options.ecc !== undefined ? ECC_OPTIONS[d.bcid](options.ecc) : {};
+	const extra: Record<string, unknown> = d.ecc && ecc !== undefined ? ECC_OPTIONS[d.bcid](ecc) : {};
 	const encodeOptions: RenderOptions & Record<string, unknown> = {
 		...extra, // first: the fixed keys below must win over anything the ecc mapping returns
 		bcid: d.bcid,
@@ -153,6 +173,7 @@ function tryEncode(d: BwipDescriptor, value: string, options: SymbolOptions): Ca
 		padding: d.quietZone * d.modulePx.x // px at scale 1 (measurements §1): the quiet zone in modules
 	};
 	if (d.heightMm !== undefined) encodeOptions.height = d.heightMm;
+	if (lax) encodeOptions.dontlint = true;
 	try {
 		const svg = ENCODERS[d.bcid](encodeOptions, drawing);
 		return {
@@ -174,24 +195,55 @@ function summary(d: BwipDescriptor, cols: number, rows: number): string {
 	return d.shape === 'linear' ? `${cols} modules wide` : `${cols}×${rows} modules`;
 }
 
+/** Strict first; only a strict failure under `lax` is encoded again with lint off. A lint-off
+ *  encode can die with a plain TypeError on input the strict pass described precisely, so the
+ *  lax error is thrown only when it names a BWIPP error. */
+function encodeResolved(
+	d: BwipDescriptor,
+	value: string,
+	options: SymbolOptions
+): { encoded: Encoded; lint?: string } {
+	let strictError: unknown;
+	try {
+		return { encoded: encode(d, value, options.ecc, false) };
+	} catch (e) {
+		strictError = e;
+	}
+	if (options.lax !== true) throw strictError;
+	try {
+		const encoded = encode(d, value, options.ecc, true);
+		const text = strictError instanceof Error ? bwippErrorText(strictError.message) : undefined;
+		return { encoded, lint: text ?? 'failed validation' };
+	} catch (laxError) {
+		throw laxError instanceof Error && bwippErrorName(laxError.message) !== undefined
+			? laxError
+			: strictError;
+	}
+}
+
 export function check(d: BwipDescriptor, value: string, options: SymbolOptions): CheckResult {
 	try {
-		const { cols, rows } = encode(d, value, options);
-		const bytes = new TextEncoder().encode(value).length;
+		const { encoded, lint } = encodeResolved(d, value, options);
+		const { cols, rows } = encoded;
+		const gs1 = isGs1(d) ? scanData(d, value) : undefined;
+		const bytes = new TextEncoder().encode(gs1?.data ?? value).length;
 		return {
 			valid: true,
-			facts: { bytes, cols, rows, summary: summary(d, cols, rows), dense: cols > d.denseAbove }
+			facts: { bytes, cols, rows, summary: summary(d, cols, rows), dense: cols > d.denseAbove },
+			...(gs1 !== undefined && { gs1 }),
+			...(lint !== undefined && { lint })
 		};
 	} catch (e) {
-		const name = e instanceof Error ? bwippErrorName(e.message) : undefined;
-		return name !== undefined && TOO_LONG.has(name)
-			? { valid: false, reason: 'too-long' }
-			: { valid: false };
+		const message = e instanceof Error ? e.message : '';
+		const name = bwippErrorName(message);
+		if (name !== undefined && TOO_LONG.has(name)) return { valid: false, reason: 'too-long' };
+		const text = isGs1(d) ? bwippErrorText(message) : undefined;
+		return text !== undefined ? { valid: false, message: text } : { valid: false };
 	}
 }
 
 export function render(d: BwipDescriptor, value: string, options: SymbolOptions): SVGElement {
-	const { svg } = encode(d, value, options);
+	const { svg } = encodeResolved(d, value, options).encoded;
 	const doc = new DOMParser().parseFromString(svg, 'image/svg+xml');
 	const el = document.importNode(doc.documentElement, true) as unknown as SVGElement;
 	if (el.nodeName !== 'svg') throw new Error('bwip-js produced invalid SVG'); // e.g. 4.11.3's malformed fill-rule
