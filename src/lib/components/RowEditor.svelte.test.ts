@@ -199,7 +199,7 @@ describe('RowEditor', () => {
 		expect(at(2, '.row-lax-input')!.checked).toBe(true);
 		const controls = [
 			...c.querySelectorAll('li.row')[2].querySelectorAll('textarea, select, input, button')
-		].map((el) => el.classList[0]);
+		].map((el) => [...el.classList].find((name) => name.startsWith('row-')));
 		expect(controls).toEqual([
 			'row-payload',
 			'row-format',
