@@ -691,13 +691,39 @@ A run finished by `next()` before ever playing therefore reports `first === last
 ## Play page — `src/routes/play/+page.svelte`
 
 **Engine choice.** `settings` is decoded once, so the mode is fixed for the page's life.
-`{#if settings.mode === 'step'}` mounts `<StepStage bind:this={step} {entries} {settings}>` with
-`onFinish={(s) => { stepFinish = s; playing = false; }}` and
-`onIndex={(index, count) => (position = { index, count })}`; `{:else}` mounts today's
-`<ScrollColumn>` with `bind:this={scroll}` and today's `onFinish={(s) => (finish = s)}`. The step
-`onFinish` sets `playing = false` because the stepper has stopped, so the page's Play label and
-readout agree with it. Scroll mode keeps today's behaviour, where `playing` stays `true` after a
-finish.
+`{#if settings.mode === 'step'}` mounts `<StepStage>` and `{:else}` mounts today's
+`<ScrollColumn>`. Each `onFinish` sets the finish state, then moves focus to the finish screen's
+Restart (see _Finish_):
+
+```svelte
+{#if settings.mode === 'step'}
+	<StepStage
+		bind:this={step}
+		{entries}
+		{settings}
+		onFinish={(s) => {
+			stepFinish = s;
+			playing = false;
+			tick().then(() => finishRestartEl?.focus());
+		}}
+		onIndex={(index, count) => (position = { index, count })}
+	/>
+{:else}
+	<ScrollColumn
+		bind:this={scroll}
+		{entries}
+		{settings}
+		onFinish={(s) => {
+			finish = s;
+			tick().then(() => finishRestartEl?.focus());
+		}}
+	/>
+{/if}
+```
+
+The step `onFinish` sets `playing = false` because the stepper has stopped, so the page's Play
+label and readout agree with it. Scroll mode keeps today's behaviour, where `playing` stays
+`true` after a finish; its handler gains only the focus move.
 
 **Handles.** `let column` is renamed `let scroll: ScrollColumnHandle | undefined = $state();`,
 beside `let step: StepStageHandle | undefined = $state();`. Only one is ever bound, and
@@ -1027,8 +1053,8 @@ becomes "The decoded share state plus the live speed, dwell and gap, never the p
 scroll mode the codec drops dwell and gap, so scroll Back URLs are unchanged.
 
 **Unchanged:** decode once, the bounce to setup when no code is valid, the `hashchange` reload,
-`OVERLAY_IDLE_MS` (3 s) as the idle delay while playing, and the finish screen's
-`.finish-restart` and `.finish-back` buttons.
+`OVERLAY_IDLE_MS` (3 s) as the idle delay while playing, and the finish screen's `.finish-back`
+button.
 
 ## Edge cases
 
@@ -1171,6 +1197,15 @@ Each file is named by its path; "new" files do not exist today.
     interval as nothing. `pause()` mid-dwell cancels the pending frame and leaves the stage
     untouched; `play()` resumes the same phase. `destroy()` cancels the pending frame, and nothing
     fires afterwards.
+  - Frame requests, in a second `describe('createStepper frame requests')` with a counting fake:
+    `requestAnimationFrame` pushes each callback onto an array and returns its index + 1,
+    `cancelAnimationFrame` is a spy, both are restored in `afterEach`, and a frame runs with
+    `pending.shift()?.(ts)`. (a) `play()` called twice leaves exactly one pending callback, and
+    `pause()` cancels it by its id; (b) `toggle()` flips `isPlaying()`, true with one pending
+    frame, then false; (c) at dwell 50, with an `onIndex` handler that calls `pause()` then
+    `play()` on index 1, frames at 0, 16, 32, 48 and 64 leave exactly one pending callback and
+    `isPlaying()` true; (d) with a handler that only pauses, they leave none and `isPlaying()`
+    false.
 - **`src/lib/components/StepStage.test.ts`** (new): with the same entries and
   `{ ...DEFAULT_SETTINGS, mode: 'step' }`, `.step-stage-host > .step-stage` holds one
   `.barcode-item` and `isPlaying()` is false (a step run opens paused); `toggle()` flips it;
