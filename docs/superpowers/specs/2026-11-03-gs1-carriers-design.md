@@ -117,8 +117,8 @@ and the lint-message plumbing serve the coupon's messages unchanged.
   so GS1 formats split on newlines only.
 - **One name per control.** The page box is `Render GS1 data that fails validation`; a row's box
   is `Render if invalid`; the loss note calls it `the render-if-invalid setting`; the result tails
-  say `with invalid GS1 data rendered` or `skipped`; the verdict's override suffix says `the
-  validation setting`, neutral between the two boxes.
+  say `with invalid GS1 data rendered` or `skipped`; the verdict's override suffix says
+  `the validation setting`, neutral between the two boxes.
 - **No `$effect`.** Function bindings and event handlers only, the project convention.
 
 ## The registry — `src/lib/formats.ts`
@@ -154,10 +154,21 @@ export interface BwipDescriptor extends DescriptorBase {
 	maxChars?: number; // soft ceiling on data characters (GS excluded); GS1-128: 48
 }
 export type BwipEncoderId =
-	| 'qrcode' | 'datamatrix' | 'pdf417' | 'azteccode'
-	| 'gs1_128' | 'databaromni' | 'databartruncated' | 'databarstacked' | 'databarstackedomni'
-	| 'databarlimited' | 'databarexpanded' | 'databarexpandedstacked'
-	| 'gs1datamatrix' | 'gs1qrcode' | 'gs1dotcode';
+	| 'qrcode'
+	| 'datamatrix'
+	| 'pdf417'
+	| 'azteccode'
+	| 'gs1_128'
+	| 'databaromni'
+	| 'databartruncated'
+	| 'databarstacked'
+	| 'databarstackedomni'
+	| 'databarlimited'
+	| 'databarexpanded'
+	| 'databarexpandedstacked'
+	| 'gs1datamatrix'
+	| 'gs1qrcode'
+	| 'gs1dotcode';
 ```
 
 `shape`, `gs1`, `maxChars` and the other new fields exist on `BwipDescriptor` only. Code reads them
@@ -171,19 +182,19 @@ Their rendered output is byte-identical to today's, and the existing SVG snapsho
 The eleven new descriptors, all `engine: 'bwipjs'`, `group: 'GS1'`, `numeric: false`,
 `normalize: stripWhitespace` (where `stripWhitespace = (t) => t.replace(/\s+/g, '')`):
 
-| id                       | label                               | bcid                     | shape  | gs1.aim | gs1.gtinCheck | modulePx | offset | quietZone | denseAbove | ecc        | other              |
-| ------------------------ | ----------------------------------- | ------------------------ | ------ | ------- | ------------- | -------- | ------ | --------- | ---------- | ---------- | ------------------ |
-| `gs1128`                 | GS1-128                             | `gs1_128`                | linear | `]C1`   | —             | 1×1      | —      | 10        | 300        | —          | heightMm 18.3, maxChars 48 |
-| `databaromni`            | GS1 DataBar Omnidirectional         | `databaromni`            | linear | `]e0`   | own           | 1×1      | —      | 10        | 300        | —          |                    |
-| `databartruncated`       | GS1 DataBar Truncated               | `databartruncated`       | linear | `]e0`   | own           | 1×1      | —      | 10        | 300        | —          |                    |
-| `databarstacked`         | GS1 DataBar Stacked                 | `databarstacked`         | linear | `]e0`   | own           | 1×1      | —      | 10        | 300        | —          |                    |
-| `databarstackedomni`     | GS1 DataBar Stacked Omnidirectional | `databarstackedomni`     | linear | `]e0`   | own           | 1×1      | —      | 10        | 300        | —          |                    |
-| `databarlimited`         | GS1 DataBar Limited                 | `databarlimited`         | linear | `]e0`   | own           | 1×1      | —      | 10        | 300        | —          |                    |
-| `databarexpanded`        | GS1 DataBar Expanded                | `databarexpanded`        | linear | `]e0`   | implied       | 1×1      | —      | 10        | 300        | —          |                    |
-| `databarexpandedstacked` | GS1 DataBar Expanded Stacked        | `databarexpandedstacked` | linear | `]e0`   | implied       | 1×1      | —      | 10        | 300        | —          |                    |
-| `gs1datamatrix`          | GS1 DataMatrix                      | `gs1datamatrix`          | 2d     | `]d2`   | —             | 2×2      | —      | 4         | 100        | —          |                    |
-| `gs1qr`                  | GS1 QR Code                         | `gs1qrcode`              | 2d     | `]Q3`   | —             | 2×2      | —      | 4         | 100        | `QR_ECC`   |                    |
-| `gs1dotcode`             | GS1 DotCode                         | `gs1dotcode`             | 2d     | `]J1`   | —             | 2×2      | 1×1    | 4         | 100        | —          |                    |
+| id                       | label                               | bcid                     | shape  | gs1.aim | gs1.gtinCheck | modulePx | offset | quietZone | denseAbove | ecc      | other                      |
+| ------------------------ | ----------------------------------- | ------------------------ | ------ | ------- | ------------- | -------- | ------ | --------- | ---------- | -------- | -------------------------- |
+| `gs1128`                 | GS1-128                             | `gs1_128`                | linear | `]C1`   | —             | 1×1      | —      | 10        | 300        | —        | heightMm 18.3, maxChars 48 |
+| `databaromni`            | GS1 DataBar Omnidirectional         | `databaromni`            | linear | `]e0`   | own           | 1×1      | —      | 10        | 300        | —        |                            |
+| `databartruncated`       | GS1 DataBar Truncated               | `databartruncated`       | linear | `]e0`   | own           | 1×1      | —      | 10        | 300        | —        |                            |
+| `databarstacked`         | GS1 DataBar Stacked                 | `databarstacked`         | linear | `]e0`   | own           | 1×1      | —      | 10        | 300        | —        |                            |
+| `databarstackedomni`     | GS1 DataBar Stacked Omnidirectional | `databarstackedomni`     | linear | `]e0`   | own           | 1×1      | —      | 10        | 300        | —        |                            |
+| `databarlimited`         | GS1 DataBar Limited                 | `databarlimited`         | linear | `]e0`   | own           | 1×1      | —      | 10        | 300        | —        |                            |
+| `databarexpanded`        | GS1 DataBar Expanded                | `databarexpanded`        | linear | `]e0`   | implied       | 1×1      | —      | 10        | 300        | —        |                            |
+| `databarexpandedstacked` | GS1 DataBar Expanded Stacked        | `databarexpandedstacked` | linear | `]e0`   | implied       | 1×1      | —      | 10        | 300        | —        |                            |
+| `gs1datamatrix`          | GS1 DataMatrix                      | `gs1datamatrix`          | 2d     | `]d2`   | —             | 2×2      | —      | 4         | 100        | —        |                            |
+| `gs1qr`                  | GS1 QR Code                         | `gs1qrcode`              | 2d     | `]Q3`   | —             | 2×2      | —      | 4         | 100        | `QR_ECC` |                            |
+| `gs1dotcode`             | GS1 DotCode                         | `gs1dotcode`             | 2d     | `]J1`   | —             | 2×2      | 1×1    | 4         | 100        | —        |                            |
 
 The QR choices move to a hoisted `const QR_ECC: EccOption` that both `qr` and `gs1qr` reference,
 since one array element cannot refer to a sibling. GS1 DataMatrix offers no level; DotCode's
@@ -280,10 +291,33 @@ export const GS = '\u001d';
 export const GS_MARK = '␝'; // ␝, what the verdict shows for GS
 /** GS1 General Specifications Figure 7.8.5-2; identical to BWIPP's `aifixed` (measurements §4). */
 export const PREDEFINED_LENGTH_PREFIXES: ReadonlySet<string> = new Set([
-	'00', '01', '02', '03', '04', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20',
-	'31', '32', '33', '34', '35', '36', '41'
+	'00',
+	'01',
+	'02',
+	'03',
+	'04',
+	'11',
+	'12',
+	'13',
+	'14',
+	'15',
+	'16',
+	'17',
+	'18',
+	'19',
+	'20',
+	'31',
+	'32',
+	'33',
+	'34',
+	'35',
+	'36',
+	'41'
 ]);
-export interface Gs1Data { aim: string; data: string } // data holds real GS characters
+export interface Gs1Data {
+	aim: string;
+	data: string;
+} // data holds real GS characters
 export function parseElementString(text: string): { ai: string; value: string }[] | null;
 export function gtinCheckDigit(digits: string): string; // GS1 mod-10 over 13 digits
 export function scanData(d: BwipDescriptor & { gs1: Gs1Carrier }, value: string): Gs1Data;
@@ -317,7 +351,7 @@ Examples (GS1-128 unless named; `␝` stands for the real GS character):
 - `(10)LOT42(01)09501101530003` → `10LOT42␝0109501101530003`, 23 characters (24 bytes).
 - `(3103)000123(10)X` → `3103000123` + `10X`, 13 characters: 31 is predefined.
 - `(8110)106141416543213500110000310123196000(10)X` →
-  `8110106141416543213500110000310123196000␝10X`, 47 characters: 81 is not predefined.
+  `8110106141416543213500110000310123196000␝10X`, 43 characters: 81 is not predefined.
 - `(10)A(` → the single pair 10/A, data `10A`.
 - `(01)0950110153000` on DataBar Omnidirectional → `0109501101530003`, 16 characters.
 - `(01)09501101530004(17)261231(10)LOT42` on DataBar Expanded under lax →
@@ -358,19 +392,19 @@ level differs, else under `validation` if its flag differs; `splits` as today.
 sentences joined by single spaces, or `''` when every count is 0:
 
 1. The first sentence is today's, `Plain text keeps one format and one error-correction level for
-   the whole list, and one code per line.`, unless `loses.validation > 0`, when it is `Plain text
-   keeps one format, one error-correction level and one render-if-invalid setting for the whole
-   list, and one code per line.` The five pinned examples therefore keep their text.
+the whole list, and one code per line.`, unless `loses.validation > 0`, when it is `Plain text
+keeps one format, one error-correction level and one render-if-invalid setting for the whole
+list, and one code per line.` The five pinned examples therefore keep their text.
 2. `Switching now ` + clauses + `.`. Clauses, in this order, each only when its count is above 0:
    `the format of N rows`, `the level of N rows`, `the render-if-invalid setting of N rows`, `cuts
-   N payloads at line breaks` with ` or commas` appended when the result format is numeric. The
+N payloads at line breaks` with ` or commas` appended when the result format is numeric. The
    first present clause among the first three carries the prefix `drops `. `1 row` and `1 payload`
-   are singular, as today. Two clauses join with ` and `; three or four join with `, ` and `, and `
+   are singular, as today. Two clauses join with the word `and` between spaces; three or four join with `, ` and `, and `
    before the last.
 3. `Every code will take the format of the first code, LABEL` + a level phrase only when the
    format declares `ecc` (`, and LEVEL` for a non-default level, `, and the format's default
-   level` otherwise, as today) + a validation phrase only when the format is GS1 (`, with invalid
-   GS1 data rendered` when `result.lax`, `, with invalid GS1 data skipped` otherwise) + `.`.
+level` otherwise, as today) + a validation phrase only when the format is GS1 (`, with invalid
+GS1 data rendered` when `result.lax`, `, with invalid GS1 data skipped` otherwise) + `.`.
 
 Examples of the third sentence: `…, GS1-128, with invalid GS1 data skipped.`;
 `…, GS1 QR Code, and level H, with invalid GS1 data rendered.`; `…, UPC-A.` unchanged.
@@ -381,13 +415,13 @@ Examples of the third sentence: `…, GS1-128, with invalid GS1 data skipped.`;
 before the existing `facts` branch so that the ` · UTF-8, no ECI` clause, which compares
 `facts.bytes` with `value.length`, never fires on a GS1 entry. States, each with its leading space:
 
-| State                    | Text                                                                                                         |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------ |
-| Valid GS1                | ` ✓ · SIZE · N characters[ · dense][ · over the 48-character GS1-128 limit] → AIM DATA`                     |
-| Rendered despite lint    | ` ⚠ rendered anyway · LINT · SIZE · N characters[ · dense][ · over …] → AIM DATA`                           |
-| Invalid, too long        | ` ✗ too long for LABEL` / ` ✗ too long for LABEL (level X)`, as today, taking precedence over `message`      |
-| Invalid with a message   | ` ✗ MESSAGE[ (parentheses inside a value are not supported)][ (the validation setting cannot override this)]` |
-| Invalid, no message      | ` ✗ invalid`                                                                                                 |
+| State                  | Text                                                                                                          |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Valid GS1              | ` ✓ · SIZE · N characters[ · dense][ · over the 48-character GS1-128 limit] → AIM DATA`                       |
+| Rendered despite lint  | ` ⚠ rendered anyway · LINT · SIZE · N characters[ · dense][ · over …] → AIM DATA`                             |
+| Invalid, too long      | ` ✗ too long for LABEL` / ` ✗ too long for LABEL (level X)`, as today, taking precedence over `message`       |
+| Invalid with a message | ` ✗ MESSAGE[ (parentheses inside a value are not supported)][ (the validation setting cannot override this)]` |
+| Invalid, no message    | ` ✗ invalid`                                                                                                  |
 
 - `SIZE` is `facts.summary`; `N characters` is `dataCharacters(gs1.data)` with `1 character`
   singular; `DATA` is `displayData(gs1.data)`.
@@ -431,8 +465,8 @@ Worked examples, measured (measurements §1 and §2):
   ` ✗ Incorrect GS1 DataBar Omnidirectional check digit provided (the validation setting cannot override this)`
 - `0109501101530003` on GS1-128, Expanded, Expanded Stacked and the three 2D carriers:
   ` ✗ AIs must start with '('`; on the five GTIN-only members: ` ✗ GS1 DataBar Omnidirectional must
-  be 13 or 14 digits`, with `Omnidirectional` replaced by `Truncated`, `Stacked`, `Stacked
-  Omnidirectional` or `Limited` for the others (one string per carrier, eleven in all).
+be 13 or 14 digits`, with `Omnidirectional` replaced by `Truncated`, `Stacked`, `Stacked
+Omnidirectional` or `Limited` for the others (one string per carrier, eleven in all).
 - GS1-128, `(01)09501101530003(10)A(B)C`:
   ` ✗ AI B: Unrecognised AI (parentheses inside a value are not supported)`
 
@@ -440,20 +474,20 @@ Worked examples, measured (measurements §1 and §2):
 `verdict.ts`; `EDITOR_HINT`, a const in `+page.svelte`, also changes (see _Setup page_):
 
 - `DENSE_HINT`: `Dense: more than 100 modules across (PDF417 and the linear GS1 formats: 300), so
-  each module is small on screen. If the scanner misses these, shorten the payload, lower error
-  correction if the format offers it, or go full screen.`
+each module is small on screen. If the scanner misses these, shorten the payload, lower error
+correction if the format offers it, or go full screen.`
 - `SCAN_HINT` (new), shown under the validation list and under the row editor whenever any entry
   has `gs1`: `After → is what a scanner sends when it transmits its symbology identifier (]C1, ]e0,
-  ]d2, ]Q3 or ]J1); ␝ marks a GS separator. Keyboard-wedge scanners usually omit the identifier and
-  may drop or change the separator. Character counts exclude both.`
+]d2, ]Q3 or ]J1); ␝ marks a GS separator. Keyboard-wedge scanners usually omit the identifier and
+may drop or change the separator. Character counts exclude both.`
 - `LAX_NOTE` (new), the toggle's description on the page and in the row editor: `Ticked, a code
-  that fails GS1 validation is drawn anyway, flagged amber with the reason. It cannot help with
-  missing brackets or a code too long for its symbol; GS1 DataBar Omnidirectional, Truncated,
-  Stacked, Stacked Omnidirectional and Limited still refuse a wrong GTIN; and GS1 DataBar Expanded
-  and Expanded Stacked carry the corrected check digit of a leading GTIN.`
+that fails GS1 validation is drawn anyway, flagged amber with the reason. It cannot help with
+missing brackets or a code too long for its symbol; GS1 DataBar Omnidirectional, Truncated,
+Stacked, Stacked Omnidirectional and Limited still refuse a wrong GTIN; and GS1 DataBar Expanded
+and Expanded Stacked carry the corrected check digit of a leading GTIN.`
 - `GS1_HINT` (new): `GS1 formats take bracketed element strings, such as
-  (01)09501101530003(10)LOT42, one code per line. Spaces and line breaks are removed, commas are
-  data, and parentheses inside a value are not supported.`
+(01)09501101530003(10)LOT42, one code per line. Spaces and line breaks are removed, commas are
+data, and parentheses inside a value are not supported.`
 
 `ValidationList` gives an `li` the class `lenient` instead of `valid` when `entry.lint` is set,
 coloured `#9a6700` (at least 4.5:1 on the white background; the app has no dark theme). The row
@@ -566,7 +600,7 @@ Step playback are untouched: a lax-rendered entry is a valid entry.
   becomes a real FNC1 and `^029B` fails with `Unknown function character: 029B`. The verdict's data
   shows the typed characters; modelling the escapes is out of scope.
 - **Repeated AI with differing values** (`(10)A(10)B`): lint `Repeated AIs (10) must have the same
-  value`; renders under lax, data `10A␝10B`.
+value`; renders under lax, data `10A␝10B`.
 - **A parenthesis inside a value** (`(10)A(B)C`): BWIPP reads `(B)` as an AI; strict
   ` ✗ AI B: Unrecognised AI (parentheses inside a value are not supported)`; under lax it renders
   and the scan data follows BWIPP's placement, with the same suffix on the amber line.
@@ -624,28 +658,28 @@ plain form elsewhere.
 - **`src/lib/engines/bwipjs.test.ts`** (extended), table-driven over the eleven: the sample
   (S for GS1-128 and the 2D carriers, G for the GTIN-only members, E for Expanded and Expanded
   Stacked) is valid with `facts.cols`, `rows` and `summary` from measurements §1 (`255 modules
-  wide`, `96 modules wide`, `96 modules wide`, `50 modules wide`, `50 modules wide`, `74 modules
-  wide`, `200 modules wide`, `102 modules wide`, `18×18 modules`, `25×25 modules`, `29×20
-  modules`) and `gs1.aim` from the table; `(01)09501101530004` strict gives `{ valid: false,
-  message: 'AI 01: Bad checksum' }` on GS1-128, Expanded, Expanded Stacked and the three 2D
+wide`, `96 modules wide`, `96 modules wide`, `50 modules wide`, `50 modules wide`, `74 modules
+wide`, `200 modules wide`, `102 modules wide`, `18×18 modules`, `25×25 modules`, `29×20
+modules`) and `gs1.aim` from the table; `(01)09501101530004` strict gives `{ valid: false,
+message: 'AI 01: Bad checksum' }` on GS1-128, Expanded, Expanded Stacked and the three 2D
   carriers, and with `{ lax: true }` gives `valid: true`, `lint: 'AI 01: Bad checksum'`, with
   `gs1.data` `'0109501101530004'` on GS1-128 (`cols` 134) and the three 2D carriers and
   `'0109501101530003'` on Expanded and Expanded Stacked; the same payload with `{ lax: true }` on
   the five GTIN-only members gives `valid: false` with each member's own `Incorrect GS1 DataBar …
-  check digit provided`; `(01)0950110153000` on each GTIN-only member is valid with `gs1.data`
+check digit provided`; `(01)0950110153000` on each GTIN-only member is valid with `gs1.data`
   `'0109501101530003'`; `(01)` → `AI 01: Too short` on GS1-128 and `GS1 DataBar Omnidirectional
-  must be 13 or 14 digits` on Omnidirectional; `0109501101530003`, strict and lax, on all eleven →
+must be 13 or 14 digits` on Omnidirectional; `0109501101530003`, strict and lax, on all eleven →
   invalid with `AIs must start with '('` where `gtinCheck` is not `'own'` and the member's `must be
-  13 or 14 digits` where it is; `(99999)123` strict → `AI 99999: Unrecognised AI`, lax → valid;
+13 or 14 digits` where it is; `(99999)123` strict → `AI 99999: Unrecognised AI`, lax → valid;
   `(10)A(10)B` → `Repeated AIs (10) must have the same value`; `(10)A(` on GS1-128 is valid with
   `gs1.data` `'10A'`; Expanded with the measurements §3 overflow payload → `reason: 'too-long'`;
   DotCode with lax and `(90)` + `x` to 1 998 characters → `reason: 'too-long'`, and to 2 100 →
   `reason: 'too-long'`; GS1 QR Code level H with lax and `(90)` + 3 000 `x` → `reason:
-  'too-long'`; Expanded with lax and `(01)09501101530003(10)Aé` → `valid: false`, `message:
-  'AI 10: Invalid CSET 82 character'`; plain `qr` over capacity still has no `message`; a strict
+'too-long'`; Expanded with lax and `(01)09501101530003(10)Aé` → `valid: false`, `message:
+'AI 10: Invalid CSET 82 character'`; plain `qr` over capacity still has no `message`; a strict
   check then a lax check of `(01)09501101530004` on GS1-128 return invalid then valid (distinct
   cache keys); `bwippErrorText('bwipp.GS1badChecksum#3251: AI 01: Bad checksum')` is `'AI 01: Bad
-  checksum'` and `bwippErrorText('boom')` undefined; GS1 QR Code S at L, M, H gives 21×21, 25×25,
+checksum'` and `bwippErrorText('boom')` undefined; GS1 QR Code S at L, M, H gives 21×21, 25×25,
   29×29; `render` of GS1-128 S gives an SVG with `width` 825 and `height` 219, of DataBar
   Omnidirectional G 348 × 162, and of GS1 QR Code S a 1024 px long side; the four old 2D snapshots
   are unchanged; eleven new snapshots `__snapshots__/bwipjs.<id>.svg`.
@@ -670,15 +704,15 @@ plain form elsewhere.
   `{ 0, 1, 0, 0 }` (counted once); the result's `lax` is the first live row's; `describeLoss`
   for `{ 0, 0, 0, 1 }` at `{ format: 'gs1128', ecc: '', lax: false }` is exactly the GS1 first
   sentence, then `Switching now drops the render-if-invalid setting of 1 row.`, then `Every code
-  will take the format of the first code, GS1-128, with invalid GS1 data skipped.`; for
+will take the format of the first code, GS1-128, with invalid GS1 data skipped.`; for
   `{ 1, 1, 1, 1 }` at `{ format: 'gs1qr', ecc: 'H', lax: true }` the second sentence is
   `Switching now drops the format of 1 row, the level of 1 row, the render-if-invalid setting of
-  1 row, and cuts 1 payload at line breaks.` and the third ends `GS1 QR Code, and level H, with
-  invalid GS1 data rendered.`; for `{ 1, 0, 0, 0 }` at `{ format: 'gs1128', ecc: '', lax: true }`
+1 row, and cuts 1 payload at line breaks.` and the third ends `GS1 QR Code, and level H, with
+invalid GS1 data rendered.`; for `{ 1, 0, 0, 0 }` at `{ format: 'gs1128', ecc: '', lax: true }`
   the first sentence is today's and the third ends `GS1-128, with invalid GS1 data rendered.`;
   the five existing examples are unchanged.
 - **`src/lib/shareUrl.test.ts`** (extended): encode `{ …DEFAULT_SETTINGS, format: 'gs1128', lax:
-  true }` ends `&fmt=gs1128&lax=1`; with `format: 'upc', lax: true` has no `lax`; with
+true }` ends `&fmt=gs1128&lax=1`; with `format: 'upc', lax: true` has no `lax`; with
   `format: 'gs1qr', ecc: 'H', lax: true` ends `&fmt=gs1qr&ecc=H&lax=1`; with step mode the order
   is `fmt=gs1128&lax=1&mode=step&dwell=500`; decode `lax=1` with `fmt=gs1128` sets `lax` true,
   with `fmt=upc` leaves it false, `lax=0` and `lax=yes` leave it false; rows encode
@@ -773,7 +807,7 @@ unverified rows as they stand.
     opens in Per row with row 1 amber and row 2 green; choosing Plain text shows a note whose
     second sentence is `Switching now drops the format of 1 row.` (row 2 differs in format, so it
     counts once, under formats) and whose third is `Every code will take the format of the first
-    code, GS1-128, with invalid GS1 data rendered.`; Start plays both; and the list link
+code, GS1-128, with invalid GS1 data rendered.`; Start plays both; and the list link
     `/play#codes=%2801%2909501101530004&fmt=gs1128&lax=1` plays one code. Pass: all four.
 11. **Share QR.** A Plain text list of ten element strings at GS1-128: the share-QR status line
     reports a readable level or says why not. Pass: the line's text recorded and consistent with

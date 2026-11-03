@@ -15,32 +15,32 @@ Payloads used throughout:
 
 ## 1. Sizes at scale 1 (pixels; `init` width × height, no padding)
 
-| Encoder                  | Payload | Size      | Notes                                                                       |
-| ------------------------ | ------- | --------- | --------------------------------------------------------------------------- |
-| `gs1_128`                | S       | 255 × 37  | 1 px per module (22 symbol characters × 11 + 13 = 255). Default bar height. |
-| `gs1_128` + `height: 18` | S       | 255 × 52  | `height` is in millimetres: h ≈ round(mm × 72 / 25.4) + 1.                  |
-| `gs1_128` + `height: 18.3` | S     | 255 × 53  | 53 × 3 = 159 px at 3 px/module, within 1 px of JsBarcode's 160 px bars.     |
-| `gs1_128` + `height: 19` | S       | 255 × 55  |                                                                             |
-| `gs1_128` + `scale: 3`   | S       | 765 × 109 | `scale` multiplies both axes.                                               |
-| `gs1_128` + `padding: 8` | S       | 255 × 37  | viewBox becomes `0 0 271 53`: padding is in px at scale 1, outside `init`.  |
-| `gs1_128`                | `(01)09501101530003(10)` + 20 A + `(21)` + 7 B  | 486 × 37 | 47 data characters without the GS. |
-| `gs1_128`                | `(01)09501101530003(10)` + 20 A + `(21)` + 10 B | 519 × 37 | 50 data characters without the GS. |
-| `gs1_128`                | `(01)09501101530004` with `dontlint`             | 134 × 37 |                                     |
-| `gs1_128`                | `(10)LOT42(01)09501101530003`                   | 222 × 37 | a GS is 11 modules: 22 predefined prefixes give 123, the other 78 two-digit AIs give 134 for `(p)1234(21)CD`. |
-| `databaromni`            | G       | 96 × 34   | 96 modules wide, 33X nominal height + 1.                                    |
-| `databaromni` + `height: 2` | G    | 96 × 7    | BWIPP honours `height` for DataBar too and squashes the symbol. Never set it. |
-| `databartruncated`       | G       | 96 × 14   |                                                                             |
-| `databarstacked`         | G       | 50 × 13   | 5X + 1X separator + 7X rows.                                                |
-| `databarstackedomni`     | G       | 50 × 69   | 33X + 3X separator + 33X.                                                   |
-| `databarlimited`         | G       | 74 × 11   |                                                                             |
-| `databarexpanded`        | E       | 200 × 35  | Width grows with the payload: 41 alphanumerics give 477 × 35.               |
-| `databarexpandedstacked` | E       | 102 × 71  | Default 2 segments per row; `segments: 4` gives 102 × 108 for a longer E.   |
-| `gs1datamatrix`          | S       | 36 × 36   | 2 px per module: 18 × 18 modules.                                           |
-| `gs1qrcode`              | S       | 50 × 50   | 2 px per module: 25 × 25 (level M, the default). L: 42 (21×21). Q: 50. H: 58 (29×29). |
-| `gs1dotcode`             | S       | 59 × 41   | 2 px pitch plus 1: `rows: 12` gives h 25, `columns: 30` gives w 61, `rows: 7` gives 157 × 15. So modules = (px − 1) / 2: 29 × 20 for S. |
-| `gs1dotcode`             | G       | 43 × 29   | 21 × 14 modules.                                                            |
-| `gs1dotcode`             | `(90)` + 1 986 `x`, `dontlint` | 567 × 381 | SVG of 1 834 052 characters: every dot is a path, so a long lax DotCode is the cache's worst case. S is 16 177. |
-| `gs1northamericancoupon` | `(8110)106141416543213500110000310123196000` | 102 × 145 | Identical to `databarexpandedstacked` on the same payload. |
+| Encoder                     | Payload                                         | Size      | Notes                                                                                                                                   |
+| --------------------------- | ----------------------------------------------- | --------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `gs1_128`                   | S                                               | 255 × 37  | 1 px per module (22 symbol characters × 11 + 13 = 255). Default bar height.                                                             |
+| `gs1_128` + `height: 18`    | S                                               | 255 × 52  | `height` is in millimetres: h ≈ round(mm × 72 / 25.4) + 1.                                                                              |
+| `gs1_128` + `height: 18.3`  | S                                               | 255 × 53  | 53 × 3 = 159 px at 3 px/module, within 1 px of JsBarcode's 160 px bars.                                                                 |
+| `gs1_128` + `height: 19`    | S                                               | 255 × 55  |                                                                                                                                         |
+| `gs1_128` + `scale: 3`      | S                                               | 765 × 109 | `scale` multiplies both axes.                                                                                                           |
+| `gs1_128` + `padding: 8`    | S                                               | 255 × 37  | viewBox becomes `0 0 271 53`: padding is in px at scale 1, outside `init`.                                                              |
+| `gs1_128`                   | `(01)09501101530003(10)` + 20 A + `(21)` + 7 B  | 486 × 37  | 47 data characters without the GS.                                                                                                      |
+| `gs1_128`                   | `(01)09501101530003(10)` + 20 A + `(21)` + 10 B | 519 × 37  | 50 data characters without the GS.                                                                                                      |
+| `gs1_128`                   | `(01)09501101530004` with `dontlint`            | 134 × 37  |                                                                                                                                         |
+| `gs1_128`                   | `(10)LOT42(01)09501101530003`                   | 222 × 37  | a GS is 11 modules: 22 predefined prefixes give 123, the other 78 two-digit AIs give 134 for `(p)1234(21)CD`.                           |
+| `databaromni`               | G                                               | 96 × 34   | 96 modules wide, 33X nominal height + 1.                                                                                                |
+| `databaromni` + `height: 2` | G                                               | 96 × 7    | BWIPP honours `height` for DataBar too and squashes the symbol. Never set it.                                                           |
+| `databartruncated`          | G                                               | 96 × 14   |                                                                                                                                         |
+| `databarstacked`            | G                                               | 50 × 13   | 5X + 1X separator + 7X rows.                                                                                                            |
+| `databarstackedomni`        | G                                               | 50 × 69   | 33X + 3X separator + 33X.                                                                                                               |
+| `databarlimited`            | G                                               | 74 × 11   |                                                                                                                                         |
+| `databarexpanded`           | E                                               | 200 × 35  | Width grows with the payload: 41 alphanumerics give 477 × 35.                                                                           |
+| `databarexpandedstacked`    | E                                               | 102 × 71  | Default 2 segments per row; `segments: 4` gives 102 × 108 for a longer E.                                                               |
+| `gs1datamatrix`             | S                                               | 36 × 36   | 2 px per module: 18 × 18 modules.                                                                                                       |
+| `gs1qrcode`                 | S                                               | 50 × 50   | 2 px per module: 25 × 25 (level M, the default). L: 42 (21×21). Q: 50. H: 58 (29×29).                                                   |
+| `gs1dotcode`                | S                                               | 59 × 41   | 2 px pitch plus 1: `rows: 12` gives h 25, `columns: 30` gives w 61, `rows: 7` gives 157 × 15. So modules = (px − 1) / 2: 29 × 20 for S. |
+| `gs1dotcode`                | G                                               | 43 × 29   | 21 × 14 modules.                                                                                                                        |
+| `gs1dotcode`                | `(90)` + 1 986 `x`, `dontlint`                  | 567 × 381 | SVG of 1 834 052 characters: every dot is a path, so a long lax DotCode is the cache's worst case. S is 16 177.                         |
+| `gs1northamericancoupon`    | `(8110)106141416543213500110000310123196000`    | 102 × 145 | Identical to `databarexpandedstacked` on the same payload.                                                                              |
 
 Human-readable text (`includetext: true`): `gs1_128` grows to 255 × 45 and the SVG from 1 337 to
 28 189 characters (glyph outlines as paths); `databaromni` to 108 × 42 and 15 807 characters (the
@@ -54,33 +54,33 @@ Every GS1 encoder runs BWIPP's AI linter before encoding. Error messages have th
 `bwipp.<name>#<line>: <text>`; the `#<line>` part changes between bwip-js versions, the name and
 the text do not.
 
-| Payload (encoder `gs1_128` unless noted)             | Strict result                                                              | With `dontlint: true`         |
-| ---------------------------------------------------- | -------------------------------------------------------------------------- | ----------------------------- |
-| `(01)09501101530004`                                 | `GS1badChecksum`: `AI 01: Bad checksum`                                    | renders, 134 × 37             |
-| `(01)09501101530003(17)261345`                       | `GS1badMonth`: `AI 17: Invalid month`                                      | renders, 178 × 37             |
-| `(01)095011015300031`                                | `GS1valueTooLong`: `AI 01: Too long`                                       | renders                       |
-| `(01)0950`                                           | `GS1valueTooShort`: `AI 01: Too short`                                     | renders                       |
-| `(01)`                                               | `GS1valueTooShort`: `AI 01: Too short`                                     | renders                       |
-| `(01)0950110153000A`                                 | `GS1notNumeric`: `AI 01: Not numeric`                                      | renders                       |
-| `(01)09501101530003(10)A B`                          | `GS1badCSET82character`: `AI 10: Invalid CSET 82 character`                | renders                       |
-| `(01)09501101530003(10)Äb`, `…(10)A^B`, `…(10)A\(B\)C` | `GS1badCSET82character`                                                  | not probed                    |
-| `(99999)123`, `(89)123`                              | `GS1unknownAI`: `AI 99999: Unrecognised AI`                                | renders                       |
-| `(01)09501101530003(10)A(B)C`                        | `GS1unknownAI`: `AI B: Unrecognised AI` (a `(` always opens an AI)         | not probed                    |
-| `(10)A(10)B`                                         | `GS1repeatedDifferingAIs`: `Repeated AIs (10) must have the same value`    | renders, 123 × 37             |
-| `0109501101530003` (any GS1 encoder)                 | `GS1aiMissingOpenParen`: `AIs must start with '('`                         | **still fails**               |
-| `(02)09501101530003`                                 | renders (mandatory pairings are not enforced by default)                   | renders                       |
-| `(02)09501101530003` + `lintreqs: true`              | `GS1missingAIs`: `One of more requisite AIs for AI (02) are missing: 37`   | n/a                           |
-| `databaromni` `(01)09501101530004`                   | `databaromniBadCheckDigit`: `Incorrect GS1 DataBar Omnidirectional check digit provided` | **still fails** |
-| `databaromni` `(01)09501101530003(17)261231`         | `databaromniBadLength`: `GS1 DataBar Omnidirectional must be 13 or 14 digits` | **still fails**            |
-| `databartruncated` / `databarstacked` / `databarstackedomni` `(01)09501101530004` | `databar<member>BadCheckDigit` with the member's name in the text | **still fails** |
-| `databarlimited` `(01)09501101530004`                | `databarlimitedBadCheckDigit`                                              | **still fails**               |
-| `databarlimited` `(01)29501101530003`, `(01)9501101530003` | `databarlimitedBadStartDigit`: `GS1 DataBar Limited must begin with 0 or 1` | **still fails**         |
-| `databarexpanded` `(01)09501101530003(17)261345`     | `GS1badMonth`                                                              | renders, 200 × 35             |
-| `databarexpandedstacked` `(01)09501101530004`        | `GS1badChecksum`                                                           | renders, 101 × 71             |
-| `gs1datamatrix` / `gs1qrcode` / `gs1dotcode` `(01)09501101530004` | `GS1badChecksum`                                              | renders (32×32, 42×42, 43×29) |
-| `gs1_128` `(01)09501101530003(10)abc`, `…(10)A,B`    | renders: lowercase and comma are in CSET 82                                |                               |
-| `gs1_128` `(01)09501101530003(3103)000123(3922)1234` | renders (4-digit AIs)                                                      |                               |
-| `gs1_128` `(10)LOT42(01)09501101530003`              | renders, 222 × 37 (a variable-length AI before a fixed one)                |                               |
+| Payload (encoder `gs1_128` unless noted)                                          | Strict result                                                                            | With `dontlint: true`         |
+| --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | ----------------------------- |
+| `(01)09501101530004`                                                              | `GS1badChecksum`: `AI 01: Bad checksum`                                                  | renders, 134 × 37             |
+| `(01)09501101530003(17)261345`                                                    | `GS1badMonth`: `AI 17: Invalid month`                                                    | renders, 178 × 37             |
+| `(01)095011015300031`                                                             | `GS1valueTooLong`: `AI 01: Too long`                                                     | renders                       |
+| `(01)0950`                                                                        | `GS1valueTooShort`: `AI 01: Too short`                                                   | renders                       |
+| `(01)`                                                                            | `GS1valueTooShort`: `AI 01: Too short`                                                   | renders                       |
+| `(01)0950110153000A`                                                              | `GS1notNumeric`: `AI 01: Not numeric`                                                    | renders                       |
+| `(01)09501101530003(10)A B`                                                       | `GS1badCSET82character`: `AI 10: Invalid CSET 82 character`                              | renders                       |
+| `(01)09501101530003(10)Äb`, `…(10)A^B`, `…(10)A\(B\)C`                            | `GS1badCSET82character`                                                                  | not probed                    |
+| `(99999)123`, `(89)123`                                                           | `GS1unknownAI`: `AI 99999: Unrecognised AI`                                              | renders                       |
+| `(01)09501101530003(10)A(B)C`                                                     | `GS1unknownAI`: `AI B: Unrecognised AI` (a `(` always opens an AI)                       | not probed                    |
+| `(10)A(10)B`                                                                      | `GS1repeatedDifferingAIs`: `Repeated AIs (10) must have the same value`                  | renders, 123 × 37             |
+| `0109501101530003` (any GS1 encoder)                                              | `GS1aiMissingOpenParen`: `AIs must start with '('`                                       | **still fails**               |
+| `(02)09501101530003`                                                              | renders (mandatory pairings are not enforced by default)                                 | renders                       |
+| `(02)09501101530003` + `lintreqs: true`                                           | `GS1missingAIs`: `One of more requisite AIs for AI (02) are missing: 37`                 | n/a                           |
+| `databaromni` `(01)09501101530004`                                                | `databaromniBadCheckDigit`: `Incorrect GS1 DataBar Omnidirectional check digit provided` | **still fails**               |
+| `databaromni` `(01)09501101530003(17)261231`                                      | `databaromniBadLength`: `GS1 DataBar Omnidirectional must be 13 or 14 digits`            | **still fails**               |
+| `databartruncated` / `databarstacked` / `databarstackedomni` `(01)09501101530004` | `databar<member>BadCheckDigit` with the member's name in the text                        | **still fails**               |
+| `databarlimited` `(01)09501101530004`                                             | `databarlimitedBadCheckDigit`                                                            | **still fails**               |
+| `databarlimited` `(01)29501101530003`, `(01)9501101530003`                        | `databarlimitedBadStartDigit`: `GS1 DataBar Limited must begin with 0 or 1`              | **still fails**               |
+| `databarexpanded` `(01)09501101530003(17)261345`                                  | `GS1badMonth`                                                                            | renders, 200 × 35             |
+| `databarexpandedstacked` `(01)09501101530004`                                     | `GS1badChecksum`                                                                         | renders, 101 × 71             |
+| `gs1datamatrix` / `gs1qrcode` / `gs1dotcode` `(01)09501101530004`                 | `GS1badChecksum`                                                                         | renders (32×32, 42×42, 43×29) |
+| `gs1_128` `(01)09501101530003(10)abc`, `…(10)A,B`                                 | renders: lowercase and comma are in CSET 82                                              |                               |
+| `gs1_128` `(01)09501101530003(3103)000123(3922)1234`                              | renders (4-digit AIs)                                                                    |                               |
+| `gs1_128` `(10)LOT42(01)09501101530003`                                           | renders, 222 × 37 (a variable-length AI before a fixed one)                              |                               |
 
 So `dontlint` bypasses every `GS1*` lint error except the bracket-syntax ones, and never bypasses
 the GTIN-only DataBar members' own checks (`databar<member>Bad*`).
