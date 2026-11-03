@@ -1,5 +1,6 @@
 import { DEFAULT_SETTINGS, DWELL_RANGE, GAP_RANGE, type Settings } from './types';
-import { DEFAULT_FORMAT, FORMAT_BY_ID, isEccChoice, isFormatId } from './formats';
+import { DEFAULT_FORMAT, FORMAT_BY_ID, canonicalEcc, isEccChoice, isFormatId } from './formats';
+import { rowToken, type Row } from './rows';
 
 const SPEED_MIN = 10;
 const SPEED_MAX = 5000;
@@ -29,6 +30,30 @@ function stepMs(
 export function encodeShareUrl(codes: string[], settings: Settings): string {
 	const params = new URLSearchParams();
 	params.set('codes', codes.join('\n'));
+	appendSettings(params, settings, true);
+	return '#' + params.toString();
+}
+
+/** Build a per-row share fragment "#r1=…&r2=…&speed=…&…&fmt=…": one record per non-blank row,
+ *  numbered from 1 in editor order (an empty `codes` when there is none), then the settings tail
+ *  of encodeShareUrl without `ecc`. */
+export function encodeRowsShareUrl(rows: Row[], settings: Settings): string {
+	const params = new URLSearchParams();
+	let n = 0;
+	for (const row of rows) {
+		const token = rowToken(row.payload);
+		if (token === '') continue;
+		n += 1;
+		params.set(`r${n}`, `${row.format}${row.ecc ? '-' + row.ecc : ''}_${token}`);
+	}
+	if (n === 0) params.set('codes', '');
+	appendSettings(params, settings, false);
+	return '#' + params.toString();
+}
+
+/** Module-private. Writes speed, loop, rot, rotmax, skew, skewmax, seed and fmt; then ecc under
+ *  today's rule, only when withEcc holds; then mode, dwell and gap under today's rules. */
+function appendSettings(params: URLSearchParams, settings: Settings, withEcc: boolean): void {
 	params.set('speed', String(settings.speedPxPerSec));
 	params.set('loop', settings.loop ? '1' : '0');
 	params.set('rot', settings.rotate ? '1' : '0');
@@ -39,6 +64,7 @@ export function encodeShareUrl(codes: string[], settings: Settings): string {
 	params.set('fmt', settings.format);
 	const descriptor = FORMAT_BY_ID.get(settings.format);
 	if (
+		withEcc &&
 		descriptor?.ecc &&
 		isEccChoice(descriptor, settings.ecc) &&
 		settings.ecc !== descriptor.ecc.defaultValue
@@ -51,16 +77,47 @@ export function encodeShareUrl(codes: string[], settings: Settings): string {
 			params.set('dwell', String(settings.dwellMs));
 		if (settings.gapMs !== DEFAULT_SETTINGS.gapMs) params.set('gap', String(settings.gapMs));
 	}
-	return '#' + params.toString();
 }
 
-/** Parse a page URL into codes + partial settings. The fragment is the source when it
- *  carries `codes`, else the legacy query string is, so old links keep working.
- *  Per-parameter leniency, never throws. */
-export function decodeShareUrl(url: URL): { codes: string[]; settings: Partial<Settings> } {
+/** The distinct `r<n>` keys of `params` whose first value is non-empty, in numeric order. */
+function recordKeys(params: URLSearchParams): string[] {
+	return [...new Set(params.keys())]
+		.filter((key) => /^r([1-9][0-9]*)$/.test(key) && params.get(key) !== '')
+		.sort((a, b) => a.length - b.length || (a < b ? -1 : a > b ? 1 : 0));
+}
+
+/** One record value, `format[-level]_payload`, as a row; null when it is unusable. */
+function parseRecord(value: string): Row | null {
+	const match = /^([a-z0-9]+)(?:-([A-Za-z0-9]*))?_([\s\S]*)$/.exec(value);
+	if (!match) return null;
+	const [, format, level, payload] = match;
+	if (!isFormatId(format)) return null;
+	const token = rowToken(payload);
+	if (token === '') return null;
+	return { payload: token, format, ecc: canonicalEcc(format, level ?? '') };
+}
+
+/** Parse a page URL into codes or records, plus partial settings. The fragment is the source
+ *  when it carries `codes` or an `r<n>` key with a non-empty value, else the legacy query string
+ *  is, so old links keep working. Per-parameter leniency, never throws. */
+export function decodeShareUrl(url: URL): {
+	codes: string[];
+	settings: Partial<Settings>;
+	records: Row[] | undefined;
+} {
 	const hashParams = new URLSearchParams(url.hash.slice(1));
-	const params = hashParams.has('codes') ? hashParams : new URLSearchParams(url.search.slice(1));
-	const codesRaw = params.get('codes');
+	const params =
+		hashParams.has('codes') || recordKeys(hashParams).length > 0
+			? hashParams
+			: new URLSearchParams(url.search.slice(1));
+	const keys = recordKeys(params);
+	const records =
+		keys.length === 0
+			? undefined
+			: keys
+					.map((key) => parseRecord(params.get(key) ?? ''))
+					.filter((row): row is Row => row !== null);
+	const codesRaw = records ? null : params.get('codes');
 	const codes = codesRaw
 		? codesRaw
 				.split('\n')
@@ -129,5 +186,5 @@ export function decodeShareUrl(url: URL): { codes: string[]; settings: Partial<S
 	if (dwellMs !== undefined) settings.dwellMs = dwellMs;
 	const gapMs = stepMs(params.get('gap'), GAP_RANGE);
 	if (gapMs !== undefined) settings.gapMs = gapMs;
-	return { codes, settings };
+	return { codes, settings, records };
 }
