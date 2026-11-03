@@ -43,7 +43,7 @@ this plan and the spec disagree, the spec wins; report the disagreement.
   discarded, never carried. Frame deltas are clamped to `MAX_DELTA_MS` (100 ms). No `$effect`
   writes setup or play state.
 - `.ctl-counter` is a plain `span` and `.readout` is `aria-hidden="true"`; neither has
-  `aria-live`. `.finish-text` has `role="status"` in both modes.
+  `aria-live`. a persistent, visually hidden `p.finish-status` (`role="status"`) is the live region in both modes; `.finish-text` carries no role.
 - Every commit has `npm run check` at 0 errors, `npm test` green (it runs `npm run check` first)
   and `npm run lint` clean (Prettier: tabs, single quotes, width 100, no trailing commas; then
   ESLint). Fix formatting with `npx prettier --write <each file you touched>`.
@@ -1334,8 +1334,8 @@ asserts `txt('.x')` exactly; `.x = 'v'` asserts `v('.x')`.
    `.ctl-next`, `.ctl-dwell-seconds`, `.ctl-gap-seconds`, `.ctl-dwell` and `.ctl-gap`, `focus()`
    it and fire `key <it> ' '`: still `'Play'`. `key document.body ' '`: `'Pause'`.
 10. `finishes on Next at the last code with the run record as a status, then ignores keys`:
-    `open('&dwell=500&gap=250')`; `click .ctl-next` twice: `.finish-text` has `role="status"` and
-    reads `'Finished stepping 2 barcodes in 0.00 seconds at 0.50 s dwell, 0.25 s gap.'`;
+    `open('&dwell=500&gap=250')`; `click .ctl-next` twice: `p.finish-status` (`role="status"`) and
+    `.finish-text` (no role) read `'Finished stepping 2 barcodes in 0.00 seconds at 0.50 s dwell, 0.25 s gap.'`;
     `key window ArrowRight` leaves it unchanged.
 11. `reports a dwell set before Play as the dwell, and one changed after Play as a change`:
     `open('&dwell=500&gap=250')`, `input .ctl-dwell 300`, `click .ctl-next` twice: `.finish-text`
@@ -1395,7 +1395,8 @@ In `src/routes/play/+page.svelte`:
   `onfocusout={showOverlay}` on the `div`. Its `{:else}` comment becomes today's `.ctl-speed`
   input (`:86-94`) with `oninput={() => scroll?.setSpeed(speed)}`.
 - `:98` `{#if finish}` becomes `{#if finishText !== null}`, and `:100` becomes
-  `<p class="finish-text" role="status">{finishText}</p>`. `.finish-restart` and `.finish-back`
+  `<p class="finish-text">{finishText}</p>`, plus a persistent, visually hidden
+  `<p class="finish-status" role="status">{finishText ?? ''}</p>` as the live region. `.finish-restart` and `.finish-back`
   stay.
 - Styles: `.overlay` (`:115-129`) gains `flex-wrap: wrap; justify-content: center;`
   `width: max-content; max-width: calc(100vw - 32px);`. After `.overlay.hidden` (`:130-133`), add
@@ -1575,26 +1576,26 @@ landscape-phone overlap is recorded, not failed. Row 7 measures with the Step 7 
 is the display check, which needs a 240 fps or faster capture or a photodiode and stays
 UNVERIFIED without one. Row 8 has no pass rule: it becomes `RECORDED` once its record is made.
 
-| #    | Check                                              | Status     | Device / browser, firmware, read mode | Output / notes |
-| ---- | -------------------------------------------------- | ---------- | ------------------------------------- | -------------- |
-| 1    | Automated checks                                   | UNVERIFIED |                                       |                |
-| 2    | Full run at 1 s dwell with the target imager       | UNVERIFIED |                                       |                |
-| 3    | Shortest reliable dwell                            | UNVERIFIED |                                       |                |
-| 4    | Duplicate payloads                                 | UNVERIFIED |                                       |                |
-| 5    | Phone camera run                                   | UNVERIFIED |                                       |                |
-| 6a-c | Chromium: centring, aspect and quiet zone          | UNVERIFIED |                                       |                |
-| 6a-f | Firefox: centring, aspect and quiet zone           | UNVERIFIED |                                       |                |
-| 6b-c | Chromium: overlay at 390 px and 1024 px wide       | UNVERIFIED |                                       |                |
-| 6b-f | Firefox: overlay at 390 px and 1024 px wide        | UNVERIFIED |                                       |                |
-| 6c-c | Chromium: arrow keys, and a focused Dwell slider   | UNVERIFIED |                                       |                |
-| 6c-f | Firefox: arrow keys, and a focused Dwell slider    | UNVERIFIED |                                       |                |
-| 6d-c | Chromium: overlay hides after a mouse Play         | UNVERIFIED |                                       |                |
-| 6d-f | Firefox: overlay hides after a mouse Play          | UNVERIFIED |                                       |                |
-| 6e-c | Chromium: hidden tab for 10 s mid-dwell            | UNVERIFIED |                                       |                |
-| 6e-f | Firefox: hidden tab for 10 s mid-dwell             | UNVERIFIED |                                       |                |
-| 7    | Schedule check with the `MutationObserver` snippet | UNVERIFIED |                                       |                |
-| 7d   | Display check: 240 fps capture or photodiode       | UNVERIFIED |                                       |                |
-| 8    | One code on screen for 30 s, record only           | UNVERIFIED |                                       |                |
+| #    | Check                                              | Status     | Device / browser, firmware, read mode | Output / notes                                                                                                                                                                           |
+| ---- | -------------------------------------------------- | ---------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | Automated checks                                   | PASS       | Node v24.17.0, Linux, no device       | `npm run check`: 0 errors, 0 warnings (389 files). `npm test`: Test Files 25 passed (25), Tests 329 passed (329). `npm run lint`: clean. `npm run build`: done, exit 0. All four exit 0. |
+| 2    | Full run at 1 s dwell with the target imager       | UNVERIFIED |                                       |                                                                                                                                                                                          |
+| 3    | Shortest reliable dwell                            | UNVERIFIED |                                       |                                                                                                                                                                                          |
+| 4    | Duplicate payloads                                 | UNVERIFIED |                                       |                                                                                                                                                                                          |
+| 5    | Phone camera run                                   | UNVERIFIED |                                       |                                                                                                                                                                                          |
+| 6a-c | Chromium: centring, aspect and quiet zone          | UNVERIFIED |                                       |                                                                                                                                                                                          |
+| 6a-f | Firefox: centring, aspect and quiet zone           | UNVERIFIED |                                       |                                                                                                                                                                                          |
+| 6b-c | Chromium: overlay at 390 px and 1024 px wide       | UNVERIFIED |                                       |                                                                                                                                                                                          |
+| 6b-f | Firefox: overlay at 390 px and 1024 px wide        | UNVERIFIED |                                       |                                                                                                                                                                                          |
+| 6c-c | Chromium: arrow keys, and a focused Dwell slider   | UNVERIFIED |                                       |                                                                                                                                                                                          |
+| 6c-f | Firefox: arrow keys, and a focused Dwell slider    | UNVERIFIED |                                       |                                                                                                                                                                                          |
+| 6d-c | Chromium: overlay hides after a mouse Play         | UNVERIFIED |                                       |                                                                                                                                                                                          |
+| 6d-f | Firefox: overlay hides after a mouse Play          | UNVERIFIED |                                       |                                                                                                                                                                                          |
+| 6e-c | Chromium: hidden tab for 10 s mid-dwell            | UNVERIFIED |                                       |                                                                                                                                                                                          |
+| 6e-f | Firefox: hidden tab for 10 s mid-dwell             | UNVERIFIED |                                       |                                                                                                                                                                                          |
+| 7    | Schedule check with the `MutationObserver` snippet | UNVERIFIED |                                       |                                                                                                                                                                                          |
+| 7d   | Display check: 240 fps capture or photodiode       | UNVERIFIED |                                       |                                                                                                                                                                                          |
+| 8    | One code on screen for 30 s, record only           | UNVERIFIED |                                       |                                                                                                                                                                                          |
 
 A skipped step, or one whose checker died or returned nothing, stays UNVERIFIED. A step that ran
 and failed is recorded FAILED, with the evidence. The final report lists every UNVERIFIED and
