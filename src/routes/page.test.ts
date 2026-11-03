@@ -5,6 +5,7 @@ import SetupPage from './+page.svelte';
 import { readCodesFile } from '$lib/fileInput';
 import { encodeShareUrl } from '$lib/shareUrl';
 import { DEFAULT_SETTINGS } from '$lib/types';
+import { GS1_HINT, LAX_NOTE, SCAN_HINT } from '$lib/verdict';
 
 const mockPage = vi.hoisted(() => ({ url: new URL('http://localhost/') }));
 const goto = vi.hoisted(() => vi.fn());
@@ -570,7 +571,7 @@ describe('setup page: per-row editor', () => {
 	it('shows the Editor hint in Plain text only', async () => {
 		open();
 		expect(q(c, '.editor-hint').textContent).toBe(
-			'Per row gives each code its own format and error-correction level, and lets a code span several lines.'
+			'Per row gives each code its own format, error-correction level and GS1 validation setting, and lets a code span several lines.'
 		);
 		await editor('rows');
 		expect(has('.editor-hint')).toBe(false);
@@ -802,5 +803,113 @@ describe('setup page: per-row editor', () => {
 		expect(rowCount()).toBe(0);
 		expect(q<HTMLButtonElement>(c, '.start').disabled).toBe(true);
 		expect(share().endsWith(EMPTY)).toBe(true);
+	});
+});
+
+describe('setup page: GS1 validation setting', () => {
+	const S = '(01)09501101530003(17)261231(10)LOT42';
+	const BAD = '(01)09501101530004';
+	const GS1_LIMIT =
+		'Plain text keeps one format, one error-correction level and one render-if-invalid setting for the whole list, and one code per line.';
+	const list = (payload: string, tail = '') =>
+		`http://localhost/#codes=${encodeURIComponent(payload)}&seed=0&fmt=gs1128${tail}`;
+	let c: HTMLElement;
+	const open = (url: string) => {
+		mockPage.url = new URL(url);
+		c = render(SetupPage).container;
+	};
+	const has = (sel: string) => c.querySelector(sel) !== null;
+	const box = () => q<HTMLInputElement>(c, '.lax-input');
+	const set = (sel: string, value: string) => fireEvent.change(q(c, sel), { target: { value } });
+	const share = () => q<HTMLInputElement>(c, '.share-url').value;
+	const rowBoxes = () =>
+		[...c.querySelectorAll<HTMLInputElement>('.row-lax-input')].map((el) => el.checked);
+	/** Whether the element at `a` precedes the one at `b` in the document. */
+	const precedes = (a: string, b: string) =>
+		Boolean(q(c, a).compareDocumentPosition(q(c, b)) & Node.DOCUMENT_POSITION_FOLLOWING);
+
+	it('shows the box, its note, the GS1 hint and the GS1 placeholder for a GS1 list, after the level select', async () => {
+		open(list(S));
+		expect(box().checked).toBe(false);
+		expect(
+			q(c, '.lax-field').textContent?.trim().startsWith('Render GS1 data that fails validation')
+		).toBe(true);
+		expect(q(c, '.lax-note').textContent).toBe(LAX_NOTE);
+		expect(box().getAttribute('aria-describedby')).toBe(q(c, '.lax-note').id);
+		expect(q(c, '.gs1-hint').textContent).toBe(GS1_HINT);
+		expect(q<HTMLTextAreaElement>(c, '.code-input').placeholder).toBe(
+			'Paste GS1 element strings — one per line'
+		);
+		expect(precedes('.format-input', '.lax-input') && precedes('.lax-input', '.mode-input')).toBe(
+			true
+		);
+		await set('.format-input', 'gs1qr');
+		expect(precedes('.ecc-input', '.lax-input') && precedes('.lax-input', '.mode-input')).toBe(
+			true
+		);
+		await set('.format-input', 'upc');
+		expect([has('.lax-input'), has('.lax-note'), has('.gs1-hint')]).toEqual([false, false, false]);
+		expect(q<HTMLTextAreaElement>(c, '.code-input').placeholder).toBe(
+			'Paste codes — one per line, or comma-separated'
+		);
+	});
+
+	it('prefills the box from lax=1, flags the row amber with the scan hint, and clears when the format leaves GS1', async () => {
+		open(list(BAD, '&lax=1'));
+		expect(box().checked).toBe(true);
+		expect(q(c, '.validation-list li').classList.contains('lenient')).toBe(true);
+		expect(q(c, '.scan-hint').textContent).toBe(SCAN_HINT);
+		expect(share()).toContain('&fmt=gs1128&lax=1');
+		expect(q<HTMLButtonElement>(c, '.start').disabled).toBe(false);
+		await set('.format-input', 'upc');
+		await set('.format-input', 'gs1128');
+		expect(box().checked).toBe(false);
+		expect(share()).not.toContain('lax=');
+		expect(q(c, '.validation-list li').classList.contains('invalid')).toBe(true);
+		expect(q<HTMLButtonElement>(c, '.start').disabled).toBe(true);
+	});
+
+	it('ticks the box, validates leniently and writes lax=1 at the end of the link', async () => {
+		open(list(BAD));
+		expect(q(c, '.validation-list li').classList.contains('invalid')).toBe(true);
+		await fireEvent.click(box());
+		expect(q(c, '.validation-list li').classList.contains('lenient')).toBe(true);
+		expect(share()).toMatch(/&fmt=gs1128&lax=1$/);
+	});
+
+	it('carries the box into Per row rows and back, hiding the page box in Per row', async () => {
+		open(list(`${BAD}\n${S}`, '&lax=1'));
+		await set('.editor-input', 'rows');
+		expect(has('.lax-field')).toBe(false);
+		expect(rowBoxes()).toEqual([true, true]);
+		expect(c.querySelectorAll('.lax-note').length).toBe(1); // the row editor's
+		expect(c.querySelectorAll('.gs1-hint').length).toBe(1);
+		await set('.editor-input', 'text');
+		expect(has('.switch-note')).toBe(false);
+		expect(box().checked).toBe(true);
+		expect(share()).toContain('&fmt=gs1128&lax=1');
+	});
+
+	it('words the render-if-invalid loss on a mixed switch', async () => {
+		open(
+			`http://localhost/#r1=gs1128_${encodeURIComponent(S)}&r2=gs1128-lax_${encodeURIComponent(S)}&seed=0`
+		);
+		await set('.editor-input', 'text');
+		expect(q(c, '.switch-note p').textContent).toBe(
+			`${GS1_LIMIT} Switching now drops the render-if-invalid setting of 1 row. Every code will take the format of the first code, GS1-128, with invalid GS1 data skipped.`
+		);
+	});
+
+	it('appends uploaded rows with the box off', async () => {
+		open(`http://localhost/#r1=gs1128-lax_${encodeURIComponent(BAD)}&fmt=gs1128&lax=1&seed=0`);
+		vi.mocked(readCodesFile).mockResolvedValueOnce(S);
+		const fileInput = q<HTMLInputElement>(c, '.file-input');
+		Object.defineProperty(fileInput, 'files', {
+			value: [new File(['x'], 'codes.txt', { type: 'text/plain' })],
+			configurable: true
+		});
+		await fireEvent.change(fileInput);
+		await tick();
+		expect(rowBoxes()).toEqual([true, false]);
 	});
 });

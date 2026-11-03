@@ -18,8 +18,10 @@
 		FORMAT_GROUPS,
 		canonicalEcc,
 		canonicalLax,
+		isGs1,
 		type FormatId
 	} from '$lib/formats';
+	import { GS1_HINT, LAX_NOTE } from '$lib/verdict';
 	import { readCodesFile } from '$lib/fileInput';
 	import { decodeShareUrl, encodeRowsShareUrl, encodeShareUrl } from '$lib/shareUrl';
 	import {
@@ -45,7 +47,7 @@
 	let pending: TextConversion | null = $state(null);
 	let editorSelect: HTMLSelectElement | undefined = $state();
 	const EDITOR_HINT =
-		'Per row gives each code its own format and error-correction level, and lets a code span several lines.';
+		'Per row gives each code its own format, error-correction level and GS1 validation setting, and lets a code span several lines.';
 	let speedPxPerSec = $state(initial.speedPxPerSec);
 	let loop = $state(initial.loop);
 	let rotate = $state(initial.rotate);
@@ -59,6 +61,7 @@
 	let dwellMs = $state(initial.dwellMs);
 	let gapMs = $state(initial.gapMs);
 	const descriptor = $derived(FORMAT_BY_ID.get(format));
+	const uid = $props.id();
 	let fileError = $state('');
 
 	const entries: CodeEntry[] = $derived(
@@ -67,9 +70,11 @@
 	const rawCodes: string[] = $derived(entries.map((e) => e.raw));
 	const canStart: boolean = $derived(entries.some((e) => e.valid));
 	const placeholder: string = $derived(
-		descriptor?.numeric
-			? 'Paste codes — one per line, or comma-separated'
-			: 'Paste codes — one per line'
+		isGs1(descriptor)
+			? 'Paste GS1 element strings — one per line'
+			: descriptor?.numeric
+				? 'Paste codes — one per line, or comma-separated'
+				: 'Paste codes — one per line'
 	);
 	const settings: Settings = $derived({
 		speedPxPerSec,
@@ -275,6 +280,9 @@
 				{/each}
 			</select>
 		</label>
+		{#if editor === 'text' && isGs1(descriptor)}
+			<p class="gs1-hint">{GS1_HINT}</p>
+		{/if}
 		{#if editor === 'text' && descriptor?.ecc}
 			{@const opt = descriptor.ecc}
 			<label class="field ecc-field"
@@ -288,6 +296,18 @@
 					{/each}
 				</select>
 			</label>
+		{/if}
+		{#if editor === 'text' && isGs1(descriptor)}
+			<label class="field lax-field"
+				>Render GS1 data that fails validation
+				<input
+					type="checkbox"
+					class="lax-input"
+					bind:checked={lax}
+					aria-describedby="{uid}-lax-note"
+				/>
+			</label>
+			<p class="lax-note" id="{uid}-lax-note">{LAX_NOTE}</p>
 		{/if}
 		<label class="field"
 			>Playback
