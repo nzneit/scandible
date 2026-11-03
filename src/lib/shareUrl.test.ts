@@ -15,7 +15,10 @@ describe('shareUrl', () => {
 			skewMaxDeg: 8,
 			seed: 0,
 			format: 'upc',
-			ecc: ''
+			ecc: '',
+			mode: 'scroll',
+			dwellMs: 1000,
+			gapMs: 0
 		});
 		expect(decodeShareUrl(at(search))).toEqual({
 			codes: ['036000291452', '012345678905'],
@@ -57,7 +60,10 @@ describe('shareUrl', () => {
 			skewMaxDeg: 12,
 			seed: 123456,
 			format: 'upc',
-			ecc: ''
+			ecc: '',
+			mode: 'scroll',
+			dwellMs: 1000,
+			gapMs: 0
 		});
 		expect(decodeShareUrl(at(search))).toEqual({
 			codes: ['036000291452'],
@@ -165,5 +171,44 @@ describe('ecc param', () => {
 	it('drops ecc when fmt is absent or unknown, without throwing', () => {
 		expect(dec('#codes=1&ecc=H')).toEqual({});
 		expect(dec('#codes=1&fmt=nope&ecc=H')).toEqual({});
+	});
+});
+
+describe('step params', () => {
+	const enc = (over: Partial<Settings>) => encodeShareUrl(['1'], { ...DEFAULT_SETTINGS, ...over });
+	const dec = (hash: string) => decodeShareUrl(at(hash)).settings;
+	const GROUP = '#codes=1&speed=60&loop=0&rot=0&rotmax=8&skew=0&skewmax=8&seed=0';
+
+	it('encodes step links exactly, each step param on its own, and scroll links unchanged', () => {
+		expect(enc({ mode: 'step' })).toBe(
+			'#codes=1&speed=60&loop=0&rot=0&rotmax=8&skew=0&skewmax=8&seed=0&fmt=upc&mode=step'
+		);
+		expect(enc({ format: 'qr', ecc: 'H', mode: 'step', dwellMs: 500, gapMs: 250 })).toBe(
+			'#codes=1&speed=60&loop=0&rot=0&rotmax=8&skew=0&skewmax=8&seed=0&fmt=qr&ecc=H&mode=step&dwell=500&gap=250'
+		);
+		expect(enc({ mode: 'step', dwellMs: 500 })).toBe(`${GROUP}&fmt=upc&mode=step&dwell=500`);
+		expect(enc({ mode: 'step', gapMs: 250 })).toBe(`${GROUP}&fmt=upc&mode=step&gap=250`);
+		expect(enc({ dwellMs: 500, gapMs: 250 })).toBe(
+			'#codes=1&speed=60&loop=0&rot=0&rotmax=8&skew=0&skewmax=8&seed=0&fmt=upc'
+		);
+	});
+
+	it('round-trips step mode with dwell 500 and gap 250', () => {
+		const settings = dec(enc({ mode: 'step', dwellMs: 500, gapMs: 250 }));
+		expect(settings).toMatchObject({ mode: 'step', dwellMs: 500, gapMs: 250 });
+	});
+
+	it('decodes each step param on its own: exact mode, integer 10 ms grid, inclusive range', () => {
+		expect(dec('#codes=1&mode=step')).toEqual({ mode: 'step' });
+		expect(dec('#codes=1&dwell=500')).toEqual({ dwellMs: 500 }); // no mode key
+		for (const v of ['Step', 'scroll', '1']) expect(dec(`#codes=1&mode=${v}`), v).toEqual({});
+		for (const v of ['49', '5001', '500.5', '55', 'abc', ''])
+			expect(dec(`#codes=1&dwell=${v}`), v).toEqual({});
+		for (const v of ['-10', '2001', '1.5', '15']) expect(dec(`#codes=1&gap=${v}`), v).toEqual({});
+		expect(dec('#codes=1&dwell=50')).toEqual({ dwellMs: 50 });
+		expect(dec('#codes=1&dwell=5000')).toEqual({ dwellMs: 5000 });
+		expect(dec('#codes=1&gap=0')).toEqual({ gapMs: 0 });
+		expect(dec('#codes=1&gap=2000')).toEqual({ gapMs: 2000 });
+		expect(dec('#codes=1&gap=')).toEqual({ gapMs: 0 }); // as seed= decodes to 0
 	});
 });

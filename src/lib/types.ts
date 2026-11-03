@@ -24,6 +24,8 @@ export interface CodeEntry {
 	reason?: 'too-long'; // present when invalid because the payload exceeds symbol capacity
 }
 
+export type PlaybackMode = 'scroll' | 'step';
+
 /** Playback settings, round-tripped through the share URL. */
 export interface Settings {
 	speedPxPerSec: number; // scroll speed in CSS px per second
@@ -35,6 +37,9 @@ export interface Settings {
 	seed: number; // uint32 PRNG seed — shared by both axes; makes the arrangement reproducible
 	format: FormatId; // barcode symbology applied to the whole list
 	ecc: string; // list-level error-correction choice value for `format`; '' = the format's default
+	mode: PlaybackMode; // 'scroll' moves the column; 'step' shows one code at a time
+	dwellMs: number; // step mode: ms each code stays on screen, within DWELL_RANGE
+	gapMs: number; // step mode: ms of blank screen between codes, within GAP_RANGE; 0 = instant
 }
 
 /** Single source of truth for defaults; used to fill Partial<Settings>. */
@@ -47,5 +52,12 @@ export const DEFAULT_SETTINGS: Settings = {
 	skewMaxDeg: 8,
 	seed: 0,
 	format: DEFAULT_FORMAT,
-	ecc: ''
+	ecc: '',
+	mode: 'scroll',
+	dwellMs: 1000,
+	gapMs: 0
 };
+
+// The only statement of the step ranges: the codec, the setup page and the play page read them.
+export const DWELL_RANGE = { min: 50, max: 5000, step: 10 } as const;
+export const GAP_RANGE = { min: 0, max: 2000, step: 10 } as const;

@@ -1,4 +1,4 @@
-import type { Settings } from './types';
+import { DEFAULT_SETTINGS, DWELL_RANGE, GAP_RANGE, type Settings } from './types';
 import { DEFAULT_FORMAT, FORMAT_BY_ID, isEccChoice, isFormatId } from './formats';
 
 const SPEED_MIN = 10;
@@ -7,9 +7,24 @@ const DEG_MIN = 1;
 const DEG_MAX = 30;
 const SEED_MAX = 0xffffffff;
 
+/** A step duration in whole ms inside `range` and on its grid, else undefined. */
+function stepMs(
+	raw: string | null,
+	range: { min: number; max: number; step: number }
+): number | undefined {
+	if (raw === null) return undefined;
+	const v = Number(raw);
+	return Number.isInteger(v) &&
+		v >= range.min &&
+		v <= range.max &&
+		(v - range.min) % range.step === 0
+		? v
+		: undefined;
+}
+
 /** Build the share fragment "#codes=…&speed=…&…&fmt=…" from raw code strings + settings.
- *  Params after `fmt` (`ecc` now) appear only when they differ from their default, in a
- *  fixed order. Codes are joined with "\n" so commas and spaces survive URLSearchParams
+ *  Params after `fmt` (`ecc`, `mode`, `dwell`, `gap`) appear only when they differ from their default, in a
+ *  fixed order; `dwell` and `gap` appear only in step links. Codes are joined with "\n" so commas and spaces survive URLSearchParams
  *  encoding. */
 export function encodeShareUrl(codes: string[], settings: Settings): string {
 	const params = new URLSearchParams();
@@ -29,6 +44,12 @@ export function encodeShareUrl(codes: string[], settings: Settings): string {
 		settings.ecc !== descriptor.ecc.defaultValue
 	) {
 		params.set('ecc', settings.ecc);
+	}
+	if (settings.mode === 'step') {
+		params.set('mode', 'step');
+		if (settings.dwellMs !== DEFAULT_SETTINGS.dwellMs)
+			params.set('dwell', String(settings.dwellMs));
+		if (settings.gapMs !== DEFAULT_SETTINGS.gapMs) params.set('gap', String(settings.gapMs));
 	}
 	return '#' + params.toString();
 }
@@ -103,5 +124,10 @@ export function decodeShareUrl(url: URL): { codes: string[]; settings: Partial<S
 	) {
 		settings.ecc = eccRaw;
 	}
+	if (params.get('mode') === 'step') settings.mode = 'step';
+	const dwellMs = stepMs(params.get('dwell'), DWELL_RANGE);
+	if (dwellMs !== undefined) settings.dwellMs = dwellMs;
+	const gapMs = stepMs(params.get('gap'), GAP_RANGE);
+	if (gapMs !== undefined) settings.gapMs = gapMs;
 	return { codes, settings };
 }

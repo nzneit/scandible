@@ -24,6 +24,9 @@
 	let skewMaxDeg = $state(initial.skewMaxDeg);
 	let format = $state(initial.format);
 	let ecc = $state(initial.ecc);
+	let mode = $state(initial.mode);
+	let dwellMs = $state(initial.dwellMs);
+	let gapMs = $state(initial.gapMs);
 	const descriptor = $derived(FORMAT_BY_ID.get(format));
 	let fileError = $state('');
 
@@ -44,7 +47,10 @@
 		skewMaxDeg,
 		seed,
 		format,
-		ecc
+		ecc,
+		mode,
+		dwellMs,
+		gapMs
 	});
 	const shareHash = $derived(encodeShareUrl(rawCodes, settings));
 
