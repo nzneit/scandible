@@ -246,9 +246,12 @@
 			<button type="button" class="ctl-restart" onclick={restart}>Restart</button>
 			<button type="button" class="ctl-back" onclick={back}>Back</button>
 		</div>
+		<!-- Mounted for the page's life, so the summary is announced as a change to an existing live
+		     region: a status region inserted already holding its text is announced inconsistently. -->
+		<p class="finish-status" role="status">{finishText ?? ''}</p>
 		{#if finishText !== null}
 			<div class="finish-screen">
-				<p class="finish-text" role="status">{finishText}</p>
+				<p class="finish-text">{finishText}</p>
 				<button type="button" class="finish-restart" onclick={restart}>Restart</button>
 				<button type="button" class="finish-back" onclick={back}>Back</button>
 			</div>
@@ -311,6 +314,14 @@
 		background: rgba(255, 255, 255, 0.85);
 		border-radius: 4px;
 		pointer-events: none;
+	}
+	.finish-status {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip: rect(0 0 0 0);
+		white-space: nowrap;
 	}
 	.finish-screen {
 		position: fixed;

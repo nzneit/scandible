@@ -315,11 +315,15 @@ describe('play page: step mode', () => {
 
 	it('finishes on Next at the last code with the run record as a status, then ignores keys', async () => {
 		open('&dwell=500&gap=250');
+		// Held across the finish: the live region must be the same node before and after.
+		const status = q(c, '.finish-status');
+		expect(status.getAttribute('role')).toBe('status');
+		expect(status.textContent).toBe('');
 		await click('.ctl-next');
 		await click('.ctl-next');
 		const text = 'Finished stepping 2 barcodes in 0.00 seconds at 0.50 s dwell, 0.25 s gap.';
-		expect(q(c, '.finish-text').getAttribute('role')).toBe('status');
 		expect(txt('.finish-text')).toBe(text);
+		expect(status.textContent).toBe(text);
 		await key(window, { key: 'ArrowRight' });
 		expect(txt('.finish-text')).toBe(text);
 	});

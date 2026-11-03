@@ -964,7 +964,7 @@ not pluralised, matching `formatFinishMessage`. Examples, each a `StepSummary` l
 The finish screen renders when `finish` or `stepFinish` is set, from a derived text:
 
 ```ts
-const finishText = $derived(
+const finishText = $derived.by(() =>
 	stepFinish
 		? formatStepFinishMessage(stepFinish)
 		: finish
@@ -973,11 +973,37 @@ const finishText = $derived(
 );
 ```
 
+It is `$derived.by`, not a bare `$derived`, because svelte-check narrows
+`let finish: … | null = $state(null)` to `null` at the top level, so a bare `$derived` types the
+`finish` branch as `never`, while inside the closure both variables keep their declared types.
+
 `{#if finishText !== null}` wraps today's finish screen, whose text becomes
-`<p class="finish-text" role="status">{finishText}</p>`. So step mode shows
+`<p class="finish-text">{finishText}</p>`, with no role. So step mode shows
 `formatStepFinishMessage(stepFinish)` and scroll mode keeps
-`formatFinishMessage(finish.count, finish.seconds)`. `role="status"` applies in both modes, so a
-screen reader announces the summary; it is harmless in scroll mode.
+`formatFinishMessage(finish.count, finish.seconds)`.
+
+The announcement comes from a separate live region, mounted for the page's life outside that
+`{#if}` and visually hidden:
+
+```svelte
+<p class="finish-status" role="status">{finishText ?? ''}</p>
+```
+
+```css
+.finish-status {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
+}
+```
+
+It is empty until a run finishes and then mirrors `finishText`, so a screen reader announces the
+summary as a change to an existing live region. A status region inserted already holding its
+text, as `.finish-text` inside the `{#if}` would be, is announced inconsistently across screen
+reader and browser pairs. The region applies in both modes; it is harmless in scroll mode.
 
 **Back.** `currentSettings()` returns
 `{ ...settings, speedPxPerSec: speed, dwellMs: dwell, gapMs: gap }`;
@@ -1043,9 +1069,10 @@ scroll mode the codec drops dwell and gap, so scroll Back URLs are unchanged.
   and Next are labelled by their text, the overlay sliders by `aria-label` beside a visible
   caption, the seconds fields by `aria-label` (`Dwell in seconds`, `Gap in seconds`), and the
   setup sliders by their `<label>`; every dwell and gap slider has `aria-valuetext` in seconds.
-  `.finish-text` has `role="status"`, so the summary is announced. Dwells under 0.33 s flash the
-  screen more than three times a second: below that the setup page shows `.flash-note`, and the
-  README carries the same warning.
+  The persistent, visually hidden `p.finish-status` has `role="status"` and mirrors
+  `finishText ?? ''`, so the summary is announced as a change to an existing live region;
+  `.finish-text` carries no role. Dwells under 0.33 s flash the screen more than three times a
+  second: below that the setup page shows `.flash-note`, and the README carries the same warning.
 
 ## Testing
 
@@ -1201,13 +1228,15 @@ Each file is named by its path; "new" files do not exist today.
     `repeat: true` does not step; `ArrowRight` with `altKey: true` does not step. Space on
     `window` makes `.ctl-playpause` read `Pause` and a second Space `Play`; Space with
     `.ctl-next` focused does not toggle.
-  - Finish: with `requestAnimationFrame` stubbed never to fire and `dwell=500&gap=250`, two clicks
-    on `.ctl-next` show `.finish-text`, which has `role="status"`, reading exactly
-    `Finished stepping 2 barcodes in 0.00 seconds at 0.50 s dwell, 0.25 s gap.`; after an input
-    of 300 on `.ctl-dwell` with no Play, it contains `at 0.30 s dwell`; after a click on
-    `.ctl-playpause`, a change of `0.3` on `.ctl-dwell-seconds` and two clicks on `.ctl-next`, it
-    contains `dwell changed from 0.50 s to 0.30 s`. `ArrowRight` after the finish screen appears
-    leaves `.finish-text` unchanged.
+  - Finish: with `requestAnimationFrame` stubbed never to fire and `dwell=500&gap=250`,
+    `.finish-status` has `role="status"` and reads `''`; two clicks on `.ctl-next` show
+    `.finish-text` reading exactly
+    `Finished stepping 2 barcodes in 0.00 seconds at 0.50 s dwell, 0.25 s gap.`, and the same
+    `.finish-status` node reads the same string. After an input of 300 on `.ctl-dwell` with no
+    Play, `.finish-text` contains `at 0.30 s dwell`; after a click on `.ctl-playpause`, a change
+    of `0.3` on `.ctl-dwell-seconds` and two clicks on `.ctl-next`, it contains
+    `dwell changed from 0.50 s to 0.30 s`. `ArrowRight` after the finish screen appears leaves
+    `.finish-text` unchanged.
   - Restart: `.ctl-restart` after two `.ctl-next` clicks (the second finishes the run, since
     `PLAY_URL` has loop off) returns the counter to `1 / 2`; `.finish-restart` on the finish
     screen clears it and shows `1 / 2` paused, with `.ctl-playpause` reading `Play`.
