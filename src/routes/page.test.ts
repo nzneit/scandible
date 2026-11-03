@@ -375,3 +375,132 @@ describe('setup page: fragment URLs and ecc in the Start URL', () => {
 		}
 	});
 });
+
+describe('setup page: step playback', () => {
+	let c: HTMLElement;
+	const open = (url = 'http://localhost/?codes=036000291452&seed=0') => {
+		mockPage.url = new URL(url);
+		c = render(SetupPage).container;
+	};
+	const has = (sel: string) => c.querySelector(sel) !== null;
+	const v = (sel: string) => q<HTMLInputElement>(c, sel).value;
+	const set = (sel: string, value: string) => fireEvent.change(q(c, sel), { target: { value } });
+	const slide = (sel: string, value: string) => fireEvent.input(q(c, sel), { target: { value } });
+	const start = async () => {
+		await fireEvent.click(q(c, '.start'));
+		return goto.mock.calls.at(-1)?.[0];
+	};
+
+	it('offers Scroll and Step after Error correction and before Speed, showing scroll', () => {
+		open('http://localhost/#codes=hello&fmt=qr');
+		const opts = [...q<HTMLSelectElement>(c, '.mode-input').options].map((o) => [o.value, o.text]);
+		expect(opts).toEqual([
+			['scroll', 'Scroll'],
+			['step', 'Step']
+		]);
+		expect(v('.mode-input')).toBe('scroll');
+		const follows = (a: string, b: string) =>
+			q(c, a).compareDocumentPosition(q(c, b)) & Node.DOCUMENT_POSITION_FOLLOWING;
+		expect(follows('.ecc-input', '.mode-input')).toBeTruthy();
+		expect(follows('.mode-input', '.speed-input')).toBeTruthy();
+	});
+
+	it('replaces Speed with Dwell and Gap in Step, with their ranges and seconds fields', async () => {
+		open();
+		await set('.mode-input', 'step');
+		expect(has('.speed-input')).toBe(false);
+		const dwell = q(c, '.dwell-input');
+		expect(dwell.getAttribute('min')).toBe('50');
+		expect(dwell.getAttribute('max')).toBe('5000');
+		expect(dwell.getAttribute('step')).toBe('10');
+		expect(dwell.getAttribute('aria-valuetext')).toBe('1.00 s');
+		const gap = q(c, '.gap-input');
+		expect(gap.getAttribute('min')).toBe('0');
+		expect(gap.getAttribute('max')).toBe('2000');
+		expect(gap.getAttribute('step')).toBe('10');
+		expect(gap.getAttribute('aria-valuetext')).toBe('0.00 s');
+		expect(v('.dwell-seconds')).toBe('1.00');
+		expect(v('.gap-seconds')).toBe('0.00');
+		await slide('.dwell-input', '500');
+		expect(v('.dwell-seconds')).toBe('0.50');
+	});
+
+	it('takes typed seconds snapped and clamped, and shows the value again when unchanged', async () => {
+		open();
+		await set('.mode-input', 'step');
+		await set('.dwell-seconds', '1');
+		expect(v('.dwell-input')).toBe('1000');
+		expect(v('.dwell-seconds')).toBe('1.00');
+		await set('.dwell-seconds', '0.4');
+		expect(v('.dwell-input')).toBe('400');
+		expect(v('.dwell-seconds')).toBe('0.40');
+		expect(await start()).toContain('&mode=step&dwell=400');
+		await set('.dwell-seconds', '9');
+		expect(v('.dwell-input')).toBe('5000');
+		expect(v('.dwell-seconds')).toBe('5.00');
+		await set('.dwell-seconds', 'abc');
+		expect(v('.dwell-input')).toBe('5000');
+		expect(v('.dwell-seconds')).toBe('5.00');
+		await set('.gap-seconds', '2.5');
+		expect(v('.gap-input')).toBe('2000');
+		expect(v('.gap-seconds')).toBe('2.00');
+	});
+
+	it('shows the flashing note for a dwell under 330 ms only', async () => {
+		open();
+		await set('.mode-input', 'step');
+		await slide('.dwell-input', '300');
+		expect(has('.flash-note')).toBe(true);
+		await slide('.dwell-input', '330');
+		expect(has('.flash-note')).toBe(false);
+	});
+
+	it('names identical neighbours under Gap while the gap is under 1.00 s, in Step only', async () => {
+		open('http://localhost/#codes=a%0Ab%0Ab&fmt=code128');
+		expect(has('.dup-hint')).toBe(false);
+		await set('.mode-input', 'step');
+		expect(q(c, '.dup-hint').textContent).toBe(
+			"Codes 2 and 3 are identical. Many scanners skip a repeat read: set a gap of 1.00 s or more, or lower the scanner's reread delay."
+		);
+		await fireEvent.input(q(c, '.code-input'), { target: { value: 'a\na\nb\nb' } });
+		expect(q(c, '.dup-hint').textContent).toMatch(
+			/^Codes 1 and 2 are identical, and 1 more neighboring pair\./
+		);
+		await slide('.gap-input', '1000');
+		expect(has('.dup-hint')).toBe(false);
+		await slide('.gap-input', '990');
+		expect(has('.dup-hint')).toBe(true);
+		await set('.mode-input', 'scroll');
+		expect(has('.dup-hint')).toBe(false);
+	});
+
+	it('keeps a hidden dwell and a hidden speed across mode switches', async () => {
+		open();
+		await set('.mode-input', 'step');
+		await slide('.dwell-input', '500');
+		await set('.mode-input', 'scroll');
+		await slide('.speed-input', '120');
+		await set('.mode-input', 'step');
+		expect(v('.dwell-input')).toBe('500');
+		await set('.mode-input', 'scroll');
+		expect(v('.speed-input')).toBe('120');
+	});
+
+	it('carries mode, dwell and gap into the Start URL in order', async () => {
+		open();
+		await set('.mode-input', 'step');
+		expect(await start()).toMatch(/&fmt=upc&mode=step$/);
+		await slide('.dwell-input', '500');
+		await slide('.gap-input', '250');
+		expect(await start()).toBe(
+			'/play#codes=036000291452&speed=60&loop=0&rot=0&rotmax=8&skew=0&skewmax=8&seed=0&fmt=upc&mode=step&dwell=500&gap=250'
+		);
+	});
+
+	it('prefills Step and the dwell from a step link', () => {
+		open('http://localhost/#codes=036000291452&mode=step&dwell=500');
+		expect(v('.mode-input')).toBe('step');
+		expect(v('.dwell-input')).toBe('500');
+		expect(v('.dwell-seconds')).toBe('0.50');
+	});
+});
