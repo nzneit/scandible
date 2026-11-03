@@ -1,7 +1,9 @@
 import { DEFAULT_FORMAT, type FormatId } from './formats';
+import type { Gs1Data } from './gs1';
 
 export interface SymbolOptions {
 	ecc?: string; // present only for formats whose descriptor declares `ecc`
+	lax?: boolean; // present only for GS1 formats; true renders data that fails lint
 }
 
 export interface SymbolFacts {
@@ -22,6 +24,9 @@ export interface CodeEntry {
 	encoded?: string; // 1D only, present when valid: the value the barcode actually carries
 	facts?: SymbolFacts; // 2D only, present when valid; absent on invalid entries
 	reason?: 'too-long'; // present when invalid because the payload exceeds symbol capacity
+	gs1?: Gs1Data; // GS1 only, present when valid: the AIM identifier and the data the symbol carries
+	lint?: string; // GS1 only: the BWIPP lint text when the row renders anyway under lax
+	message?: string; // GS1 only, present when invalid with a BWIPP text
 }
 
 export type PlaybackMode = 'scroll' | 'step';
@@ -37,6 +42,7 @@ export interface Settings {
 	seed: number; // uint32 PRNG seed — shared by both axes; makes the arrangement reproducible
 	format: FormatId; // barcode symbology applied to the whole list
 	ecc: string; // list-level error-correction choice value for `format`; '' = the format's default
+	lax: boolean; // render GS1 data that fails validation; canonical: true only for a GS1 format
 	mode: PlaybackMode; // 'scroll' moves the column; 'step' shows one code at a time
 	dwellMs: number; // step mode: ms each code stays on screen, within DWELL_RANGE
 	gapMs: number; // step mode: ms of blank screen between codes, within GAP_RANGE; 0 = instant
@@ -53,6 +59,7 @@ export const DEFAULT_SETTINGS: Settings = {
 	seed: 0,
 	format: DEFAULT_FORMAT,
 	ecc: '',
+	lax: false,
 	mode: 'scroll',
 	dwellMs: 1000,
 	gapMs: 0

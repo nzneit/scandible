@@ -16,13 +16,15 @@ one at a time, so you can point a scanner at the screen and let it read the whol
 
 - **Three ways to enter codes** — paste into a textarea, upload a `.txt`/`.csv` file, or
   pass them in the URL.
-- **25 barcode formats** — the 21 linear formats JsBarcode documents (CODE128 incl. force
-  modes, EAN/UPC family, CODE39, CODE93, ITF, MSI variants, Pharmacode, Codabar) plus four 2D
-  formats: QR Code, Data Matrix, PDF417 and Aztec. Selected per list, or per code in the
-  per-row editor; unrenderable codes are flagged and skipped, and the list shows the exact
-  value your scanner will read when the encoder adds check digits or normalizes input. 2D rows
-  show the symbol size, the byte count and whether the symbol is dense.
-- **Error correction** — for QR Code, PDF417 and Aztec, an **Error correction** select sets
+- **36 barcode formats** — the 21 linear formats JsBarcode documents (CODE128 incl. force
+  modes, EAN/UPC family, CODE39, CODE93, ITF, MSI variants, Pharmacode, Codabar), four 2D
+  formats (QR Code, Data Matrix, PDF417 and Aztec) and eleven GS1 carriers (GS1-128, the seven
+  GS1 DataBar members, GS1 DataMatrix, GS1 QR Code and GS1 DotCode). Selected per list, or per
+  code in the per-row editor; unrenderable codes are flagged and skipped, and the list shows the
+  exact value your scanner will read when the encoder adds check digits or normalizes input. 2D
+  rows show the symbol size, the byte count and whether the symbol is dense; GS1 rows show the
+  data as the scanner emits it.
+- **Error correction** — for QR Code, GS1 QR Code, PDF417 and Aztec, an **Error correction** select sets
   the level for the whole list, or for each code in the per-row editor, and codes too long for
   their level are flagged.
 - **Mixed-format decks and multi-line payloads** — the opt-in per-row editor gives each code
@@ -42,6 +44,7 @@ one at a time, so you can point a scanner at the screen and let it read the whol
   refused by the server, and older `?codes=` links keep working. Step links add `mode=step`,
   plus `dwell` and `gap` in milliseconds when they differ from 1000 and 0. Per-row links
   carry one numbered parameter per code (`#r1=…&r2=…`) instead of `codes`.
+  A GS1 list that renders invalid data adds `lax=1`, and a per-row record carries a `-lax` token (`r1=gs1128-lax_…`).
 - **Distraction-free playback** — fullscreen column with an auto-hiding control overlay
   (play/pause, speed or dwell and gap, prev and next in Step, restart, back).
 
@@ -50,7 +53,7 @@ one at a time, so you can point a scanner at the screen and let it read the whol
 1. Open **https://nzneit.github.io/scandible/**.
 2. Pick a barcode format, then paste or upload your codes (one per line, or
    comma-separated for numeric formats such as UPC and EAN; 2D and other text formats are one
-   per line, and commas are part of the code). For QR Code, PDF417 and Aztec, choose an
+   per line, and commas are part of the code). For QR Code, GS1 QR Code, PDF417 and Aztec, choose an
    error-correction level or keep the default. Invalid entries are flagged. To give each code
    its own format or level, or a payload of several lines, choose **Per row** in the
    **Editor** select (see _Per-row editing_).
@@ -88,6 +91,44 @@ A per-row link carries one parameter per code, numbered from 1 in list order, sk
 rows, and tagged with the code's format and, when it is not the default, its level:
 `#r1=upc_012345678905&r2=qr-H_…`. Such a link opens in Per row; every other link opens in Plain
 text.
+
+### GS1
+
+The **GS1** group holds eleven carriers: GS1-128; GS1 DataBar Omnidirectional, Truncated,
+Stacked, Stacked Omnidirectional, Limited, Expanded and Expanded Stacked; GS1 DataMatrix, GS1 QR
+Code and GS1 DotCode. They take bracketed element strings, one code per line:
+
+```
+(01)09501101530003(17)261231(10)LOT42
+```
+
+Spaces and line breaks inside a code are dropped, commas are data, and parentheses inside a value
+are not supported. Each code is checked by BWIPP's Application Identifier linter; a code that
+fails shows the reason in the list, for example `✗ AI 01: Bad checksum`. A valid code shows what
+a scanner sends:
+
+```
+✓ · 255 modules wide · 31 characters → ]C1 01095011015300031726123110LOT42
+```
+
+After the arrow comes the symbology identifier a scanner prefixes when set to transmit one
+(`]C1` GS1-128, `]e0` GS1 DataBar, `]d2` GS1 DataMatrix, `]Q3` GS1 QR Code, `]J1` GS1 DotCode),
+then the data, with `␝` where a GS separator character goes. Keyboard-wedge scanners usually omit
+the identifier and may drop or change the separator; the character count excludes both. A GS1-128
+over 48 data characters is noted, since GS1 caps the symbol there, and still plays. GS1 symbols,
+linear ones too, carry no caption: the list shows the data.
+
+**Render GS1 data that fails validation**, off by default, draws a code that fails the linter
+anyway, flagged amber with the reason, so a lane's rejection path can be tested. An amber code
+still plays, and "valid" then means encodable rather than conformant. The box cannot help with
+missing brackets or a code too long for its symbol; GS1 DataBar Omnidirectional, Truncated,
+Stacked, Stacked Omnidirectional and Limited still refuse a wrong GTIN; and GS1 DataBar Expanded
+and Expanded Stacked carry the corrected check digit of a leading GTIN, so a wrong one cannot
+reach the scanner from them. Switching to a non-GS1 format clears the box, as it clears the
+level. In Per row each GS1 row has its own **Render if invalid** box.
+
+The stacked DataBar members are multi-row symbols: a laser scanner may need several passes, an
+imager reads them at once. For a deck that mixes GS1 carriers with other formats, use Per row.
 
 ### Playback modes
 
@@ -152,7 +193,7 @@ subpath, adapter-static emits the site to `dist/`, and the repo's Pages source i
 
 - **SvelteKit** + **Svelte 5** (static-adapter SPA, TypeScript)
 - **JsBarcode** for the 21 linear formats (inline SVG)
-- **bwip-js** 4.11.4 for QR Code, Data Matrix, PDF417 and Aztec (inline SVG)
+- **bwip-js** 4.11.4 for the 2D and GS1 formats (inline SVG)
 - **Vitest** + **@testing-library/svelte** (jsdom) for unit tests
 
 ## License

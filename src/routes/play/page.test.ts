@@ -445,3 +445,21 @@ describe('play page: records links', () => {
 		);
 	});
 });
+
+it('plays a GS1-128 list link that renders invalid data only with lax=1, and carries it Back', async () => {
+	const link = 'http://localhost/play#codes=%2801%2909501101530004&fmt=gs1128&seed=7';
+	mockPage.url = new URL(link);
+	const strict = render(PlayPage);
+	expect(strict.container.querySelector('.play')).toBeNull();
+	expect(goto).toHaveBeenCalledWith('/#codes=%2801%2909501101530004&fmt=gs1128&seed=7', {
+		replaceState: true
+	});
+	strict.unmount();
+	goto.mockReset();
+	mockPage.url = new URL(link.replace('&seed=7', '&lax=1&seed=7'));
+	const { container } = render(PlayPage);
+	expect(container.querySelectorAll('.barcode-item.barcode-item--gs1128').length).toBe(2);
+	expect(container.querySelector('.barcode-item--2d')).toBeNull();
+	await fireEvent.click(q(container, '.ctl-back'));
+	expect(goto.mock.calls[0][0]).toMatch(/&fmt=gs1128&lax=1$/);
+});

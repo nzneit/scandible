@@ -1,24 +1,32 @@
 import { engine as bwipEngine } from './engines/bwipjs';
 import { engine as jsbarcodeEngine } from './engines/jsbarcode';
 import type { CheckResult } from './engines/types';
-import { FORMAT_BY_ID, isEccChoice, type FormatDescriptor, type FormatId } from './formats';
+import { FORMAT_BY_ID, isEccChoice, isGs1, type FormatDescriptor, type FormatId } from './formats';
 import type { CodeEntry, SymbolOptions } from './types';
 
 export interface ListOptions {
 	format: FormatId;
 	ecc: string;
+	lax: boolean;
 }
 
-/** Three layers. The list-level ecc applies only when the entry's format IS the list format.
- *  Formats without `ecc` resolve to {}. Each layer is used only if isEccChoice accepts it. */
+/** Built field by field. `ecc`, only for a format that declares it: three layers (override, the
+ *  list level when the entry's format IS the list format, the default), each used only if
+ *  isEccChoice accepts it. `lax`, only for a GS1 format: the override, else the list flag when the
+ *  entry's format IS the list format, else false. Other formats resolve to {}. */
 export function resolveOptions(
 	d: FormatDescriptor,
 	list: ListOptions,
 	override?: SymbolOptions
 ): SymbolOptions {
-	if (!d.ecc) return {};
-	const layers = [override?.ecc, d.id === list.format ? list.ecc : undefined, d.ecc.defaultValue];
-	return { ecc: layers.find((v) => isEccChoice(d, v)) };
+	const options: SymbolOptions = {};
+	if (d.ecc) {
+		const layers = [override?.ecc, d.id === list.format ? list.ecc : undefined, d.ecc.defaultValue];
+		options.ecc = layers.find((v) => isEccChoice(d, v));
+	}
+	if (isGs1(d))
+		options.lax = override?.lax ?? (d.id === list.format ? list.lax : undefined) ?? false;
+	return options;
 }
 
 /** Dispatch on engine. Unknown format or '' → { valid: false } (existing guards). Does NOT
@@ -68,6 +76,6 @@ export function tokenize(text: string, format: FormatId): string[] {
 /** One entry per `tokenize` token, cleaned and validated for one format (numeric formats
  *  strip internal whitespace). Empty tokens are dropped before cleanup, so no CodeEntry ever
  *  has an empty value. */
-export function parseCodeList(raw: string, format: FormatId, ecc = ''): CodeEntry[] {
-	return tokenize(raw, format).map((token) => buildEntry(token, format, { format, ecc }));
+export function parseCodeList(raw: string, format: FormatId, ecc = '', lax = false): CodeEntry[] {
+	return tokenize(raw, format).map((token) => buildEntry(token, format, { format, ecc, lax }));
 }

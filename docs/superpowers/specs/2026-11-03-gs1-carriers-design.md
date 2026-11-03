@@ -78,8 +78,8 @@ and the lint-message plumbing serve the coupon's messages unchanged.
 - **Bracketed element strings are the only input in this spec.** BWIPP parses them natively,
   inserts FNC1 and places the separators. Raw scan data and Digital Link are specs 2 and 3.
 - **BWIPP is the only validator.** The app owns no AI table in this spec. Lint is on by default,
-  mandatory pairings (`lintreqs`) stay off, as in BWIPP, because they reject partial element
-  strings that scanners read fine. The five GTIN-only DataBar members never reach the linter: they
+  mandatory pairings (`lintreqs`) stay off because they reject partial element
+  strings that scanners read fine. BWIPP turns them on by default for GS1 QR Code, GS1 DataMatrix, GS1 DotCode, DataBar Expanded and Expanded Stacked (measurements §2), so the engine passes `lintreqs: false` on every GS1 encode. The five GTIN-only DataBar members never reach the linter: they
   run their own checks and their own messages (measurements §2).
 - **An opt-in `lax` option renders data that fails lint**, for testing a lane's rejection path.
   It mirrors `ecc` everywhere: a list setting, a row field, a URL parameter, a record token, a
@@ -429,7 +429,7 @@ before the existing `facts` branch so that the ` · UTF-8, no ECI` clause, which
   it, worded from the descriptor: `over the ${maxChars}-character ${label} limit`.
 - A parentheses suffix, ` (parentheses inside a value are not supported)`, is appended to a
   `message` or a `LINT` when `parseElementString(value)` yields any `ai` containing a non-digit,
-  which only a `(` inside a value produces.
+  in a pair after the first, which only a `(` inside a value produces.
 - The override suffix, ` (the validation setting cannot override this)`, appears when the row's
   resolved `lax` is true, the descriptor's `gtinCheck` is `'own'` and the entry is invalid with a
   message: the toggle cannot help on these five. Its wording is neutral between the page box and

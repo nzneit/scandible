@@ -13,7 +13,15 @@
 		type Row,
 		type TextConversion
 	} from '$lib/rows';
-	import { FORMAT_BY_ID, FORMAT_GROUPS, canonicalEcc, type FormatId } from '$lib/formats';
+	import {
+		FORMAT_BY_ID,
+		FORMAT_GROUPS,
+		canonicalEcc,
+		canonicalLax,
+		isGs1,
+		type FormatId
+	} from '$lib/formats';
+	import { GS1_HINT, LAX_NOTE } from '$lib/verdict';
 	import { readCodesFile } from '$lib/fileInput';
 	import { decodeShareUrl, encodeRowsShareUrl, encodeShareUrl } from '$lib/shareUrl';
 	import {
@@ -39,7 +47,7 @@
 	let pending: TextConversion | null = $state(null);
 	let editorSelect: HTMLSelectElement | undefined = $state();
 	const EDITOR_HINT =
-		'Per row gives each code its own format and error-correction level, and lets a code span several lines.';
+		'Per row gives each code its own format, error-correction level and GS1 validation setting, and lets a code span several lines.';
 	let speedPxPerSec = $state(initial.speedPxPerSec);
 	let loop = $state(initial.loop);
 	let rotate = $state(initial.rotate);
@@ -48,21 +56,25 @@
 	let skewMaxDeg = $state(initial.skewMaxDeg);
 	let format = $state(initial.format);
 	let ecc = $state(initial.ecc);
+	let lax = $state(initial.lax);
 	let mode = $state(initial.mode);
 	let dwellMs = $state(initial.dwellMs);
 	let gapMs = $state(initial.gapMs);
 	const descriptor = $derived(FORMAT_BY_ID.get(format));
+	const uid = $props.id();
 	let fileError = $state('');
 
 	const entries: CodeEntry[] = $derived(
-		editor === 'rows' ? rowEntries(rows) : parseCodeList(text, format, ecc)
+		editor === 'rows' ? rowEntries(rows) : parseCodeList(text, format, ecc, lax)
 	);
 	const rawCodes: string[] = $derived(entries.map((e) => e.raw));
 	const canStart: boolean = $derived(entries.some((e) => e.valid));
 	const placeholder: string = $derived(
-		descriptor?.numeric
-			? 'Paste codes — one per line, or comma-separated'
-			: 'Paste codes — one per line'
+		isGs1(descriptor)
+			? 'Paste GS1 element strings — one per line'
+			: descriptor?.numeric
+				? 'Paste codes — one per line, or comma-separated'
+				: 'Paste codes — one per line'
 	);
 	const settings: Settings = $derived({
 		speedPxPerSec,
@@ -74,6 +86,7 @@
 		seed,
 		format,
 		ecc,
+		lax,
 		mode,
 		dwellMs,
 		gapMs
@@ -120,6 +133,7 @@
 	// or one that is its default. Done in the binding's setter, never an $effect.
 	function selectFormat(next: FormatId): void {
 		ecc = canonicalEcc(next, ecc);
+		lax = canonicalLax(next, lax);
 		format = next;
 	}
 
@@ -131,18 +145,23 @@
 	}
 
 	function isLossless(c: TextConversion): boolean {
-		return c.loses.formats === 0 && c.loses.levels === 0 && c.loses.splits === 0;
+		return (
+			c.loses.formats === 0 &&
+			c.loses.levels === 0 &&
+			c.loses.splits === 0 &&
+			c.loses.validation === 0
+		);
 	}
 
 	function selectEditor(next: 'text' | 'rows'): void {
 		if (next === editor) return;
 		fileError = '';
 		if (next === 'rows') {
-			rows = rowsFromText(text, format, ecc);
+			rows = rowsFromText(text, format, ecc, lax);
 			editor = 'rows';
 			return;
 		}
-		const c = textFromRows(rows, { format, ecc });
+		const c = textFromRows(rows, { format, ecc, lax });
 		if (isLossless(c)) applyConversion(c);
 		else pending = c;
 	}
@@ -150,14 +169,16 @@
 	// The note shows the snapshot taken when Plain text was chosen; the rows may have changed
 	// since. Switch only when the switch now does what the note says, else refresh the note.
 	function switchAnyway(): void {
-		const c = textFromRows(rows, { format, ecc });
+		const c = textFromRows(rows, { format, ecc, lax });
 		const same =
 			pending !== null &&
 			c.loses.formats === pending.loses.formats &&
 			c.loses.levels === pending.loses.levels &&
 			c.loses.splits === pending.loses.splits &&
+			c.loses.validation === pending.loses.validation &&
 			c.format === pending.format &&
-			c.ecc === pending.ecc;
+			c.ecc === pending.ecc &&
+			c.lax === pending.lax;
 		if (isLossless(c) || same) applyConversion(c);
 		else pending = c;
 	}
@@ -168,6 +189,7 @@
 		text = c.text;
 		format = c.format;
 		ecc = c.ecc;
+		lax = c.lax;
 		editor = 'text';
 		pending = null;
 		fileError = '';
@@ -197,7 +219,7 @@
 		try {
 			const fileText = await readCodesFile(file);
 			// Per row appends, so an upload never destroys a deck already built.
-			if (editor === 'rows') rows = [...rows, ...rowsFromText(fileText, format, '')];
+			if (editor === 'rows') rows = [...rows, ...rowsFromText(fileText, format, '', false)];
 			else text = fileText;
 			fileError = '';
 		} catch {
@@ -258,6 +280,9 @@
 				{/each}
 			</select>
 		</label>
+		{#if editor === 'text' && isGs1(descriptor)}
+			<p class="gs1-hint">{GS1_HINT}</p>
+		{/if}
 		{#if editor === 'text' && descriptor?.ecc}
 			{@const opt = descriptor.ecc}
 			<label class="field ecc-field"
@@ -271,6 +296,18 @@
 					{/each}
 				</select>
 			</label>
+		{/if}
+		{#if editor === 'text' && isGs1(descriptor)}
+			<label class="field lax-field"
+				>Render GS1 data that fails validation
+				<input
+					type="checkbox"
+					class="lax-input"
+					bind:checked={lax}
+					aria-describedby="{uid}-lax-note"
+				/>
+			</label>
+			<p class="lax-note" id="{uid}-lax-note">{LAX_NOTE}</p>
 		{/if}
 		<label class="field"
 			>Playback

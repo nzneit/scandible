@@ -1,9 +1,44 @@
-import { qrcode, datamatrix, pdf417, azteccode, drawingSVG } from 'bwip-js/browser';
-import type { BwipDescriptor } from '$lib/formats';
+import {
+	qrcode,
+	datamatrix,
+	pdf417,
+	azteccode,
+	gs1_128,
+	databaromni,
+	databartruncated,
+	databarstacked,
+	databarstackedomni,
+	databarlimited,
+	databarexpanded,
+	databarexpandedstacked,
+	gs1datamatrix,
+	gs1qrcode,
+	gs1dotcode,
+	drawingSVG
+} from 'bwip-js/browser';
+import type { RenderOptions } from 'bwip-js/browser';
+import { isGs1, type BwipDescriptor } from '$lib/formats';
+import { parseElementString, scanData } from '$lib/gs1';
 import type { SymbolOptions } from '$lib/types';
 import type { CheckResult, Engine } from './types';
 
-export const ENCODERS = { qrcode, datamatrix, pdf417, azteccode } as const;
+export const ENCODERS = {
+	qrcode,
+	datamatrix,
+	pdf417,
+	azteccode,
+	gs1_128,
+	databaromni,
+	databartruncated,
+	databarstacked,
+	databarstackedomni,
+	databarlimited,
+	databarexpanded,
+	databarexpandedstacked,
+	gs1datamatrix,
+	gs1qrcode,
+	gs1dotcode
+} as const;
 
 /** Maps a descriptor's ecc choice value to BWIPP options. fixedeclevel stops BWIPP from
  *  raising (QR) or adjusting (PDF417) the level behind the user's back. */
@@ -14,10 +49,21 @@ export const ECC_OPTIONS: Record<
 	qrcode: (v) => ({ eclevel: v, fixedeclevel: true }),
 	datamatrix: () => ({}),
 	pdf417: (v) => (v === 'auto' ? {} : { eclevel: Number(v), fixedeclevel: true }),
-	azteccode: (v) => ({ eclevel: Number(v) })
+	azteccode: (v) => ({ eclevel: Number(v) }),
+	gs1qrcode: (v) => ({ eclevel: v, fixedeclevel: true }),
+	gs1_128: () => ({}),
+	databaromni: () => ({}),
+	databartruncated: () => ({}),
+	databarstacked: () => ({}),
+	databarstackedomni: () => ({}),
+	databarlimited: () => ({}),
+	databarexpanded: () => ({}),
+	databarexpandedstacked: () => ({}),
+	gs1datamatrix: () => ({}),
+	gs1dotcode: () => ({})
 };
 
-const QUIET_ZONE_PX = 8; // 4 modules at 2 px/module for matrix codes; 8 X-modules for PDF417 (≥ 2 required)
+const LINEAR_PX_PER_MODULE = 3; // JsBarcode's bar width
 const NATURAL_PX = 1024; // longer side of the SVG's natural size; CSS max-* only ever shrink it
 
 /** Every BWIPP name that means "the payload does not fit". The name depends on the payload's
@@ -34,13 +80,26 @@ export const TOO_LONG: ReadonlySet<string> = new Set([
 	'pdf417insufficientCapacity',
 	'azteccodeInputTooLong',
 	'azteccodeInputTooLarge',
-	'aztecNoValidSymbol'
+	'aztecNoValidSymbol',
+	'gs1128inputTooLong',
+	'gs1datamatrixinputTooLong',
+	'gs1qrcodeinputTooLong',
+	'gs1dotcodeinputTooLong',
+	'gs1databarexpandedTooLong',
+	'dotcodeinputTooLong',
+	'dotcodeTooLong',
+	'dotcodeSymbolTooLarge'
 ]);
 
 /** Stable part of a BWIPP error: `bwipp.<errorName>`. The `#NNNNN` suffix is a source line
  *  number that changes between bwip-js versions. */
 export function bwippErrorName(message: string): string | undefined {
 	return /^bwipp\.([A-Za-z0-9]+)/.exec(message)?.[1];
+}
+
+/** The text after `bwipp.<name>#<line>: `, or undefined when the message is not of that form. */
+export function bwippErrorText(message: string): string | undefined {
+	return /^bwipp\.[A-Za-z0-9]+#\d+: ([\s\S]*)$/.exec(message)?.[1];
 }
 
 interface Encoded {
@@ -59,15 +118,15 @@ export const CACHE_BUDGET_CHARS = 32 * 1024 * 1024;
 const cache = new Map<string, CacheEntry>();
 let cacheChars = 0;
 
-/** One encode, memoised by bcid + ecc + value, failures included: an over-capacity line must
+/** One encode, memoised by bcid + ecc + lax flag + value, failures included: an over-capacity line must
  *  not re-encode on every keystroke. Rethrows the cached error on a hit. The cache is cleared
  *  when the retained text would pass CACHE_BUDGET_CHARS; below the budget a keystroke
  *  re-encodes only the edited line. */
-function encode(d: BwipDescriptor, value: string, options: SymbolOptions): Encoded {
-	const key = `${d.bcid}\u0000${options.ecc ?? ''}\u0000${value}`;
+function encode(d: BwipDescriptor, value: string, ecc: string | undefined, lax: boolean): Encoded {
+	const key = `${d.bcid}\u0000${ecc ?? ''}\u0000${lax ? 'lax' : ''}\u0000${value}`;
 	let entry = cache.get(key);
 	if (entry === undefined) {
-		entry = tryEncode(d, value, options);
+		entry = tryEncode(d, value, ecc, lax);
 		const cost = key.length + (entry.ok ? entry.result.svg.length : 0);
 		if (cacheChars + cost > CACHE_BUDGET_CHARS) {
 			cache.clear();
@@ -81,11 +140,20 @@ function encode(d: BwipDescriptor, value: string, options: SymbolOptions): Encod
 }
 
 /** `init(width, height)` on the drawing receives the symbol's pixel size WITHOUT padding
- *  (measured), so module counts are width/modulePx.x and height/modulePx.y. Spreading
+ *  (measured), so module counts are (width − offset.x)/modulePx.x and
+ *  (height − offset.y)/modulePx.y. Spreading
  *  drawingSVG() and overriding init is the measured, tree-shake-friendly way to learn the size;
  *  the default export's raw() would pull in every encoder. drawingSVG's methods are own closure
- *  properties, so the spread keeps them working. Captures whatever bwip-js throws. */
-function tryEncode(d: BwipDescriptor, value: string, options: SymbolOptions): CacheEntry {
+ *  properties, so the spread keeps them working. Captures whatever bwip-js throws. `lax` sets
+ *  BWIPP's `dontlint`, which skips the GS1 lint (checksums, dates, AI table) but not the encoder's
+ *  own checks. Every GS1 encode sets `lintreqs: false`, because BWIPP turns requisite-AI pairing
+ *  checks on by default for five of the carriers and they reject partial element strings. */
+function tryEncode(
+	d: BwipDescriptor,
+	value: string,
+	ecc: string | undefined,
+	lax: boolean
+): CacheEntry {
 	let w = 0;
 	let h = 0;
 	const base = drawingSVG();
@@ -97,15 +165,27 @@ function tryEncode(d: BwipDescriptor, value: string, options: SymbolOptions): Ca
 			base.init(W, H); // runtime also passes two text-scale args; they are unused for these symbologies
 		}
 	};
-	const extra: Record<string, unknown> =
-		d.ecc && options.ecc !== undefined ? ECC_OPTIONS[d.bcid](options.ecc) : {};
+	const extra: Record<string, unknown> = d.ecc && ecc !== undefined ? ECC_OPTIONS[d.bcid](ecc) : {};
+	const encodeOptions: RenderOptions & Record<string, unknown> = {
+		...extra, // first: the fixed keys below must win over anything the ecc mapping returns
+		bcid: d.bcid,
+		text: value,
+		scale: 1,
+		padding: d.quietZone * d.modulePx.x // px at scale 1 (measurements §1): the quiet zone in modules
+	};
+	if (d.heightMm !== undefined) encodeOptions.height = d.heightMm;
+	if (isGs1(d)) encodeOptions.lintreqs = false;
+	if (lax) encodeOptions.dontlint = true;
 	try {
-		// `...extra` first: the fixed keys below must win over anything the ecc mapping returns.
-		const svg = ENCODERS[d.bcid](
-			{ ...extra, bcid: d.bcid, text: value, scale: 1, padding: QUIET_ZONE_PX },
-			drawing
-		);
-		return { ok: true, result: { svg, cols: w / d.modulePx.x, rows: h / d.modulePx.y } };
+		const svg = ENCODERS[d.bcid](encodeOptions, drawing);
+		return {
+			ok: true,
+			result: {
+				svg,
+				cols: (w - (d.moduleOffsetPx?.x ?? 0)) / d.modulePx.x,
+				rows: (h - (d.moduleOffsetPx?.y ?? 0)) / d.modulePx.y
+			}
+		};
 	} catch (error) {
 		return { ok: false, error };
 	}
@@ -113,35 +193,66 @@ function tryEncode(d: BwipDescriptor, value: string, options: SymbolOptions): Ca
 
 function summary(d: BwipDescriptor, cols: number, rows: number): string {
 	// PDF417 width is 17 × (dataColumns + 4) + 1 X-modules, so dataColumns = (cols − 69) / 17.
-	return d.bcid === 'pdf417'
-		? `${(cols - 69) / 17} columns × ${rows} rows`
-		: `${cols}×${rows} modules`;
+	if (d.bcid === 'pdf417') return `${(cols - 69) / 17} columns × ${rows} rows`;
+	return d.shape === 'linear' ? `${cols} modules wide` : `${cols}×${rows} modules`;
+}
+
+/** Strict first; only a strict failure under `lax` is encoded again with lint off. A lint-off
+ *  encode can die with a plain TypeError on input the strict pass described precisely, so the
+ *  lax error is thrown only when it names a BWIPP error. */
+function encodeResolved(
+	d: BwipDescriptor,
+	value: string,
+	options: SymbolOptions
+): { encoded: Encoded; lint?: string } {
+	let strictError: unknown;
+	try {
+		return { encoded: encode(d, value, options.ecc, false) };
+	} catch (e) {
+		strictError = e;
+	}
+	if (options.lax !== true) throw strictError;
+	try {
+		const encoded = encode(d, value, options.ecc, true);
+		const text = strictError instanceof Error ? bwippErrorText(strictError.message) : undefined;
+		return { encoded, lint: text ?? 'failed validation' };
+	} catch (laxError) {
+		throw laxError instanceof Error && bwippErrorName(laxError.message) !== undefined
+			? laxError
+			: strictError;
+	}
 }
 
 export function check(d: BwipDescriptor, value: string, options: SymbolOptions): CheckResult {
 	try {
-		const { cols, rows } = encode(d, value, options);
-		const bytes = new TextEncoder().encode(value).length;
+		const { encoded, lint } = encodeResolved(d, value, options);
+		const { cols, rows } = encoded;
+		if (isGs1(d) && parseElementString(value)?.length === 0) return { valid: false };
+		const gs1 = isGs1(d) ? scanData(d, value) : undefined;
+		const bytes = new TextEncoder().encode(gs1?.data ?? value).length;
 		return {
 			valid: true,
-			facts: { bytes, cols, rows, summary: summary(d, cols, rows), dense: cols > d.denseAbove }
+			facts: { bytes, cols, rows, summary: summary(d, cols, rows), dense: cols > d.denseAbove },
+			...(gs1 !== undefined && { gs1 }),
+			...(lint !== undefined && { lint })
 		};
 	} catch (e) {
-		const name = e instanceof Error ? bwippErrorName(e.message) : undefined;
-		return name !== undefined && TOO_LONG.has(name)
-			? { valid: false, reason: 'too-long' }
-			: { valid: false };
+		const message = e instanceof Error ? e.message : '';
+		const name = bwippErrorName(message);
+		if (name !== undefined && TOO_LONG.has(name)) return { valid: false, reason: 'too-long' };
+		const text = isGs1(d) ? bwippErrorText(message) : undefined;
+		return text !== undefined ? { valid: false, message: text } : { valid: false };
 	}
 }
 
 export function render(d: BwipDescriptor, value: string, options: SymbolOptions): SVGElement {
-	const { svg } = encode(d, value, options);
+	const { svg } = encodeResolved(d, value, options).encoded;
 	const doc = new DOMParser().parseFromString(svg, 'image/svg+xml');
 	const el = document.importNode(doc.documentElement, true) as unknown as SVGElement;
 	if (el.nodeName !== 'svg') throw new Error('bwip-js produced invalid SVG'); // e.g. 4.11.3's malformed fill-rule
 	// viewBox is always exactly "0 0 W H" and INCLUDES the padding (QR hello world: 58×58).
 	const [vw, vh] = (el.getAttribute('viewBox') ?? '0 0 1 1').split(' ').slice(2).map(Number);
-	const k = NATURAL_PX / Math.max(vw, vh);
+	const k = d.shape === 'linear' ? LINEAR_PX_PER_MODULE : NATURAL_PX / Math.max(vw, vh);
 	el.setAttribute('width', String(Math.round(vw * k)));
 	el.setAttribute('height', String(Math.round(vh * k)));
 	return el;
