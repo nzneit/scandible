@@ -7,7 +7,15 @@
 	import { FORMAT_BY_ID, FORMAT_GROUPS, isEccChoice, type FormatId } from '$lib/formats';
 	import { readCodesFile } from '$lib/fileInput';
 	import { decodeShareUrl, encodeShareUrl } from '$lib/shareUrl';
-	import { DEFAULT_SETTINGS, type Settings, type CodeEntry } from '$lib/types';
+	import {
+		DEFAULT_SETTINGS,
+		DWELL_RANGE,
+		GAP_RANGE,
+		type Settings,
+		type CodeEntry
+	} from '$lib/types';
+	import { formatSeconds, parseSeconds } from '$lib/seconds';
+	import { duplicateNeighbours } from '$lib/duplicates';
 	import ValidationList from '$lib/components/ValidationList.svelte';
 	import ShareLink from '$lib/components/ShareLink.svelte';
 
@@ -24,6 +32,9 @@
 	let skewMaxDeg = $state(initial.skewMaxDeg);
 	let format = $state(initial.format);
 	let ecc = $state(initial.ecc);
+	let mode = $state(initial.mode);
+	let dwellMs = $state(initial.dwellMs);
+	let gapMs = $state(initial.gapMs);
 	const descriptor = $derived(FORMAT_BY_ID.get(format));
 	let fileError = $state('');
 
@@ -44,9 +55,40 @@
 		skewMaxDeg,
 		seed,
 		format,
-		ecc
+		ecc,
+		mode,
+		dwellMs,
+		gapMs
 	});
 	const shareHash = $derived(encodeShareUrl(rawCodes, settings));
+
+	function onDwellSeconds(e: Event & { currentTarget: HTMLInputElement }): void {
+		const ms = parseSeconds(e.currentTarget.value, DWELL_RANGE);
+		if (ms !== null) dwellMs = ms;
+		e.currentTarget.value = (dwellMs / 1000).toFixed(2);
+	}
+	function onGapSeconds(e: Event & { currentTarget: HTMLInputElement }): void {
+		const ms = parseSeconds(e.currentTarget.value, GAP_RANGE);
+		if (ms !== null) gapMs = ms;
+		e.currentTarget.value = (gapMs / 1000).toFixed(2);
+	}
+	const dupPairs = $derived(
+		duplicateNeighbours(
+			entries.filter((e) => e.valid),
+			loop
+		)
+	);
+	const dupHint = $derived.by(() => {
+		if (dupPairs.length === 0) return '';
+		const [a, b] = dupPairs[0];
+		const extra = dupPairs.length - 1;
+		const more =
+			extra === 0 ? '' : `, and ${extra} more neighboring ${extra === 1 ? 'pair' : 'pairs'}`;
+		return (
+			`Codes ${a + 1} and ${b + 1} are identical${more}. Many scanners skip a repeat read: ` +
+			`set a gap of 1.00 s or more, or lower the scanner's reread delay.`
+		);
+	});
 
 	// Keep `ecc` canonical across a format switch: drop a level the next format does not offer,
 	// or one that is its default. Done in the binding's setter, never an $effect.
@@ -128,16 +170,87 @@
 			</label>
 		{/if}
 		<label class="field"
-			>Speed
-			<input
-				type="range"
-				class="speed-input"
-				min="10"
-				max="5000"
-				step="5"
-				bind:value={speedPxPerSec}
-			/>
+			>Playback
+			<select class="mode-input" bind:value={mode}>
+				<option value="scroll">Scroll</option>
+				<option value="step">Step</option>
+			</select>
 		</label>
+		{#if mode === 'step'}
+			<label class="field"
+				>Dwell
+				<input
+					type="range"
+					class="dwell-input"
+					min={DWELL_RANGE.min}
+					max={DWELL_RANGE.max}
+					step={DWELL_RANGE.step}
+					aria-valuetext={formatSeconds(dwellMs)}
+					bind:value={dwellMs}
+				/>
+				<span class="seconds">
+					<input
+						type="number"
+						class="dwell-seconds"
+						inputmode="decimal"
+						min={DWELL_RANGE.min / 1000}
+						max={DWELL_RANGE.max / 1000}
+						step="0.01"
+						aria-label="Dwell in seconds"
+						value={(dwellMs / 1000).toFixed(2)}
+						onchange={onDwellSeconds}
+					/>
+					s
+				</span>
+			</label>
+			{#if dwellMs < 330}
+				<p class="flash-note">
+					Dwells under 0.33 s flash the screen more than three times a second. Do not use them near
+					anyone sensitive to flashing lights.
+				</p>
+			{/if}
+			<label class="field"
+				>Gap
+				<input
+					type="range"
+					class="gap-input"
+					min={GAP_RANGE.min}
+					max={GAP_RANGE.max}
+					step={GAP_RANGE.step}
+					aria-valuetext={formatSeconds(gapMs)}
+					bind:value={gapMs}
+				/>
+				<span class="seconds">
+					<input
+						type="number"
+						class="gap-seconds"
+						inputmode="decimal"
+						min={GAP_RANGE.min / 1000}
+						max={GAP_RANGE.max / 1000}
+						step="0.01"
+						aria-label="Gap in seconds"
+						value={(gapMs / 1000).toFixed(2)}
+						onchange={onGapSeconds}
+					/>
+					s
+				</span>
+			</label>
+			{#if gapMs < 1000 && dupPairs.length > 0}
+				<p class="dup-hint">{dupHint}</p>
+			{/if}
+		{:else}
+			<label class="field"
+				>Speed
+				<input
+					type="range"
+					class="speed-input"
+					min="10"
+					max="5000"
+					step="5"
+					bind:value={speedPxPerSec}
+				/>
+			</label>
+		{/if}
 		<label class="field"
 			>Loop
 			<input type="checkbox" class="loop-input" bind:checked={loop} />
@@ -197,6 +310,11 @@
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
+		gap: 4px;
+	}
+	.seconds {
+		display: flex;
+		align-items: center;
 		gap: 4px;
 	}
 	.start {

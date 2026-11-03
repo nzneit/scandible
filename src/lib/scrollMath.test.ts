@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { advanceOffset, isAtEnd } from './scrollMath';
+import { MAX_DELTA_MS, advanceOffset, isAtEnd } from './scrollMath';
 
 describe('advanceOffset', () => {
 	it('advances by speed × seconds', () => {
@@ -21,5 +21,11 @@ describe('isAtEnd', () => {
 		expect(isAtEnd(500, 500, false)).toBe(true);
 		expect(isAtEnd(499, 500, false)).toBe(false);
 		expect(isAtEnd(500, 500, true)).toBe(false);
+	});
+});
+
+describe('MAX_DELTA_MS', () => {
+	it('is exported and caps a frame delta at 100 ms', () => {
+		expect(MAX_DELTA_MS).toBe(100);
 	});
 });

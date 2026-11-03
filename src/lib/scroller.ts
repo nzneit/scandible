@@ -1,20 +1,11 @@
-import { advanceOffset, isAtEnd } from './scrollMath';
-import { renderBarcodeSvg } from './barcode';
-import { FORMAT_BY_ID } from './formats';
-import { buildTransforms } from './transforms';
+import { advanceOffset, isAtEnd, MAX_DELTA_MS } from './scrollMath';
+import { buildItems } from './items';
+import type { Player } from './player';
 import type { Settings, CodeEntry } from './types';
 
-const MAX_DELTA_MS = 100;
-
-export interface Scroller {
-	play(): void;
-	pause(): void;
-	toggle(): void;
-	restart(): void;
+export interface Scroller extends Player {
 	setSpeed(pxPerSec: number): void;
 	setLoop(loop: boolean): void;
-	isPlaying(): boolean;
-	destroy(): void;
 }
 
 export function createScroller(
@@ -26,32 +17,10 @@ export function createScroller(
 	const valid = entries.filter((e) => e.valid);
 	const count = valid.length;
 
-	const transforms =
-		settings.rotate || settings.skew
-			? buildTransforms(
-					count,
-					{
-						rotate: settings.rotate,
-						rotateMaxDeg: settings.rotateMaxDeg,
-						skew: settings.skew,
-						skewMaxDeg: settings.skewMaxDeg
-					},
-					settings.seed
-				)
-			: null;
-
 	const buildCopy = (): HTMLElement => {
 		const copy = document.createElement('div');
 		copy.className = 'scroller-copy';
-		valid.forEach((e, i) => {
-			const item = document.createElement('div');
-			item.className = 'barcode-item';
-			if (FORMAT_BY_ID.get(e.format)?.engine === 'bwipjs')
-				item.classList.add('barcode-item--2d', `barcode-item--${e.format}`);
-			if (transforms) item.style.transform = transforms[i];
-			item.appendChild(renderBarcodeSvg(e));
-			copy.appendChild(item);
-		});
+		copy.append(...buildItems(valid, settings));
 		return copy;
 	};
 

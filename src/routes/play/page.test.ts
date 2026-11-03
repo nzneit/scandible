@@ -1,8 +1,9 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, fireEvent } from '@testing-library/svelte';
 import PlayPage from './+page.svelte';
 import { encodeShareUrl } from '$lib/shareUrl';
 import { DEFAULT_SETTINGS } from '$lib/types';
+import { tick } from 'svelte';
 
 const mockPage = vi.hoisted(() => ({ url: new URL('http://localhost/play') }));
 const goto = vi.hoisted(() => vi.fn());
@@ -148,4 +149,254 @@ it('reloads on hashchange, and not after unmount', () => {
 	} finally {
 		vi.unstubAllGlobals();
 	}
+});
+
+describe('play page: step mode', () => {
+	let c: HTMLElement;
+	let frames: FrameRequestCallback[];
+	/** Render the play page for PLAY_URL (two valid codes, loop off) in step mode, plus `extra`. */
+	const open = (extra = '', base = PLAY_URL + '&mode=step') => {
+		mockPage.url = new URL(base + extra);
+		const result = render(PlayPage);
+		c = result.container;
+		return result;
+	};
+	const txt = (sel: string) => q(c, sel).textContent;
+	const v = (sel: string) => q<HTMLInputElement>(c, sel).value;
+	const click = (sel: string) => fireEvent.click(q(c, sel));
+	const key = (target: Window | Element, init: KeyboardEventInit) =>
+		fireEvent.keyDown(target, init);
+	beforeEach(() => {
+		frames = [];
+		vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => frames.push(cb));
+		vi.stubGlobal('cancelAnimationFrame', vi.fn());
+	});
+	afterEach(() => {
+		vi.useRealTimers();
+		vi.unstubAllGlobals();
+	});
+
+	it('mounts one code with the step controls in order, and Next and Prev move the counter', async () => {
+		open();
+		expect(c.querySelectorAll('.step-stage > .barcode-item').length).toBe(1);
+		expect(c.querySelector('.scroller-track')).toBeNull();
+		expect(c.querySelector('.ctl-speed')).toBeNull();
+		const kids = Array.from(q(c, '.overlay').children);
+		expect(kids.map((el) => [...el.classList].find((n) => n.startsWith('ctl-')))).toEqual([
+			'ctl-playpause',
+			'ctl-prev',
+			'ctl-counter',
+			'ctl-next',
+			'ctl-group',
+			'ctl-group',
+			'ctl-restart',
+			'ctl-back'
+		]);
+		expect(kids[4].querySelector('.ctl-dwell')).not.toBeNull();
+		expect(kids[5].querySelector('.ctl-gap')).not.toBeNull();
+		expect(txt('.ctl-counter')).toBe('1 / 2');
+		await click('.ctl-next');
+		expect(txt('.ctl-counter')).toBe('2 / 2');
+		await click('.ctl-prev');
+		expect(txt('.ctl-counter')).toBe('1 / 2');
+	});
+
+	it('opens paused with Play, requests no frame, and steps once played', async () => {
+		open();
+		expect(txt('.ctl-playpause')).toBe('Play');
+		expect(frames).toEqual([]);
+		await click('.ctl-playpause');
+		expect(txt('.ctl-playpause')).toBe('Pause');
+		for (let ts = 0; ts <= 1000; ts += 100) frames.shift()?.(ts);
+		await tick();
+		expect(txt('.ctl-counter')).toBe('2 / 2');
+	});
+
+	it('shows a readout outside the overlay that follows Play, Next and the dwell slider', async () => {
+		open();
+		expect(txt('.readout')).toBe('1 / 2 · dwell 1.00 s · gap 0.00 s · paused');
+		await click('.ctl-playpause');
+		expect(txt('.readout')).toBe('1 / 2 · dwell 1.00 s · gap 0.00 s');
+		await click('.ctl-next');
+		expect(txt('.readout')).toMatch(/^2 \/ 2 · dwell /);
+		await fireEvent.input(q(c, '.ctl-dwell'), { target: { value: '300' } });
+		expect(txt('.readout')).toContain('dwell 0.30 s');
+		expect(q(c, '.overlay').querySelector('.readout')).toBeNull();
+		expect(q(c, '.readout').getAttribute('aria-hidden')).toBe('true');
+		expect(q(c, '.readout').hasAttribute('aria-live')).toBe(false);
+		expect(q(c, '.ctl-counter').hasAttribute('aria-live')).toBe(false);
+	});
+
+	it('reads 1 / 1 for a one-code link', () => {
+		open('', 'http://localhost/play#codes=036000291452&seed=7&mode=step');
+		expect(txt('.ctl-counter')).toBe('1 / 1');
+		expect(txt('.readout')).toBe('1 / 1 · dwell 1.00 s · gap 0.00 s · paused');
+	});
+
+	it('keeps the overlay while paused or while a control has keyboard focus', async () => {
+		vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+		open();
+		const settle = async () => {
+			vi.advanceTimersByTime(3000);
+			await tick();
+		};
+		await settle();
+		expect(q(c, '.overlay').classList.contains('hidden')).toBe(false);
+		// fireEvent.click moves no focus in jsdom, and nwsapi's :focus-visible is :focus; this pins
+		// "playing, nothing focused, so it hides". The mouse case is verification row 6d.
+		await click('.ctl-playpause');
+		await settle();
+		expect(q(c, '.overlay').classList.contains('hidden')).toBe(true);
+		await fireEvent.pointerMove(window);
+		q<HTMLInputElement>(c, '.ctl-dwell').focus(); // matches :focus-visible in jsdom
+		await settle();
+		expect(q(c, '.overlay').classList.contains('hidden')).toBe(false);
+	});
+
+	it('loads dwell and gap from the link into the labelled sliders and seconds fields', async () => {
+		open('&dwell=500&gap=250');
+		expect(v('.ctl-dwell')).toBe('500');
+		expect(v('.ctl-dwell-seconds')).toBe('0.50');
+		expect(v('.ctl-gap')).toBe('250');
+		expect(v('.ctl-gap-seconds')).toBe('0.25');
+		expect(q(c, '.ctl-dwell').getAttribute('aria-label')).toBe('Dwell');
+		expect(q(c, '.ctl-dwell-seconds').getAttribute('aria-label')).toBe('Dwell in seconds');
+		expect(q(c, '.ctl-gap').getAttribute('aria-label')).toBe('Gap');
+		expect(q(c, '.ctl-gap-seconds').getAttribute('aria-label')).toBe('Gap in seconds');
+		await fireEvent.change(q(c, '.ctl-dwell-seconds'), { target: { value: '0.3' } });
+		expect(v('.ctl-dwell')).toBe('300');
+		expect(txt('.readout')).toContain('dwell 0.30 s');
+	});
+
+	it('re-renders 1.00 for a seconds field set to its value, with no change recorded', async () => {
+		open();
+		await click('.ctl-playpause');
+		await fireEvent.change(q(c, '.ctl-dwell-seconds'), { target: { value: '1' } });
+		expect(v('.ctl-dwell-seconds')).toBe('1.00');
+		expect(v('.ctl-dwell')).toBe('1000');
+		await click('.ctl-next');
+		await click('.ctl-next');
+		expect(txt('.finish-text')).toBe(
+			'Finished stepping 2 barcodes in 0.00 seconds at 1.00 s dwell.'
+		);
+	});
+
+	it('steps with the arrow keys unless a field has them, ignoring repeats and modifiers', async () => {
+		open();
+		await key(window, { key: 'ArrowRight' });
+		expect(txt('.ctl-counter')).toBe('2 / 2');
+		await key(window, { key: 'ArrowLeft' });
+		expect(txt('.ctl-counter')).toBe('1 / 2');
+		await key(q(c, '.ctl-dwell'), { key: 'ArrowRight' });
+		await key(window, { key: 'ArrowRight', repeat: true });
+		await key(window, { key: 'ArrowRight', altKey: true });
+		expect(txt('.ctl-counter')).toBe('1 / 2');
+	});
+
+	it('toggles on Space from the window or body, never from a button, field or slider', async () => {
+		open();
+		await key(window, { key: ' ' });
+		expect(txt('.ctl-playpause')).toBe('Pause');
+		await key(window, { key: ' ' });
+		expect(txt('.ctl-playpause')).toBe('Play');
+		for (const sel of [
+			'.ctl-next',
+			'.ctl-dwell-seconds',
+			'.ctl-gap-seconds',
+			'.ctl-dwell',
+			'.ctl-gap'
+		]) {
+			const el = q<HTMLElement>(c, sel);
+			el.focus();
+			await key(el, { key: ' ' });
+			expect(txt('.ctl-playpause')).toBe('Play');
+		}
+		await key(document.body, { key: ' ' });
+		expect(txt('.ctl-playpause')).toBe('Pause');
+	});
+
+	it('finishes on Next at the last code with the run record as a status, then ignores keys', async () => {
+		open('&dwell=500&gap=250');
+		// Held across the finish: the live region must be the same node before and after.
+		const status = q(c, '.finish-status');
+		expect(status.getAttribute('role')).toBe('status');
+		expect(status.textContent).toBe('');
+		await click('.ctl-next');
+		await click('.ctl-next');
+		const text = 'Finished stepping 2 barcodes in 0.00 seconds at 0.50 s dwell, 0.25 s gap.';
+		expect(txt('.finish-text')).toBe(text);
+		expect(status.textContent).toBe(text);
+		await key(window, { key: 'ArrowRight' });
+		expect(txt('.finish-text')).toBe(text);
+	});
+
+	it('reports a dwell set before Play as the dwell, and one changed after Play as a change', async () => {
+		const first = open('&dwell=500&gap=250');
+		await fireEvent.input(q(c, '.ctl-dwell'), { target: { value: '300' } });
+		await click('.ctl-next');
+		await click('.ctl-next');
+		expect(txt('.finish-text')).toContain('at 0.30 s dwell');
+		first.unmount();
+		open('&dwell=500&gap=250');
+		await click('.ctl-playpause');
+		await fireEvent.change(q(c, '.ctl-dwell-seconds'), { target: { value: '0.3' } });
+		await click('.ctl-next');
+		await click('.ctl-next');
+		expect(txt('.finish-text')).toContain('dwell changed from 0.50 s to 0.30 s');
+	});
+
+	it('shows Play and a paused readout behind the finish screen when the run ends while playing', async () => {
+		open();
+		await click('.ctl-playpause');
+		// The 0 frame counts nothing; then twenty 100 ms intervals: the swap at 1000, the finish at 2000.
+		for (let ts = 0; ts <= 2000; ts += 100) frames.shift()?.(ts);
+		await tick();
+		expect(txt('.finish-text')).toBe(
+			'Finished stepping 2 barcodes in 2.00 seconds at 1.00 s dwell. Display about 10 Hz.'
+		);
+		expect(txt('.ctl-playpause')).toBe('Play');
+		expect(txt('.readout')).toMatch(/ · paused$/);
+	});
+
+	it("moves focus to the finish screen's Restart when a run finishes", async () => {
+		open();
+		q<HTMLButtonElement>(c, '.ctl-next').focus();
+		await click('.ctl-next');
+		await click('.ctl-next');
+		await tick();
+		expect(document.activeElement).toBe(q(c, '.finish-restart'));
+	});
+
+	it("returns to code 1 on Restart, and the finish screen's Restart lands paused", async () => {
+		open();
+		await click('.ctl-next');
+		await click('.ctl-next'); // finishes: PLAY_URL has loop off
+		await click('.ctl-restart');
+		expect(c.querySelector('.finish-text')).toBeNull();
+		expect(txt('.ctl-counter')).toBe('1 / 2');
+		await click('.ctl-next');
+		await click('.ctl-next');
+		await click('.finish-restart');
+		expect(c.querySelector('.finish-screen')).toBeNull();
+		expect(txt('.ctl-counter')).toBe('1 / 2');
+		expect(txt('.ctl-playpause')).toBe('Play');
+		expect(txt('.readout')).toMatch(/ · paused$/);
+	});
+
+	it('carries the live dwell and gap back to setup', async () => {
+		open();
+		await fireEvent.input(q(c, '.ctl-dwell'), { target: { value: '300' } });
+		await fireEvent.input(q(c, '.ctl-gap'), { target: { value: '100' } });
+		await click('.ctl-back');
+		expect(goto).toHaveBeenCalledWith(
+			'/' +
+				encodeShareUrl(CODES, {
+					...DEFAULT_SETTINGS,
+					seed: 7,
+					mode: 'step',
+					dwellMs: 300,
+					gapMs: 100
+				})
+		);
+	});
 });

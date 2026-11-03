@@ -1,3 +1,7 @@
+/** Longest frame delta either engine accepts; a longer interval between frames counts as this
+ *  much. */
+export const MAX_DELTA_MS = 100;
+
 /** Advance the scroll offset by one frame. Pure — no DOM, no time source.
  *  deltaMs is MILLISECONDS (already clamped by the caller). */
 export function advanceOffset(
