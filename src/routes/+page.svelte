@@ -36,6 +36,7 @@
 	import ValidationList from '$lib/components/ValidationList.svelte';
 	import RowEditor from '$lib/components/RowEditor.svelte';
 	import ShareLink from '$lib/components/ShareLink.svelte';
+	import Field from '$lib/components/Field.svelte';
 
 	const decoded = decodeShareUrl(page.url);
 	const initial: Settings = { ...DEFAULT_SETTINGS, ...decoded.settings };
@@ -238,13 +239,12 @@
 
 <div class="setup">
 	<h1>scandible</h1>
-	<label class="field"
-		>Editor
+	<Field label="Editor">
 		<select class="editor-input" bind:this={editorSelect} value={editor} onchange={onEditorChange}>
 			<option value="text">Plain text</option>
 			<option value="rows">Per row</option>
 		</select>
-	</label>
+	</Field>
 	{#if editor === 'text'}
 		<p class="editor-hint">{EDITOR_HINT}</p>
 	{/if}
@@ -275,8 +275,7 @@
 	/>
 	<p class="file-error" hidden={!fileError}>{fileError}</p>
 	<div class="settings-row">
-		<label class="field"
-			>{editor === 'rows' ? 'Format for new rows' : 'Format'}
+		<Field label={editor === 'rows' ? 'Format for new rows' : 'Format'}>
 			<select class="format-input" bind:value={() => format, (v) => selectFormat(v)}>
 				{#each FORMAT_GROUPS as { group, formats } (group)}
 					<optgroup label={group}>
@@ -286,14 +285,13 @@
 					</optgroup>
 				{/each}
 			</select>
-		</label>
+		</Field>
 		{#if editor === 'text' && isGs1(descriptor)}
 			<p class="gs1-hint">{GS1_HINT}</p>
 		{/if}
 		{#if editor === 'text' && descriptor?.ecc}
 			{@const opt = descriptor.ecc}
-			<label class="field ecc-field"
-				>Error correction
+			<Field label="Error correction" class="ecc-field">
 				<select
 					class="ecc-input"
 					bind:value={() => ecc || opt.defaultValue, (v) => (ecc = v === opt.defaultValue ? '' : v)}
@@ -302,30 +300,27 @@
 						<option value={c.value}>{c.note ? `${c.label} (${c.note})` : c.label}</option>
 					{/each}
 				</select>
-			</label>
+			</Field>
 		{/if}
 		{#if editor === 'text' && isGs1(descriptor)}
-			<label class="field lax-field"
-				>Render GS1 data that fails validation
+			<Field label="Render GS1 data that fails validation" class="lax-field">
 				<input
 					type="checkbox"
 					class="lax-input"
 					bind:checked={lax}
 					aria-describedby="{uid}-lax-note"
 				/>
-			</label>
+			</Field>
 			<p class="lax-note" id="{uid}-lax-note">{LAX_NOTE}</p>
 		{/if}
-		<label class="field"
-			>Playback
+		<Field label="Playback">
 			<select class="mode-input" bind:value={mode}>
 				<option value="scroll">Scroll</option>
 				<option value="step">Step</option>
 			</select>
-		</label>
+		</Field>
 		{#if mode === 'step'}
-			<label class="field"
-				>Dwell
+			<Field label="Dwell">
 				<input
 					type="range"
 					class="dwell-input"
@@ -350,15 +345,14 @@
 					/>
 					s
 				</span>
-			</label>
+			</Field>
 			{#if dwellMs < 330}
 				<p class="flash-note">
 					Dwells under 0.33 s flash the screen more than three times a second. Do not use them near
 					anyone sensitive to flashing lights.
 				</p>
 			{/if}
-			<label class="field"
-				>Gap
+			<Field label="Gap">
 				<input
 					type="range"
 					class="gap-input"
@@ -383,13 +377,12 @@
 					/>
 					s
 				</span>
-			</label>
+			</Field>
 			{#if gapMs < 1000 && dupPairs.length > 0}
 				<p class="dup-hint">{dupHint}</p>
 			{/if}
 		{:else}
-			<label class="field"
-				>Speed
+			<Field label="Speed">
 				<input
 					type="range"
 					class="speed-input"
@@ -398,14 +391,12 @@
 					step="5"
 					bind:value={speedPxPerSec}
 				/>
-			</label>
+			</Field>
 		{/if}
-		<label class="field"
-			>Loop
+		<Field label="Loop">
 			<input type="checkbox" class="loop-input" bind:checked={loop} />
-		</label>
-		<label class="field"
-			>Random rotation
+		</Field>
+		<Field label="Random rotation">
 			<input
 				type="checkbox"
 				class="rotate-input"
@@ -422,9 +413,8 @@
 				bind:value={rotateMaxDeg}
 				disabled={!rotate}
 			/>
-		</label>
-		<label class="field"
-			>Random skew
+		</Field>
+		<Field label="Random skew">
 			<input type="checkbox" class="skew-input" aria-label="Random skew" bind:checked={skew} />
 			<input
 				type="range"
@@ -436,7 +426,7 @@
 				bind:value={skewMaxDeg}
 				disabled={!skew}
 			/>
-		</label>
+		</Field>
 	</div>
 	{#if editor === 'text'}
 		<ValidationList {entries} />
@@ -463,12 +453,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: 16px;
-	}
-	.field {
-		display: flex;
-		flex-direction: column;
-		align-items: flex-start;
-		gap: 4px;
 	}
 	.seconds {
 		display: flex;

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Field from './Field.svelte';
 	import { buildQrSvg, qrStatus, QR_CAPACITY_BYTES, type QrEcc, type QrStatus } from '$lib/qr';
 
 	const COPY_OK = 'Link copied.';
@@ -47,15 +48,14 @@
 	<input type="text" class="share-url" readonly aria-label="Share link" value={liveUrl} />
 	<span class="copy-status" role="status" aria-label="Copy status">{copyStatus}</span>
 </div>
-<label class="share-ecc-field"
-	>Share QR error correction
+<Field label="Share QR error correction" class="share-ecc-field">
 	<select class="share-ecc-input" bind:value={shareEcc}>
 		<option value="L">L (most capacity)</option>
 		<option value="M">M (default)</option>
 		<option value="Q">Q</option>
 		<option value="H">H</option>
 	</select>
-</label>
+</Field>
 <div class="qr-code" role="img" hidden={!qrSvg} aria-label="QR code for the share link">
 	<!-- eslint-disable-next-line svelte/no-at-html-tags -- qrSvg comes only from uqr's renderSVG, which never reflects its input into markup (security-reviewed) -->
 	{@html qrSvg}
