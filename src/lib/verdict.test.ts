@@ -70,31 +70,114 @@ describe('verdictText for GS1 entries', () => {
 		expect(verdict('(', 'gs1128')).toBe(' ✗ invalid');
 		expect(verdict('(1A)x', 'gs1128')).toBe(' ✗ AI 1A: Unrecognised AI');
 		expect(verdict('(90)' + 'x'.repeat(3000), 'gs1qr', true, 'H')).toBe(
-			' ✗ too long for GS1 QR Code (level H)'
+			' ✗ too long for GS1 QR Code (level H) (the validation setting cannot override this)'
 		);
 	});
 
 	it.each([
-		['gs1128', "AIs must end with ')'", false],
-		['databaromni', 'GS1 DataBar Omnidirectional must be 13 or 14 digits', true],
-		['databartruncated', 'GS1 DataBar Truncated must be 13 or 14 digits', true],
-		['databarstacked', 'GS1 DataBar Stacked must be 13 or 14 digits', true],
-		['databarstackedomni', 'GS1 DataBar Stacked Omnidirectional must be 13 or 14 digits', true],
-		['databarlimited', 'GS1 DataBar Limited must be 13 or 14 digits', true],
-		['databarexpanded', "AIs must end with ')'", false],
-		['databarexpandedstacked', "AIs must end with ')'", false],
-		['gs1datamatrix', "AIs must end with ')'", false],
-		['gs1qr', "AIs must end with ')'", false],
-		['gs1dotcode', "AIs must end with ')'", false]
-	] as const)(
-		'refuses an unclosed bracket on %s with the carrier’s message',
-		(id, message, own) => {
-			expect(verdict('(01)09501101530003(10', id)).toBe(` ✗ ${message}`);
-			expect(verdict('(01)09501101530003(10', id, true)).toBe(
-				` ✗ ${message}${own ? ' (the validation setting cannot override this)' : ''}`
+		['gs1128', "AIs must end with ')'"],
+		['databaromni', 'GS1 DataBar Omnidirectional must be 13 or 14 digits'],
+		['databartruncated', 'GS1 DataBar Truncated must be 13 or 14 digits'],
+		['databarstacked', 'GS1 DataBar Stacked must be 13 or 14 digits'],
+		['databarstackedomni', 'GS1 DataBar Stacked Omnidirectional must be 13 or 14 digits'],
+		['databarlimited', 'GS1 DataBar Limited must be 13 or 14 digits'],
+		['databarexpanded', "AIs must end with ')'"],
+		['databarexpandedstacked', "AIs must end with ')'"],
+		['gs1datamatrix', "AIs must end with ')'"],
+		['gs1qr', "AIs must end with ')'"],
+		['gs1dotcode', "AIs must end with ')'"]
+	] as const)('refuses an unclosed bracket on %s with the carrier’s message', (id, message) => {
+		expect(verdict('(01)09501101530003(10', id)).toBe(` ✗ ${message}`);
+		expect(verdict('(01)09501101530003(10', id, true)).toBe(
+			` ✗ ${message} (the validation setting cannot override this)`
+		);
+	});
+
+	it('adds the override suffix to every refused GS1 code under the setting, and to nothing else', () => {
+		const O = ' (the validation setting cannot override this)';
+		expect(verdict('(', 'gs1128', true)).toBe(' ✗ invalid' + O);
+		expect(verdict('09501101530003', 'gs1128', true)).toBe(
+			' ✗ No GS1 AI starts at "09501101…"; GS1 data starts with an AI, such as 01 before a GTIN' + O
+		);
+		expect(verdict('(01)09501101530003(10)A(B)C', 'databaromni', true)).toBe(
+			' ✗ GS1 DataBar Omnidirectional must be 13 or 14 digits (parentheses inside a value are not supported)' +
+				O
+		);
+		expect(verdict('x'.repeat(2000), 'qr', true, 'H')).toBe(' ✗ too long for QR Code (level H)');
+		expect(verdict('bad', 'upc', true)).toBe(' ✗ invalid');
+	});
+
+	it.each([
+		[
+			'gs1128',
+			']C101095011015300031726123110LOT42',
+			' ✓ · 255 modules wide · 31 characters → ]C1 01095011015300031726123110LOT42'
+		],
+		[
+			'gs1128',
+			'10LOT42<GS>0109501101530003',
+			' ✓ · 222 modules wide · 23 characters → ]C1 10LOT42␝0109501101530003'
+		],
+		[
+			'gs1128',
+			']d201095011015300031726123110LOT42',
+			' ✓ · 255 modules wide · 31 characters · scan data from GS1 DataMatrix (]d2) → ]C1 01095011015300031726123110LOT42'
+		],
+		[
+			'databaromni',
+			']e00109501101530003',
+			' ✓ · 96 modules wide · 16 characters → ]e0 0109501101530003'
+		],
+		[
+			'gs1128',
+			']d1ABC',
+			' ✗ ]d1 is not a GS1 symbology identifier; GS1 scan data starts with ]C1, ]e0, ]d2, ]Q3 or ]J1, or with its first AI'
+		],
+		[
+			'gs1128',
+			']c10109501101530003',
+			' ✗ ]c1 is not a GS1 symbology identifier; identifiers are case-sensitive, use ]C1'
+		],
+		['gs1128', '01095011015300039Z45', ' ✗ No GS1 AI starts at "9Z45" after (01)'],
+		[
+			'gs1128',
+			'09501101530003',
+			' ✗ No GS1 AI starts at "09501101…"; GS1 data starts with an AI, such as 01 before a GTIN'
+		],
+		[
+			'gs1128',
+			'0109501101530003(10)LOT42',
+			' ✗ Brackets and scan data cannot be mixed; put every AI in brackets or none (stopped at "(10)LOT4…" after (01))'
+		],
+		['gs1128', '010950110153', ' ✗ (01) takes 14 characters; only 10 follow'],
+		['gs1128', '10<GS>17261231', ' ✗ (10) has no value'],
+		[
+			'gs1128',
+			'10A(B)C',
+			' ✗ (10) contains a parenthesis; parentheses inside a value are not supported'
+		],
+		['gs1128', ']C1', ' ✗ No AIs in the scan data']
+	] as const)('reads raw %s input %s', (id, raw, expected) => {
+		expect(verdict(raw, id)).toBe(expected);
+	});
+
+	it('notes scan data from another carrier, and only then', () => {
+		expect(verdict(']Q30109501101530004', 'gs1128', true)).toBe(
+			' ⚠ rendered anyway · AI 01: Bad checksum · 134 modules wide · 16 characters · scan data from GS1 QR Code (]Q3) → ]C1 0109501101530004'
+		);
+		for (const [aim, name] of [
+			[']C1', 'GS1-128'],
+			[']e0', 'GS1 DataBar'],
+			[']d2', 'GS1 DataMatrix'],
+			[']J1', 'GS1 DotCode']
+		]) {
+			expect(verdict(`${aim}0109501101530003`, 'gs1qr')).toContain(
+				` · scan data from ${name} (${aim}) → ]Q3 `
 			);
 		}
-	);
+		expect(verdict(']Q30109501101530003', 'gs1qr')).not.toContain('scan data from');
+		expect(verdict('0109501101530003', 'gs1qr')).not.toContain('scan data from');
+	});
 
 	it('never adds the UTF-8 clause to a GS1 row, and leaves other rows as before', () => {
 		const lenient = verdict('(01)09501101530003(10)Aé', 'gs1128', true);
@@ -120,10 +203,10 @@ describe('hint texts', () => {
 			'After → is what a scanner sends when it transmits its symbology identifier (]C1, ]e0, ]d2, ]Q3 or ]J1); ␝ marks a GS separator. Keyboard-wedge scanners usually omit the identifier and may drop or change the separator. Character counts exclude both.'
 		);
 		expect(LAX_NOTE).toBe(
-			'Ticked, a code that fails GS1 validation is drawn anyway, flagged amber with the reason. It cannot help with missing brackets or a code too long for its symbol; GS1 DataBar Omnidirectional, Truncated, Stacked, Stacked Omnidirectional and Limited still refuse a wrong GTIN; and GS1 DataBar Expanded and Expanded Stacked carry the corrected check digit of a leading GTIN.'
+			'Ticked, a code that fails GS1 validation is drawn anyway, flagged amber with the reason. Three kinds of failure can never be overridden: malformed brackets, scan data that cannot be read (an unknown AI or identifier, or a parenthesis in a value), and a code too long for its symbol. Separately, GS1 DataBar Omnidirectional, Truncated, Stacked, Stacked Omnidirectional and Limited still refuse a wrong GTIN, and GS1 DataBar Expanded and Expanded Stacked carry the corrected check digit of a leading GTIN.'
 		);
 		expect(GS1_HINT).toBe(
-			'GS1 formats take bracketed element strings, such as (01)09501101530003(10)LOT42, one code per line. Spaces and line breaks are removed, commas are data, and parentheses inside a value are not supported.'
+			'GS1 formats take bracketed element strings, such as (01)09501101530003(10)LOT42, or scanner output, such as ]C1010950110153000310LOT42<GS>17261231; the ]C1-style identifier is optional. Write a separator as the GS character, ␝, <GS>, \\x1d or \\u001d. If a keyboard-wedge scanner drops separators, set it to send <GS>. One code per line; spaces and line breaks are removed, commas are data, and parentheses inside a value are not supported.'
 		);
 	});
 });

@@ -838,7 +838,7 @@ describe('setup page: GS1 validation setting', () => {
 		expect(box().getAttribute('aria-describedby')).toBe(q(c, '.lax-note').id);
 		expect(q(c, '.gs1-hint').textContent).toBe(GS1_HINT);
 		expect(q<HTMLTextAreaElement>(c, '.code-input').placeholder).toBe(
-			'Paste GS1 element strings — one per line'
+			'Paste GS1 element strings or scan data — one per line'
 		);
 		expect(precedes('.format-input', '.lax-input') && precedes('.lax-input', '.mode-input')).toBe(
 			true

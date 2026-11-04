@@ -1,5 +1,5 @@
 import { FORMAT_BY_ID, eccChoice, isGs1 } from './formats';
-import { dataCharacters, displayData, parseElementString } from './gs1';
+import { GS1_AIMS, dataCharacters, displayData, parseElementString } from './gs1';
 import type { Gs1Data } from './gs1';
 import type { CodeEntry } from './types';
 
@@ -10,14 +10,15 @@ export const SCAN_HINT =
 	'After → is what a scanner sends when it transmits its symbology identifier (]C1, ]e0, ]d2, ]Q3 or ]J1); ␝ marks a GS separator. Keyboard-wedge scanners usually omit the identifier and may drop or change the separator. Character counts exclude both.';
 
 export const LAX_NOTE =
-	'Ticked, a code that fails GS1 validation is drawn anyway, flagged amber with the reason. It cannot help with missing brackets or a code too long for its symbol; GS1 DataBar Omnidirectional, Truncated, Stacked, Stacked Omnidirectional and Limited still refuse a wrong GTIN; and GS1 DataBar Expanded and Expanded Stacked carry the corrected check digit of a leading GTIN.';
+	'Ticked, a code that fails GS1 validation is drawn anyway, flagged amber with the reason. Three kinds of failure can never be overridden: malformed brackets, scan data that cannot be read (an unknown AI or identifier, or a parenthesis in a value), and a code too long for its symbol. Separately, GS1 DataBar Omnidirectional, Truncated, Stacked, Stacked Omnidirectional and Limited still refuse a wrong GTIN, and GS1 DataBar Expanded and Expanded Stacked carry the corrected check digit of a leading GTIN.';
 
 export const GS1_HINT =
-	'GS1 formats take bracketed element strings, such as (01)09501101530003(10)LOT42, one code per line. Spaces and line breaks are removed, commas are data, and parentheses inside a value are not supported.';
+	'GS1 formats take bracketed element strings, such as (01)09501101530003(10)LOT42, or scanner output, such as ]C1010950110153000310LOT42<GS>17261231; the ]C1-style identifier is optional. Write a separator as the GS character, ␝, <GS>, \\x1d or \\u001d. If a keyboard-wedge scanner drops separators, set it to send <GS>. One code per line; spaces and line breaks are removed, commas are data, and parentheses inside a value are not supported.';
 
-const labelOf = (entry: CodeEntry) => FORMAT_BY_ID.get(entry.format)?.label;
+const descriptorOf = (entry: CodeEntry) => FORMAT_BY_ID.get(entry.format);
+const labelOf = (entry: CodeEntry) => descriptorOf(entry)?.label;
 const levelOf = (entry: CodeEntry) => {
-	const d = FORMAT_BY_ID.get(entry.format);
+	const d = descriptorOf(entry);
 	return d && eccChoice(d, entry.options.ecc);
 };
 
@@ -28,17 +29,14 @@ const parentheses = (entry: CodeEntry) =>
 		? ' (parentheses inside a value are not supported)'
 		: '';
 
-/** A suffix when the lax flag is set on a carrier that checks the GTIN itself. */
-const override = (entry: CodeEntry) => {
-	const d = FORMAT_BY_ID.get(entry.format);
-	return entry.options.lax === true && d && isGs1(d) && d.gs1.gtinCheck === 'own'
-		? ' (the validation setting cannot override this)'
-		: '';
-};
+/** A suffix when the render-anyway flag is set, which only GS1 formats resolve to true: every
+ *  refusal left under it is one the flag cannot override. */
+const override = (entry: CodeEntry) =>
+	entry.options.lax === true ? ' (the validation setting cannot override this)' : '';
 
 /** The verdict of a valid GS1 entry: ✓ or the amber lint, size, count, and the scan data. */
 function gs1Line(entry: CodeEntry, gs1: Gs1Data): string {
-	const d = FORMAT_BY_ID.get(entry.format);
+	const d = descriptorOf(entry);
 	const n = dataCharacters(gs1.data);
 	const head =
 		entry.lint !== undefined ? ` ⚠ rendered anyway · ${entry.lint}${parentheses(entry)}` : ' ✓';
@@ -48,7 +46,10 @@ function gs1Line(entry: CodeEntry, gs1: Gs1Data): string {
 		d && isGs1(d) && d.maxChars !== undefined && d.maxChars < n
 			? ` · over the ${d.maxChars}-character ${d.label} limit`
 			: '';
-	return `${head} · ${entry.facts?.summary} · ${count}${dense}${over} → ${gs1.aim} ${displayData(gs1.data)}`;
+	const aim = entry.fromScan?.aim;
+	const scan =
+		aim !== undefined && aim !== gs1.aim ? ` · scan data from ${GS1_AIMS.get(aim)} (${aim})` : '';
+	return `${head} · ${entry.facts?.summary} · ${count}${dense}${over}${scan} → ${gs1.aim} ${displayData(gs1.data)}`;
 }
 
 /** The verdict for one entry, with its leading space. Single expression so exact-textContent
@@ -64,9 +65,9 @@ export function verdictText(entry: CodeEntry): string {
 					: ' ✓'
 		: entry.reason === 'too-long'
 			? levelOf(entry)
-				? ` ✗ too long for ${labelOf(entry)} (${levelOf(entry)?.label})`
-				: ` ✗ too long for ${labelOf(entry)}`
+				? ` ✗ too long for ${labelOf(entry)} (${levelOf(entry)?.label})${override(entry)}`
+				: ` ✗ too long for ${labelOf(entry)}${override(entry)}`
 			: entry.message !== undefined
 				? ` ✗ ${entry.message}${parentheses(entry)}${override(entry)}`
-				: ' ✗ invalid';
+				: ` ✗ invalid${override(entry)}`;
 }
