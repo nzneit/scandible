@@ -33,31 +33,35 @@ resemble the way your software is used, the more confidence they can give you."
   Do not add test IDs. A file input and a `<summary>` have no role, so find them by their label.
 - **Use exact names and text**, and the exported constants where they exist (`GS1_HINT`,
   `LAX_NOTE`, `SCAN_HINT`, `DENSE_HINT`). When a query matches more than one element, narrow it with
-  `within()`, or give the element an accessible name.
+  `within()`, or give the element an accessible name. An element with no role whose text varies is
+  found by one named pattern constant, such as `DUP_HINT`, and the assertions on it stay exact.
 - **Query through `screen`.** A test that renders more than once scopes its queries to the render it
-  means, usually the latest, with `within(<that render>.container)`. A test that unmounts the earlier
-  render first may use `screen`.
+  means, usually the latest, with `within(<that render>.container)`. A test that unmounts the
+  earlier render first may use `screen`.
 - **Assert what a user can observe**, with the jest-dom matchers: `toBeDisabled`, `toBeChecked`,
   `toHaveFocus`, `toBeVisible`, `toHaveAccessibleDescription`, `toAppearBefore` and the rest.
   - Exact text stays exact: compare `textContent` with `toBe`, which keeps a verdict's leading
     space. `toHaveTextContent` matches a substring, with whitespace collapsed.
   - Number fields use `toHaveDisplayValue('1.00')`, because `toHaveValue` reads `1.00` as `1`.
   - A verdict's meaning is its text, never its color class.
-- **Pair every absence check with a presence check.** A `queryBy…` that expects `null`, or
-  `not.toBeInTheDocument()`, needs the same query arguments in a `getBy…` in the same file, so a
-  mistyped name cannot pass forever.
+- **Pair every absence check with a presence check.** A `queryBy…` that expects `null` or
+  `not.toBeInTheDocument()`, or a `queryAllBy…` that expects length 0, needs the same query
+  arguments in a `getBy…`, `getAllBy…` or `findBy…` in the same file, so a mistyped name cannot
+  pass forever. If the test's render shows no such element, say why in a comment above the check.
 - **Two fallbacks may still use a selector**, each marked with its reason on the line above:
   - stage structure, which covers the engine's barcode items, since they have no role:
     `// eslint-disable-next-line testing-library/no-node-access -- stage structure: <reason>`;
   - state that exists only visually, such as the play overlay's faded `hidden` class:
     `// fallback -- visual state: <reason>`.
 
-  Anything else that seems to need a selector is a missing accessible name: fix it with an
-  attribute.
+  Put repeated reads in one marked helper, as `stage()` and `faded()` in
+  `src/routes/play/page.test.ts` do. Anything else that seems to need a selector is a missing
+  accessible name: fix it with an attribute.
 
-- **Lint enforces these rules** for `src/routes/**/*.test.ts` and
-  `src/lib/components/**/*.test.ts` (eslint-plugin-testing-library), and reports a stale disable
-  comment as an error.
+- **Lint enforces part of this** for `src/routes/**/*.test.ts` and
+  `src/lib/components/**/*.test.ts` (eslint-plugin-testing-library): no node access, no
+  `container`, and queries through `screen`. It reports a stale disable comment as an error in every
+  file. No tool checks the query order, the exact names or the pairing: review them.
 - **The stage tests are exempt.** `ScrollColumn`, `StepStage` and the engine tests check the classes
   the engine renders, which are the contract between the engine and the stage CSS.
 - **Events use `fireEvent`** until a later spec decides on `@testing-library/user-event`.
