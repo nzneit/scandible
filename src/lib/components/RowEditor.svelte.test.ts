@@ -22,7 +22,7 @@ const deck = (...records: string[]): Row[] =>
 const ROW_HINT =
 	'Each row is one code. Enter adds a line to the code. To enter many codes at once, use Plain text or upload a file.';
 const X2000 = 'x'.repeat(2000);
-const BREAKDOWN = /^Code \d+ breakdown: /; // Questions 3: the labelled summary, whose text varies
+const BREAKDOWN = /^Code \d+ breakdown: /; // the labelled summary, whose text varies
 let c: HTMLElement;
 /** Mount over deep-state rows, as the page binds them; the spec's default rows unless given. */
 const mount = (
@@ -32,11 +32,11 @@ const mount = (
 	const rows = $state(initial);
 	c = render(RowEditor, { props: { rows, newRowFormat } }).container;
 };
-/** Queries in the latest render: a test may mount more than once (R1). */
+/** Queries in the latest render: a test may mount more than once. */
 const ui = () => within(c);
 /** The raw textContent of the element in `scope` whose trimmed text is `text`. */
 const exactText = (scope: HTMLElement, text: string) =>
-	within(scope).getByText(text.trim()).textContent; // R3
+	within(scope).getByText(text.trim()).textContent;
 const rowItems = () => within(ui().getByRole('list', { name: 'Codes' })).getAllByRole('listitem');
 /** Row k, counting from 1, as the old `at(k, …)` took it. */
 const row = (k: number) => rowItems()[k - 1];
@@ -216,6 +216,9 @@ describe('RowEditor', () => {
 		expect(within(row(1)).queryByRole('checkbox', { name: 'Render code 1 if invalid' })).toBeNull();
 		expect(ui().getByRole('checkbox', { name: 'Render code 2 if invalid' })).not.toBeChecked();
 		expect(exactText(row(2), 'Render if invalid')!.trim()).toBe('Render if invalid');
+		expect(within(row(2)).getByLabelText('Render if invalid')).toBe(
+			ui().getByRole('checkbox', { name: 'Render code 2 if invalid' })
+		);
 		expect(
 			ui()
 				.getAllByRole('checkbox')

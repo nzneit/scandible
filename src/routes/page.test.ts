@@ -18,10 +18,10 @@ const EDITOR_HINT =
 	'Per row gives each code its own format, error-correction level and GS1 validation setting, and lets a code span several lines.';
 const FLASH_NOTE =
 	'Dwells under 0.33 s flash the screen more than three times a second. Do not use them near anyone sensitive to flashing lights.';
-const DUP_HINT = /^Codes \d+ and \d+ are identical/; // Questions 3: the duplicate hint, whose text varies
+const DUP_HINT = /^Codes \d+ and \d+ are identical/; // the duplicate hint, whose text varies
 /** The raw textContent of the element in `scope` whose trimmed text is `text`. */
 const exactText = (scope: HTMLElement, text: string) =>
-	within(scope).getByText(text.trim()).textContent; // R3
+	within(scope).getByText(text.trim()).textContent;
 /** The validation list's items. */
 const items = () =>
 	within(screen.getByRole('list', { name: 'Validation results' })).getAllByRole('listitem');
@@ -552,7 +552,7 @@ describe('setup page: per-row editor', () => {
 	const LIMIT =
 		'Plain text keeps one format and one error-correction level for the whole list, and one code per line.';
 	let c: HTMLElement;
-	/** Queries in the latest render: one test opens the page three times without unmounting (R1). */
+	/** Queries in the latest render: one test opens the page three times without unmounting. */
 	const ui = () => within(c);
 	const open = (url = 'http://localhost/?codes=036000291452&seed=0') => {
 		mockPage.url = new URL(url);
@@ -868,7 +868,7 @@ describe('setup page: GS1 validation setting', () => {
 	const BAD = '(01)09501101530004';
 	const GS1_LIMIT =
 		'Plain text keeps one format, one error-correction level and one render-if-invalid setting for the whole list, and one code per line.';
-	/** BAD's verdict in the validation list: strict, and with the box ticked (R6). */
+	/** BAD's verdict in the validation list: strict, and with the box ticked. */
 	const INVALID = ' ✗ (01) GTIN: Bad checksum';
 	const LENIENT =
 		' ⚠ rendered anyway · (01) GTIN: Bad checksum · 134 modules wide · 16 characters → ]C1 0109501101530004';

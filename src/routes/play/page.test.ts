@@ -13,7 +13,7 @@ vi.mock('$app/paths', () => ({ resolve: (id: string) => id }));
 
 const CODES = ['036000291452', 'bad', '012345678905'];
 const PLAY_URL = 'http://localhost/play#codes=036000291452%0Abad%0A012345678905&seed=7';
-const READOUT = /^\d+ \/ \d+ · dwell /; // Questions 3: the step readout, whose text varies
+const READOUT = /^\d+ \/ \d+ · dwell /; // the step readout, whose text varies
 const overlay = () => screen.getByRole('group', { name: 'Playback controls' });
 const finish = () => screen.getByRole('group', { name: 'Run finished' });
 /** A button in the overlay. The finish screen repeats Restart and Back, so the scope matters. */
@@ -21,7 +21,7 @@ const control = (name: string) => within(overlay()).getByRole('button', { name }
 const readout = () => screen.getByText(READOUT);
 /** The raw textContent of the element in `scope` whose trimmed text is `text`. */
 const exactText = (scope: HTMLElement, text: string) =>
-	within(scope).getByText(text.trim()).textContent; // R3
+	within(scope).getByText(text.trim()).textContent;
 // eslint-disable-next-line testing-library/no-node-access -- stage structure: the engine's barcode items have no role (spec 3 may add one)
 const stage = (selector = '.barcode-item') => [...document.querySelectorAll<HTMLElement>(selector)];
 // fallback -- visual state: the faded overlay is opacity 0, which jsdom does not render (spec 3 can remove this)

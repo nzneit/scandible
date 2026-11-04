@@ -4,7 +4,7 @@ import Gs1Breakdown from './Gs1Breakdown.svelte';
 
 const T = new Date(2026, 10, 3);
 const GS = '\u001d';
-const BREAKDOWN = /^Code \d+ breakdown: /; // Questions 3: the labelled summary, whose text varies
+const BREAKDOWN = /^Code \d+ breakdown: /; // the labelled summary, whose text varies
 const HEADER = 'Application Identifier Name Value'; // the header row's computed name
 const show = (props: { data: string; label?: string; today?: Date }) => {
 	render(Gs1Breakdown, props);
@@ -44,6 +44,9 @@ describe('Gs1Breakdown', () => {
 			'Name',
 			'Value'
 		]);
+		// The breakdown renders no paragraph, so this file has no element to pair this absence check
+		// with. The paragraph role does resolve for <p>: the setup page's tests find the switch
+		// note's paragraph.
 		expect(screen.queryByRole('paragraph')).toBeNull();
 	});
 

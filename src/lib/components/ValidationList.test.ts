@@ -7,7 +7,7 @@ import { parseCodeList } from '$lib/codes';
 import { SCAN_HINT } from '$lib/verdict';
 import { GS } from '$lib/gs1';
 
-const BREAKDOWN = /^Code \d+ breakdown: /; // Questions 3: the labelled summary, whose text varies
+const BREAKDOWN = /^Code \d+ breakdown: /; // the labelled summary, whose text varies
 const HEADER = 'Application Identifier Name Value'; // the breakdown header row's computed name
 /** The raw textContent of the element in `scope` whose trimmed text is `text`. */
 const exactText = (scope: HTMLElement, text: string) =>
