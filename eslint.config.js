@@ -51,8 +51,7 @@ export default defineConfig(
 			'src/routes/play/page.test.ts',
 			'src/lib/components/ShareLink.test.ts',
 			'src/lib/components/ValidationList.test.ts',
-			'src/lib/components/RowEditor.svelte.test.ts',
-			'src/lib/components/Gs1Breakdown.test.ts'
+			'src/lib/components/RowEditor.svelte.test.ts'
 		]
 	},
 	{

@@ -40,7 +40,10 @@ const COUNT_DROPS: Record<string, string> = {}; // key: `${file} :: ${branch ful
  * "src/lib/components/ShareLink.test.ts :: ByRole('alert')".
  * An unlisted unpaired check FAILs, and so does an entry, for a file in scope, that is not one.
  */
-const PAIRING_EXCEPTIONS: Record<string, string> = {}; // key: `${file} :: ${queryKey}` → reason
+const PAIRING_EXCEPTIONS: Record<string, string> = {
+	"src/lib/components/Gs1Breakdown.test.ts :: ByRole('paragraph')":
+		'Gs1Breakdown renders no paragraph in any of these tests, so a presence twin would need a new render; page.test.ts finds the paragraph role (the switch note)'
+}; // key: `${file} :: ${queryKey}` → reason
 
 // ── Paths and constants ──────────────────────────────────────────────────────────────────────
 
