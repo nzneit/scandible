@@ -1,5 +1,8 @@
+import { readFileSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
 import table from './gs1-ais.json';
+import { AIS, aiAt, aiEntry, type AiPart } from './gs1Ais';
+import { PREDEFINED_LENGTH_PREFIXES } from './gs1';
 import {
 	RELEASE,
 	SHA256,
@@ -169,5 +172,97 @@ describe('the committed table', () => {
 			sha256: SHA256,
 			licence: 'Apache-2.0'
 		});
+	});
+});
+
+describe('lookup', () => {
+	it('returns the entry for one AI', () => {
+		expect(aiEntry('01')).toEqual({
+			ai: '01',
+			title: 'GTIN',
+			predefined: true,
+			parts: [{ cset: 'N', min: 14, max: 14, opt: false, linters: ['csum', 'gcppos2'] }]
+		});
+		expect(aiEntry('235')).toMatchObject({
+			ai: '235',
+			title: 'TPX',
+			predefined: false,
+			parts: [{ cset: 'X', min: 1, max: 28 }]
+		});
+		expect(aiEntry('3103')).toMatchObject({
+			ai: '3103',
+			title: 'NET WEIGHT (kg)',
+			predefined: true
+		});
+		expect(aiEntry('8008')?.parts).toHaveLength(4);
+	});
+
+	it('returns undefined for an AI GS1 does not assign', () => {
+		for (const ai of ['3944', '04', '0a', '']) expect(aiEntry(ai)).toBeUndefined();
+	});
+
+	it('finds the AI starting at an index', () => {
+		expect(aiAt('0109501101530003', 0)?.ai).toBe('01');
+		expect(aiAt('x2351', 1)?.ai).toBe('235');
+		expect(aiAt('3103000123', 0)?.ai).toBe('3103');
+		expect(aiAt('9Z45', 0)).toBeUndefined();
+		expect(aiAt('01', 1)).toBeUndefined();
+		expect(aiAt('(10)', 0)).toBeUndefined();
+	});
+
+	it('expands the 224 records into 541 entries', () => {
+		expect(AIS.size).toBe(541);
+	});
+});
+
+/** BWIPP's gs1syntax dictionary from bwip-js's barcode.ps: AI → parts, linter names without `lint`. */
+function bwippSyntax(): Map<string, AiPart[]> {
+	const ps = readFileSync('node_modules/bwip-js/barcode.ps', 'latin1');
+	const start = ps.indexOf('/gs1syntax <<');
+	const end = ps.indexOf('\n    >> readonly def', start);
+	const map = new Map<string, AiPart[]>();
+	if (start < 0 || end < 0) return map;
+	for (const block of ps.slice(start, end).split(/\n\s*pop\n/)) {
+		const parts = [
+			...block.matchAll(
+				/<< \/cset \/(\w)\s+\/min\s+(\d+)\s+\/max\s+(\d+)\s+\/opt (true|false)\s+\/linters \[([^\]]*)\] >>/g
+			)
+		].map((m) => ({
+			cset: m[1] as AiPart['cset'],
+			min: Number(m[2]),
+			max: Number(m[3]),
+			opt: m[4] === 'true',
+			linters: [...m[5].matchAll(/\/lint(\w+)/g)].map((l) => l[1])
+		}));
+		for (const m of block.matchAll(/^\s*\((\d+)\) exch dup$/gm)) map.set(m[1], parts);
+	}
+	return map;
+}
+
+describe('BWIPP parity', () => {
+	const bwipp = bwippSyntax();
+
+	it('has the same AI set as BWIPP', () => {
+		expect(bwipp.size).toBe(541);
+		expect([...AIS.keys()].sort()).toEqual([...bwipp.keys()].sort());
+	});
+
+	it('has the same fields as BWIPP for every AI', () => {
+		for (const [ai, parts] of bwipp) expect(AIS.get(ai)?.parts, ai).toEqual(parts);
+	});
+
+	it('flags predefined exactly for the scan-data prefixes', () => {
+		for (const entry of AIS.values())
+			expect(entry.predefined, entry.ai).toBe(PREDEFINED_LENGTH_PREFIXES.has(entry.ai.slice(0, 2)));
+	});
+
+	it('carries the dictionary titles', () => {
+		expect(aiEntry('01')?.title).toBe('GTIN');
+		expect(aiEntry('10')?.title).toBe('BATCH/LOT');
+		expect(aiEntry('17')?.title).toBe('USE BY or EXPIRY');
+		expect(aiEntry('3103')?.title).toBe('NET WEIGHT (kg)');
+		expect(aiEntry('3140')?.title).toBe('AREA (m²)');
+		expect(aiEntry('7030')?.title).toBe('PROCESSOR # 0');
+		expect(aiEntry('8110')?.title).toBeUndefined();
 	});
 });
