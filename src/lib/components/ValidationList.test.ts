@@ -192,6 +192,6 @@ describe('ValidationList GS1 rows', () => {
 		expect(
 			render(ValidationList, { entries: [qrHello] }).container.querySelector('.scan-hint')
 		).toBeNull();
-		expect(list('0109501101530003', false).querySelector('.scan-hint')).toBeNull();
+		expect(list('(01)09501101530003(10', false).querySelector('.scan-hint')).toBeNull();
 	});
 });

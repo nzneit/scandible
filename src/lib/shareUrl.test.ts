@@ -345,3 +345,14 @@ describe('rows links', () => {
 		expect(from('http://localhost/?r1=qr_x#top').records).toEqual(deck('qr_x'));
 	});
 });
+
+describe('raw GS1 scan data in share links', () => {
+	it('keeps a real GS in list mode and in a row record', () => {
+		const code = `]C110LOT42${'\u001d'}0109501101530003${'\u001d'}`;
+		expect(
+			decodeShareUrl(at(encodeShareUrl([code], { ...DEFAULT_SETTINGS, format: 'gs1128' }))).codes
+		).toEqual([code]);
+		const row = { payload: code, format: 'gs1128' as const, ecc: '', lax: false };
+		expect(decodeShareUrl(at(encodeRowsShareUrl([row], DEFAULT_SETTINGS))).records).toEqual([row]);
+	});
+});

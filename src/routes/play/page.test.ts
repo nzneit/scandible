@@ -76,6 +76,14 @@ describe('play page', () => {
 		await fireEvent.click(q(container, '.ctl-back'));
 		expect(goto.mock.calls[0][0]).toContain('fmt=code39');
 	});
+
+	it('plays a raw GS1 code from a list link', () => {
+		mockPage.url = new URL(
+			'http://localhost/play#codes=%5DC110LOT42%1D0109501101530003&fmt=gs1128&seed=7'
+		);
+		const { container } = render(PlayPage);
+		expect(container.querySelectorAll('.barcode-item').length).toBe(2); // 1 valid × 2 copies
+	});
 });
 
 it('renders a qr list with the 2D item classes', () => {

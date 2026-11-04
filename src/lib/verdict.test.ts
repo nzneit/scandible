@@ -75,23 +75,26 @@ describe('verdictText for GS1 entries', () => {
 	});
 
 	it.each([
-		['gs1128', "AIs must start with '('", false],
+		['gs1128', "AIs must end with ')'", false],
 		['databaromni', 'GS1 DataBar Omnidirectional must be 13 or 14 digits', true],
 		['databartruncated', 'GS1 DataBar Truncated must be 13 or 14 digits', true],
 		['databarstacked', 'GS1 DataBar Stacked must be 13 or 14 digits', true],
 		['databarstackedomni', 'GS1 DataBar Stacked Omnidirectional must be 13 or 14 digits', true],
 		['databarlimited', 'GS1 DataBar Limited must be 13 or 14 digits', true],
-		['databarexpanded', "AIs must start with '('", false],
-		['databarexpandedstacked', "AIs must start with '('", false],
-		['gs1datamatrix', "AIs must start with '('", false],
-		['gs1qr', "AIs must start with '('", false],
-		['gs1dotcode', "AIs must start with '('", false]
-	] as const)('refuses a missing bracket on %s with the carrier’s message', (id, message, own) => {
-		expect(verdict('0109501101530003', id)).toBe(` ✗ ${message}`);
-		expect(verdict('0109501101530003', id, true)).toBe(
-			` ✗ ${message}${own ? ' (the validation setting cannot override this)' : ''}`
-		);
-	});
+		['databarexpanded', "AIs must end with ')'", false],
+		['databarexpandedstacked', "AIs must end with ')'", false],
+		['gs1datamatrix', "AIs must end with ')'", false],
+		['gs1qr', "AIs must end with ')'", false],
+		['gs1dotcode', "AIs must end with ')'", false]
+	] as const)(
+		'refuses an unclosed bracket on %s with the carrier’s message',
+		(id, message, own) => {
+			expect(verdict('(01)09501101530003(10', id)).toBe(` ✗ ${message}`);
+			expect(verdict('(01)09501101530003(10', id, true)).toBe(
+				` ✗ ${message}${own ? ' (the validation setting cannot override this)' : ''}`
+			);
+		}
+	);
 
 	it('never adds the UTF-8 clause to a GS1 row, and leaves other rows as before', () => {
 		const lenient = verdict('(01)09501101530003(10)Aé', 'gs1128', true);

@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { buildEntry, parseCodeList, resolveOptions, tokenize } from './codes';
 import { FORMAT_BY_ID, type FormatId } from './formats';
+import { renderBarcodeSvg } from './barcode';
+import { GS } from './gs1';
 
 describe('parseCodeList tokenization', () => {
 	it('numeric formats split on newlines AND commas, trim, drop empties, keep order + duplicates', () => {
@@ -179,5 +181,119 @@ describe('GS1 formats through parseCodeList and buildEntry', () => {
 		const comma = parseCodeList('(01)09501101530003(10)A,B', 'gs1128');
 		expect(comma).toHaveLength(1);
 		expect(comma[0]).toMatchObject({ valid: true, gs1: { data: '010950110153000310A,B' } });
+	});
+});
+
+describe('raw GS1 scan data through buildEntry', () => {
+	const L = (format: FormatId, lax = false) => ({ format, ecc: '', lax });
+	const ELEVEN: FormatId[] = [
+		'gs1128',
+		'databaromni',
+		'databartruncated',
+		'databarstacked',
+		'databarstackedomni',
+		'databarlimited',
+		'databarexpanded',
+		'databarexpandedstacked',
+		'gs1datamatrix',
+		'gs1qr',
+		'gs1dotcode'
+	];
+
+	it('re-brackets a scan with an identifier and a GS', () => {
+		expect(
+			buildEntry(']C1010950110153000310LOT42<GS>17261231', 'gs1128', L('gs1128'))
+		).toMatchObject({
+			raw: ']C1010950110153000310LOT42<GS>17261231',
+			value: '(01)09501101530003(10)LOT42(17)261231',
+			valid: true,
+			fromScan: { aim: ']C1' },
+			gs1: { aim: ']C1', data: '010950110153000310LOT42' + GS + '17261231' }
+		});
+	});
+
+	it('marks a scan without an identifier with an empty fromScan', () => {
+		expect(buildEntry('0109501101530003', 'gs1128', L('gs1128')).fromScan).toStrictEqual({});
+	});
+
+	it('leaves bracketed text without fromScan', () => {
+		expect('fromScan' in buildEntry('(01)09501101530003', 'gs1128', L('gs1128'))).toBe(false);
+	});
+
+	it('returns an invalid entry with the read-step message', () => {
+		expect(buildEntry('09501101530003', 'gs1qr', L('gs1qr', true))).toStrictEqual({
+			raw: '09501101530003',
+			value: '09501101530003',
+			format: 'gs1qr',
+			options: { ecc: 'M', lax: true },
+			valid: false,
+			message:
+				'No GS1 AI starts at "09501101…"; GS1 data starts with an AI, such as 01 before a GTIN'
+		});
+	});
+
+	it('strips spaces before the read step', () => {
+		expect(buildEntry(']C1 0109501101530003 10LOT42', 'gs1128', L('gs1128'))).toMatchObject({
+			value: '(01)09501101530003(10)LOT42',
+			valid: true
+		});
+	});
+
+	it.each(ELEVEN)('accepts a raw GTIN on %s', (id) => {
+		expect(buildEntry('0109501101530003', id, L(id)).valid).toBe(true);
+	});
+
+	it('reads a dropped separator as one long field', () => {
+		expect(buildEntry('010950110153000310LOT4217261231', 'gs1128', L('gs1128'))).toMatchObject({
+			valid: true,
+			value: '(01)09501101530003(10)LOT4217261231'
+		});
+	});
+
+	it('skips a trailing GS and trims CR in a list', () => {
+		const entries = parseCodeList(
+			`]C10109501101530003${GS}\r\n10LOT42${GS}0109501101530003\r\n`,
+			'gs1128'
+		);
+		expect(entries).toHaveLength(2);
+		expect(entries.map((e) => e.valid)).toEqual([true, true]);
+		expect(entries.map((e) => e.value)).toEqual([
+			'(01)09501101530003',
+			'(10)LOT42(01)09501101530003'
+		]);
+	});
+
+	const S = '(01)09501101530003(17)261231(10)LOT42';
+	const S2 = '(01)09501101530003(10)LOT42(17)261231';
+	const G = '(01)09501101530003';
+	const G13 = '(01)0950110153000';
+	const E = '(01)09501101530003(3103)000123';
+	const BAD = '(01)09501101530004';
+	const carriers: FormatId[] = ['gs1128', 'gs1datamatrix', 'gs1qr', 'gs1dotcode'];
+	const gtinOnly: FormatId[] = [
+		'databaromni',
+		'databartruncated',
+		'databarstacked',
+		'databarstackedomni',
+		'databarlimited'
+	];
+	const expanded: FormatId[] = ['databarexpanded', 'databarexpandedstacked'];
+	const cases: [FormatId, string, boolean][] = [
+		...carriers.flatMap((id) => [S, S2].map((s): [FormatId, string, boolean] => [id, s, false])),
+		...gtinOnly.flatMap((id) => [G, G13].map((s): [FormatId, string, boolean] => [id, s, false])),
+		...expanded.flatMap((id) => [E, S2].map((s): [FormatId, string, boolean] => [id, s, false])),
+		['gs1128', BAD, true],
+		['databarexpanded', BAD, true]
+	];
+
+	it.each(cases)('round trips %s: %s (lax %s)', (id, sample, lax) => {
+		const first = buildEntry(sample, id, L(id, lax));
+		expect(first.valid).toBe(true);
+		const scan = first.gs1!.aim + first.gs1!.data;
+		for (const raw of [scan, scan.replaceAll(GS, '␝'), scan.replaceAll(GS, '<GS>')]) {
+			const again = buildEntry(raw, id, L(id, lax));
+			expect(again.gs1).toEqual(first.gs1);
+			expect(renderBarcodeSvg(again).outerHTML).toBe(renderBarcodeSvg(first).outerHTML);
+		}
 	});
 });
