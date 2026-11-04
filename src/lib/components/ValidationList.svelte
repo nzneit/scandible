@@ -8,10 +8,16 @@
 	let { entries }: { entries: CodeEntry[] } = $props();
 </script>
 
-<ul class="validation-list" aria-label="Validation results">
+<ul class="validation-list font-mono text-sm" aria-label="Validation results">
 	{#each entries as entry, i (i)}
 		<!-- No whitespace between the verdict and the breakdown: the li text stays as it was. -->
-		<li class={entry.lint !== undefined ? 'lenient' : entry.valid ? 'valid' : 'invalid'}>
+		<li
+			class={entry.lint !== undefined
+				? 'lenient text-warning'
+				: entry.valid
+					? 'valid text-success'
+					: 'invalid text-error'}
+		>
 			<span class="raw">{displayData(entry.raw)}</span><span class="verdict"
 				>{verdictText(entry)}</span
 			>{#if entry.gs1}<div class="breakdown">
@@ -57,14 +63,5 @@
 	.validation-list .verdict {
 		overflow-wrap: anywhere;
 		white-space: pre-wrap;
-	}
-	.validation-list .valid {
-		color: #007700;
-	}
-	.validation-list .invalid {
-		color: #c00;
-	}
-	.validation-list .lenient {
-		color: #9a6700;
 	}
 </style>

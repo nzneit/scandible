@@ -13,9 +13,9 @@
 	);
 </script>
 
-<details class="gs1-breakdown">
-	<summary aria-label={label ? `${label}: ${summary}` : undefined}>{summary}</summary>
-	<table>
+<details class="gs1-breakdown text-base-content">
+	<summary class="link" aria-label={label ? `${label}: ${summary}` : undefined}>{summary}</summary>
+	<table class="table table-xs">
 		<thead>
 			<tr>
 				<th><span class="visually-hidden">Application Identifier</span></th>
@@ -45,7 +45,6 @@
 <style>
 	.gs1-breakdown {
 		position: relative;
-		color: CanvasText;
 	}
 	table {
 		width: 100%;

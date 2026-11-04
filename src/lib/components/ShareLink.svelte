@@ -44,20 +44,31 @@
 	}
 </script>
 
-<div class="share-row">
-	<button type="button" class="copy-link" onclick={share}>Share link</button>
-	<input type="text" class="share-url" readonly aria-label="Share link" value={liveUrl} />
+<div class="share-row flex flex-wrap items-center gap-2">
+	<button type="button" class="copy-link btn btn-sm" onclick={share}>Share link</button>
+	<input
+		type="text"
+		class="share-url input input-sm min-w-0 flex-1 font-mono"
+		readonly
+		aria-label="Share link"
+		value={liveUrl}
+	/>
 	<span class="copy-status" role="status" aria-label="Copy status">{copyStatus}</span>
 </div>
 <Field label="Share QR error correction" class="share-ecc-field">
-	<select class="share-ecc-input" bind:value={shareEcc}>
+	<select class="share-ecc-input select select-sm w-auto" bind:value={shareEcc}>
 		<option value="L">L (most capacity)</option>
 		<option value="M">M (default)</option>
 		<option value="Q">Q</option>
 		<option value="H">H</option>
 	</select>
 </Field>
-<div class="qr-code" role="img" hidden={!qrSvg} aria-label="QR code for the share link">
+<div
+	class="qr-code border border-base-300"
+	role="img"
+	hidden={!qrSvg}
+	aria-label="QR code for the share link"
+>
 	<!-- eslint-disable-next-line svelte/no-at-html-tags -- qrSvg comes only from uqr's renderSVG, which never reflects its input into markup (security-reviewed) -->
 	{@html qrSvg}
 </div>
@@ -66,13 +77,6 @@
 >
 
 <style>
-	.share-url {
-		flex: 1;
-		font-family: monospace;
-	}
-	.copy-status {
-		margin-left: 8px;
-	}
 	.qr-code {
 		background: #fff;
 		padding: 12px;
