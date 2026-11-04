@@ -12,11 +12,11 @@ body holds the full checker output and the _Deliberate losses_ list), `CONTRIBUT
 tests_ (the test rules every new test follows), and `docs/superpowers/handoffs/2026-11-03-gs1-series-handoff.md`
 (the GS1 series and the unverified hardware rows of earlier series; not repeated here).
 
-**Status:** **Open** — 8 of 20 items open as of 2026-11-04 (start of the third session). Closed:
-T1 to T7, T11, T12, Q1, Q2, F2. Spec 1 (T7) is merged as `fde5de1` (PR #10) and deployed. Session 3
-works on branch `feat/setup-redesign`: T8 (spec 2) is being brainstormed, while one Sonnet agent
-prepares F1 and F3 as a `test:` branch to merge before spec 2's code starts. Then T9 (spec 3). T10
-(two human checks), Q3, F4 and F5 can run any time. SvelteKit 3 waits until after the series (Q2). The handoff was first written right after PR #9 (the accessible test queries migration) was
+**Status:** **Open** — 6 of 20 items open as of 2026-11-04 (third session). Closed: T1 to T7, T11,
+T12, Q1, Q2, F1, F2, F3. Spec 1 (T7) is merged as `fde5de1` (PR #10) and deployed; F1 and F3 as
+`86e28a5` (PR #11). Session 3 brainstorms T8 (spec 2) on branch `feat/setup-redesign`, rebased on
+`86e28a5`. Then T9 (spec 3). T10 (two human checks), Q3, F4 and F5 can run any time. SvelteKit 3
+waits until after the series (Q2). The handoff was first written right after PR #9 (the accessible test queries migration) was
 squash-merged to `main` as `384b359`, and updated after PR #10 merged.
 
 **Why this exists.** The UI revamp is a three-spec series (foundation → setup page redesign → play
@@ -563,8 +563,9 @@ gzipped`; Vite's chunk warning is 579.37 kB (accepted, F2). `npm run stage-check
   read the flagged lines, and read the state through a closure or `$derived` as the Svelte message
   suggests, without changing any assertion or event.
 - **Acceptance:** that command prints nothing; the file still passes 18 of 18 tests.
-- **Status:** ☐ open — unblocked: spec 1 merged as `fde5de1` (the user chose "after spec 1
-  merges" on 2026-11-04). Rechecked at `fde5de1`: still two warnings (one at :229), 18 of 18 pass.
+- **Status:** ☑ closed — 2026-11-04 (session 3); PR #11, squash-merged as `86e28a5`. The warnings came
+  from passing `$state` rows as a plain prop; rows now go through a getter and are read through
+  closures. 0 warnings, 18 of 18 pass.
 
 ### F2 — Vite warns that one chunk is 573 kB
 
@@ -605,7 +606,8 @@ gzipped`; Vite's chunk warning is 579.37 kB (accepted, F2). `npm run stage-check
 - **Acceptance:** the three files pass; `npm run lint` is clean; for b, deleting the deck's codes
   makes the test fail.
 - **Relates to:** F1
-- **Status:** ☐ open — unblocked: spec 1 merged as `fde5de1`; bundle with F1 in one `test:` PR.
+- **Status:** ☑ closed — 2026-11-04 (session 3); PR #11, squash-merged as `86e28a5` (a, b and c, with
+  b's deliberate break and c's pattern probe re-run by the controller).
 
 ### Q3 — Should the color guard also catch palette classes and other color forms?
 
@@ -731,4 +733,5 @@ _(Append one row per resolved item: ID · decision taken · file(s) patched · r
 | T11         | Deleted local `feat/ui-foundation` (tree identical to `main`); kept the remote branch                                                                                                                                                                  | git only                                                                | session 3 (recommended default)       | 2026-11-04 |
 | Q2          | SvelteKit 3 after the UI series, in its own upgrade PR                                                                                                                                                                                                 | none                                                                    | user                                  | 2026-11-04 |
 | F1, F3      | One Sonnet agent prepares the `test:` branch in a throwaway worktree while spec 2 is brainstormed; merged before spec 2's code starts                                                                                                                  | none yet                                                                | user                                  | 2026-11-04 |
+| F1, F3 run  | 1 Sonnet agent, one send-back (F3 a missed the container helpers); controller re-ran every commit; PR #11 squash-merged as `86e28a5`                                                                                                                   | four test files                                                         | session 3, user merged                | 2026-11-04 |
 | T12         | This update committed on `feat/setup-redesign`, as T2 was on `feat/ui-foundation`                                                                                                                                                                      | this file                                                               | user                                  | 2026-11-04 |
