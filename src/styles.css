@@ -1,9 +1,57 @@
-* {
-	box-sizing: border-box;
+@import 'tailwindcss' source(none);
+@source './**/*.svelte';
+/* The play overlay fades with its own class "hidden"; Tailwind's utility of that name would hide
+   it outright. scripts/check-css.ts fails the build if that rule returns. */
+@source not inline('hidden');
+@plugin 'daisyui' {
+	themes: false; /* none of daisyUI's built-in themes ship */
 }
-html,
-body {
-	margin: 0;
-	height: 100%;
-	font-family: system-ui, sans-serif;
+@plugin 'daisyui/theme' {
+	name: 'instrument';
+	default: true;
+	color-scheme: light;
+	--color-base-100: #ffffff;
+	--color-base-content: #18181b;
+	--color-base-200: #f4f4f5;
+	--color-base-300: #e4e4e7;
+	--color-primary: #18181b;
+	--color-primary-content: #fafafa;
+	--color-secondary: #52525b;
+	--color-secondary-content: #ffffff;
+	--color-accent: #2563eb;
+	--color-accent-content: #ffffff;
+	--color-neutral: #3f3f46;
+	--color-neutral-content: #fafafa;
+	--color-info: #2563eb;
+	--color-info-content: #ffffff;
+	--color-success: #15803d;
+	--color-success-content: #ffffff;
+	--color-warning: #8a5d00;
+	--color-warning-content: #ffffff;
+	--color-error: #b91c1c;
+	--color-error-content: #ffffff;
+	--radius-selector: 0.25rem;
+	--radius-field: 0.25rem;
+	--radius-box: 0.375rem;
+	--size-selector: 0.25rem;
+	--size-field: 0.25rem;
+	--border: 1px;
+	--depth: 0;
+	--noise: 0;
+}
+
+/* Overrides of daisyUI defaults (spec: "Overrides of daisyUI defaults"), unlayered so they win.
+   Resting control borders at 3.95:1. The :not() leaves daisyUI's focus and checked colors alone:
+   they set --input-color too and would lose to an unlayered rule. */
+:is(.input, .select, .textarea, .file-input, .checkbox, .toggle):not(
+	:focus,
+	:focus-within,
+	:checked,
+	:indeterminate
+) {
+	--input-color: color-mix(in oklab, var(--color-base-content) 55%, #0000);
+}
+/* Placeholder text at 6.54:1. */
+:is(.input, .textarea)::placeholder {
+	color: color-mix(in oklab, var(--color-base-content) 70%, #0000);
 }
