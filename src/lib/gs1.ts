@@ -134,14 +134,14 @@ export function splitScanData(data: string): { elements: Gs1Element[]; stop?: st
 			if (data[i] === '(') {
 				return {
 					elements,
-					stop: `Brackets and scan data cannot be mixed; put every AI in brackets or none (stopped at "${text}"${after})`
+					stop: `Brackets and scan data cannot be mixed; put every Application Identifier in brackets or none (stopped at "${text}"${after})`
 				};
 			}
 			return {
 				elements,
 				stop: last
-					? `No GS1 AI starts at "${text}"${after}`
-					: `No GS1 AI starts at "${text}"; GS1 data starts with an AI, such as 01 before a GTIN`
+					? `No GS1 Application Identifier starts at "${text}"${after}`
+					: `No GS1 Application Identifier starts at "${text}"; GS1 data starts with an Application Identifier, such as 01 before a GTIN`
 			};
 		}
 		const start = i + entry.ai.length;
@@ -182,14 +182,15 @@ export function readGs1Input(text: string): Gs1Read {
 				ok: false,
 				message: match
 					? `${displayData(id)} is not a GS1 symbology identifier; identifiers are case-sensitive, use ${match}`
-					: `${displayData(id)} is not a GS1 symbology identifier; GS1 scan data starts with ]C1, ]e0, ]d2, ]Q3 or ]J1, or with its first AI`
+					: `${displayData(id)} is not a GS1 symbology identifier; GS1 scan data starts with ]C1, ]e0, ]d2, ]Q3 or ]J1, or with its first Application Identifier`
 			};
 		}
 		rest = rest.slice(3);
 	}
 	const { elements, stop } = splitScanData(rest);
 	if (stop) return { ok: false, message: stop };
-	if (elements.length === 0) return { ok: false, message: 'No AIs in the scan data' };
+	if (elements.length === 0)
+		return { ok: false, message: 'No Application Identifiers in the scan data' };
 	for (const { ai, value } of elements) {
 		if (/[()]/.test(value)) {
 			return {
@@ -202,6 +203,27 @@ export function readGs1Input(text: string): Gs1Read {
 	return { ok: true, value, fromScan: aim ? { aim } : {} };
 }
 
+/** "AI" written out, so no reader takes it for artificial intelligence. */
+const spellOut = (text: string) =>
+	text.replace(/\bAIs\b/g, 'Application Identifiers').replace(/\bAI\b/g, 'Application Identifier');
+
+/** A BWIPP GS1 message as the verdict shows it: each AI in bracket notation with its GS1 title,
+ *  and any other "AI" spelled out. */
+export function plainGs1Message(text: string): string {
+	const lint = /^AI ([^\s:]+): ([\s\S]*)$/.exec(text);
+	if (lint) {
+		const [, ai, reason] = lint;
+		if (reason === 'Unrecognised AI') return `(${ai}) is not a GS1 Application Identifier`;
+		const title = aiEntry(ai)?.title;
+		return `(${ai})${title === undefined ? '' : ` ${title}`}: ${spellOut(reason)}`;
+	}
+	const exclusive = /^AIs \(([^)]+)\) and \(([^)]+)\) are mutually exclusive$/.exec(text);
+	if (exclusive) return `(${exclusive[1]}) and (${exclusive[2]}) cannot be in the same code`;
+	const repeated = /^Repeated AIs \(([^)]+)\) must have the same value$/.exec(text);
+	if (repeated) return `(${repeated[1]}) appears more than once with different values`;
+	return spellOut(text);
+}
+
 export interface BreakdownLine {
 	ai: string;
 	title?: string;
@@ -211,7 +233,10 @@ export interface BreakdownLine {
 /** The per-AI lines of drawn scan data, split as a receiving system would split it. */
 export function breakdown(data: string, today: Date): { lines: BreakdownLine[]; stop?: string } {
 	if (data.startsWith('(')) {
-		return { lines: [], stop: 'The bracketed string could not be split into AIs' };
+		return {
+			lines: [],
+			stop: 'The bracketed string could not be split into Application Identifiers'
+		};
 	}
 	const { elements, stop } = splitScanData(data);
 	const lines = elements.map(({ ai, value }): BreakdownLine => {

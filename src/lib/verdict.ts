@@ -1,5 +1,5 @@
 import { FORMAT_BY_ID, eccChoice, isGs1 } from './formats';
-import { GS1_AIMS, dataCharacters, displayData, parseElementString } from './gs1';
+import { GS1_AIMS, dataCharacters, displayData, parseElementString, plainGs1Message } from './gs1';
 import type { Gs1Data } from './gs1';
 import type { CodeEntry } from './types';
 
@@ -10,10 +10,10 @@ export const SCAN_HINT =
 	'After → is what a scanner sends when it transmits its symbology identifier (]C1, ]e0, ]d2, ]Q3 or ]J1); ␝ marks a GS separator. Keyboard-wedge scanners usually omit the identifier and may drop or change the separator. Character counts exclude both.';
 
 export const LAX_NOTE =
-	'Ticked, a code that fails GS1 validation is drawn anyway, flagged amber with the reason. Three kinds of failure can never be overridden: malformed brackets, scan data that cannot be read (an unknown AI or identifier, or a parenthesis in a value), and a code too long for its symbol. Separately, GS1 DataBar Omnidirectional, Truncated, Stacked, Stacked Omnidirectional and Limited still refuse a wrong GTIN, and GS1 DataBar Expanded and Expanded Stacked carry the corrected check digit of a leading GTIN.';
+	'Ticked, a code that fails GS1 validation is drawn anyway, flagged amber with the reason. Three kinds of failure can never be overridden: malformed brackets, scan data that cannot be read (an unknown Application Identifier or symbology identifier, or a parenthesis in a value), and a code too long for its symbol. Separately, GS1 DataBar Omnidirectional, Truncated, Stacked, Stacked Omnidirectional and Limited still refuse a wrong GTIN, and GS1 DataBar Expanded and Expanded Stacked carry the corrected check digit of a leading GTIN.';
 
 export const GS1_HINT =
-	'GS1 formats take bracketed element strings, such as (01)09501101530003(10)LOT42, or scanner output, such as ]C1010950110153000310LOT42<GS>17261231; the ]C1-style identifier is optional. Write a separator as the GS character, ␝, <GS>, \\x1d or \\u001d. If a keyboard-wedge scanner drops separators, set it to send <GS>. One code per line; spaces and line breaks are removed, commas are data, and parentheses inside a value are not supported.';
+	'GS1 formats take bracketed element strings, such as (01)09501101530003(10)LOT42, or scanner output, such as ]C1010950110153000310LOT42<GS>17261231; the ]C1-style symbology identifier is optional. Each bracketed number is a GS1 Application Identifier, which names the value after it: (01) marks a GTIN. Write a separator as the GS character, ␝, <GS>, \\x1d or \\u001d. If a keyboard-wedge scanner drops separators, set it to send <GS>. One code per line; spaces and line breaks are removed, commas are data, and parentheses inside a value are not supported.';
 
 const descriptorOf = (entry: CodeEntry) => FORMAT_BY_ID.get(entry.format);
 const labelOf = (entry: CodeEntry) => descriptorOf(entry)?.label;
@@ -39,7 +39,9 @@ function gs1Line(entry: CodeEntry, gs1: Gs1Data): string {
 	const d = descriptorOf(entry);
 	const n = dataCharacters(gs1.data);
 	const head =
-		entry.lint !== undefined ? ` ⚠ rendered anyway · ${entry.lint}${parentheses(entry)}` : ' ✓';
+		entry.lint !== undefined
+			? ` ⚠ rendered anyway · ${plainGs1Message(entry.lint)}${parentheses(entry)}`
+			: ' ✓';
 	const count = n === 1 ? '1 character' : `${n} characters`;
 	const dense = entry.facts?.dense ? ' · dense' : '';
 	const over =
@@ -68,6 +70,6 @@ export function verdictText(entry: CodeEntry): string {
 				? ` ✗ too long for ${labelOf(entry)} (${levelOf(entry)?.label})${override(entry)}`
 				: ` ✗ too long for ${labelOf(entry)}${override(entry)}`
 			: entry.message !== undefined
-				? ` ✗ ${entry.message}${parentheses(entry)}${override(entry)}`
+				? ` ✗ ${plainGs1Message(entry.message)}${parentheses(entry)}${override(entry)}`
 				: ` ✗ invalid${override(entry)}`;
 }

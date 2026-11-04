@@ -228,7 +228,7 @@ describe('raw GS1 scan data through buildEntry', () => {
 			options: { ecc: 'M', lax: true },
 			valid: false,
 			message:
-				'No GS1 AI starts at "09501101…"; GS1 data starts with an AI, such as 01 before a GTIN'
+				'No GS1 Application Identifier starts at "09501101…"; GS1 data starts with an Application Identifier, such as 01 before a GTIN'
 		});
 	});
 

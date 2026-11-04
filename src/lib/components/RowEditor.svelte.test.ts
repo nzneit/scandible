@@ -237,8 +237,8 @@ describe('RowEditor', () => {
 	it('shows the amber verdict with the lenient class for a lax row that fails lint', () => {
 		mount(deck(`gs1128-lax_${BAD}`, `gs1128_${BAD}`, `gs1128_${S}`));
 		expect(texts('.row-verdict')).toEqual([
-			' ⚠ rendered anyway · AI 01: Bad checksum · 134 modules wide · 16 characters → ]C1 0109501101530004',
-			' ✗ AI 01: Bad checksum',
+			' ⚠ rendered anyway · (01) GTIN: Bad checksum · 134 modules wide · 16 characters → ]C1 0109501101530004',
+			' ✗ (01) GTIN: Bad checksum',
 			' ✓ · 255 modules wide · 31 characters → ]C1 01095011015300031726123110LOT42'
 		]);
 		expect(
@@ -271,8 +271,12 @@ describe('RowEditor GS1 breakdown', () => {
 	it('puts a labelled breakdown after the controls of each GS1 row only', () => {
 		mount(deck(`gs1128_${S}`, 'upc_036000291452', 'gs1qr_]C1010950110153000310LOT42<GS>17261231'));
 		expect(all('details.gs1-breakdown').length).toBe(2);
-		expect(at(1, 'summary')!.getAttribute('aria-label')).toBe('Code 1 breakdown: 3 AIs');
-		expect(at(3, 'summary')!.getAttribute('aria-label')).toBe('Code 3 breakdown: 3 AIs');
+		expect(at(1, 'summary')!.getAttribute('aria-label')).toBe(
+			'Code 1 breakdown: 3 Application Identifiers'
+		);
+		expect(at(3, 'summary')!.getAttribute('aria-label')).toBe(
+			'Code 3 breakdown: 3 Application Identifiers'
+		);
 		expect(at(2, 'details')).toBeNull();
 		expect(at(1, '.row-verdict')!.querySelector('details')).toBeNull();
 		expect(at(1, '.row-controls')!.nextElementSibling).toBe(at(1, 'details'));
@@ -286,6 +290,6 @@ describe('RowEditor GS1 breakdown', () => {
 		await tick();
 		expect(at(1, 'details')).toBe(d);
 		expect(d.open).toBe(true);
-		expect(d.querySelector('summary')!.textContent).toBe('1 AI');
+		expect(d.querySelector('summary')!.textContent).toBe('1 Application Identifier');
 	});
 });
