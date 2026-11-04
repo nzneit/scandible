@@ -109,6 +109,7 @@ it('renders a qr list with the 2D item classes', () => {
 
 it('renders a upc list with neither 2D class', () => {
 	render(PlayPage);
+	expect(stage()).toHaveLength(4); // 2 valid × 2 copies, so the absence checks below see a rendered stage
 	expect(stage('.barcode-item--2d')).toHaveLength(0);
 	expect(stage('.barcode-item--qr')).toHaveLength(0);
 });

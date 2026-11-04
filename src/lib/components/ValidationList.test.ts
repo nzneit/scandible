@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, within } from '@testing-library/svelte';
+import { render, screen, within } from '@testing-library/svelte';
 import ValidationList from './ValidationList.svelte';
 import type { CodeEntry, SymbolFacts } from '$lib/types';
 import type { FormatId } from '$lib/formats';
@@ -9,16 +9,18 @@ import { GS } from '$lib/gs1';
 
 const BREAKDOWN = /^Code \d+ breakdown: /; // the labelled summary, whose text varies
 const HEADER = 'Application Identifier Name Value'; // the breakdown header row's computed name
+/** Queries within an element, or through `screen` by default: a test that renders once uses the default. */
+type Scope = HTMLElement | typeof screen;
+const q = (scope: Scope = screen) => (scope instanceof HTMLElement ? within(scope) : scope);
 /** The raw textContent of the element in `scope` whose trimmed text is `text`. */
-const exactText = (scope: HTMLElement, text: string) =>
-	within(scope).getByText(text.trim()).textContent;
+const exactText = (scope: Scope, text: string) => q(scope).getByText(text.trim()).textContent;
 /** The validation list's items in the render whose container is `c`. */
-const items = (c: HTMLElement) =>
-	within(within(c).getByRole('list', { name: 'Validation results' })).getAllByRole('listitem');
+const items = (c?: Scope) =>
+	within(q(c).getByRole('list', { name: 'Validation results' })).getAllByRole('listitem');
 /** The body rows of the one breakdown table in `scope`, each as its cells' text. */
-const bodyRows = (scope: HTMLElement) => {
-	const header = within(scope).getByRole('row', { name: HEADER });
-	return within(scope)
+const bodyRows = (scope?: Scope) => {
+	const header = q(scope).getByRole('row', { name: HEADER });
+	return q(scope)
 		.getAllByRole('row')
 		.filter((row) => row !== header)
 		.map((row) =>
@@ -38,11 +40,11 @@ const entry = (raw: string, valid: boolean): CodeEntry => ({
 
 describe('ValidationList', () => {
 	it('renders one item per entry with its verdict and copy', () => {
-		const { container } = render(ValidationList, {
+		render(ValidationList, {
 			entries: [entry('036000291452', true), entry('bad', false)]
 		});
-		const [first, second] = items(container);
-		expect(items(container)).toHaveLength(2);
+		const [first, second] = items();
+		expect(items()).toHaveLength(2);
 		expect(exactText(first, ' ✓')).toBe(' ✓');
 		expect(first.textContent).toBe('036000291452 ✓');
 		expect(exactText(second, ' ✗ invalid')).toBe(' ✗ invalid');
@@ -50,16 +52,14 @@ describe('ValidationList', () => {
 	});
 
 	it('renders no items for an empty list', () => {
-		const { container } = render(ValidationList, { entries: [] });
+		render(ValidationList, { entries: [] });
 		expect(
-			within(within(container).getByRole('list', { name: 'Validation results' })).queryAllByRole(
-				'listitem'
-			)
+			within(screen.getByRole('list', { name: 'Validation results' })).queryAllByRole('listitem')
 		).toHaveLength(0);
 	});
 
 	it('shows the exact arrow row when the encoder mutates the value', () => {
-		const { container } = render(ValidationList, {
+		render(ValidationList, {
 			entries: [
 				{
 					raw: '590123412345',
@@ -71,16 +71,16 @@ describe('ValidationList', () => {
 				}
 			]
 		});
-		expect(items(container)[0].textContent).toBe('590123412345 ✓ → 5901234123457');
+		expect(items()[0].textContent).toBe('590123412345 ✓ → 5901234123457');
 	});
 
 	it('keeps entries without encoded arrow-free (undefined guard)', () => {
-		const { container } = render(ValidationList, {
+		render(ValidationList, {
 			entries: [
 				{ raw: '036000291452', value: '036000291452', format: 'upc', options: {}, valid: true }
 			]
 		});
-		expect(items(container)[0].textContent).toBe('036000291452 ✓');
+		expect(items()[0].textContent).toBe('036000291452 ✓');
 	});
 });
 
@@ -109,8 +109,10 @@ const tooLong = (raw: string, format: FormatId, ecc?: string): CodeEntry => ({
 	valid: false,
 	reason: 'too-long'
 });
-const rowTexts = (entries: CodeEntry[]) =>
-	items(render(ValidationList, { entries }).container).map((li) => li.textContent);
+const rowTexts = (entries: CodeEntry[]) => {
+	render(ValidationList, { entries });
+	return items().map((li) => li.textContent);
+};
 const X2000 = 'x'.repeat(2000);
 const DENSE_HINT =
 	'Dense: more than 100 modules across (PDF417 and the linear GS1 formats: 300), so each module is small on screen. If the scanner misses these, shorten the payload, lower error correction if the format offers it, or go full screen.';
@@ -168,18 +170,18 @@ describe('ValidationList 2D rows', () => {
 	});
 
 	it("separates each row's raw text from its verdict with a space", () => {
-		const { container } = render(ValidationList, { entries: [qrHello] });
-		expect(exactText(container, 'hello world')).toBe('hello world');
-		expect(exactText(container, ' ✓ · 21×21 modules · 11 bytes')).toBe(
+		render(ValidationList, { entries: [qrHello] });
+		expect(exactText(screen, 'hello world')).toBe('hello world');
+		expect(exactText(screen, ' ✓ · 21×21 modules · 11 bytes')).toBe(
 			' ✓ · 21×21 modules · 11 bytes'
 		);
 	});
 
 	it('renders no arrow for entries without encoded', () => {
 		const entries = [qrHello, qrDense, entry('036000291452', true)];
-		const { container } = render(ValidationList, { entries });
+		render(ValidationList, { entries });
 		// The raw texts hold no arrow, so an arrow in an item is an arrow in its verdict.
-		for (const item of items(container)) expect(item).not.toHaveTextContent('→');
+		for (const item of items()) expect(item).not.toHaveTextContent('→');
 	});
 
 	it('shows the dense hint only when an entry is dense', () => {
@@ -220,31 +222,27 @@ describe('ValidationList GS1 rows', () => {
 	});
 
 	it('shows a GS character as the mark in the raw text, and the textual notation as typed', () => {
-		const c = list(`10LOT42${GS}0109501101530003\n10LOT42<GS>0109501101530003`, false);
-		const [first, second] = items(c);
-		expect(items(c)).toHaveLength(2);
+		list(`10LOT42${GS}0109501101530003\n10LOT42<GS>0109501101530003`, false);
+		const [first, second] = items();
+		expect(items()).toHaveLength(2);
 		expect(exactText(first, '10LOT42␝0109501101530003')).toBe('10LOT42␝0109501101530003');
 		expect(exactText(second, '10LOT42<GS>0109501101530003')).toBe('10LOT42<GS>0109501101530003');
 	});
 
 	it('puts a labelled breakdown under each GS1 entry and none under other rows', () => {
-		const c = list(`${S}\n(01)09501101530004\nbad`, true);
-		expect(
-			within(c)
-				.getAllByLabelText(BREAKDOWN)
-				.map((s) => s.getAttribute('aria-label'))
-		).toEqual([
+		list(`${S}\n(01)09501101530004\nbad`, true);
+		expect(screen.getAllByLabelText(BREAKDOWN).map((s) => s.getAttribute('aria-label'))).toEqual([
 			'Code 1 breakdown: 3 Application Identifiers',
 			'Code 2 breakdown: 1 Application Identifier'
 		]);
-		expect(within(items(c)[2]).queryByLabelText(BREAKDOWN)).toBeNull();
-		expect(bodyRows(items(c)[0])).toContainEqual(['(17)', 'USE BY or EXPIRY', '2026-12-31']);
+		expect(within(items()[2]).queryByLabelText(BREAKDOWN)).toBeNull();
+		expect(bodyRows(items()[0])).toContainEqual(['(17)', 'USE BY or EXPIRY', '2026-12-31']);
 	});
 
 	it('breaks down the scanned 14-digit GTIN for a 13-digit DataBar value', () => {
-		const { container } = render(ValidationList, {
+		render(ValidationList, {
 			entries: parseCodeList('(01)0950110153000', 'databaromni')
 		});
-		expect(bodyRows(container)[0]).toEqual(['(01)', 'GTIN', '09501101530003']);
+		expect(bodyRows()[0]).toEqual(['(01)', 'GTIN', '09501101530003']);
 	});
 });
