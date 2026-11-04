@@ -14,6 +14,7 @@
 	import { onMount } from 'svelte';
 	import { createStepper, type Stepper, type StepSummary } from '$lib/stepper';
 	import type { Settings, CodeEntry } from '$lib/types';
+	import './barcode-caps.css';
 
 	let {
 		entries,
@@ -81,19 +82,5 @@
 		display: flex;
 		justify-content: center;
 		padding: 0; /* no scroll rhythm: the stage centres its one item */
-	}
-	/* Copied from ScrollColumn.svelte, which holds the canonical caps: change them there, then here. */
-	.step-stage-host :global(.barcode-item svg) {
-		max-width: min(90vw, 640px);
-		height: auto;
-	}
-	.step-stage-host :global(.barcode-item--2d svg) {
-		max-width: min(90vw, 640px);
-		max-height: 60vh;
-		width: auto;
-		height: auto;
-	}
-	.step-stage-host :global(.barcode-item--pdf417 svg) {
-		max-width: min(95vw, 960px);
 	}
 </style>
