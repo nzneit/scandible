@@ -36,6 +36,9 @@ tasks in a throwaway worktree.
 
 ## Questions for the owner
 
+**Answered by the user on 2026-11-04:** all three readings are accepted, and the spec was amended to
+match questions 2 and 3 (_`SecondsSlider.svelte`_), so the plan and the spec now agree on all three.
+
 The plan goes ahead on the conservative reading of each. None blocks Task 1. An answer changes only
 the task named.
 

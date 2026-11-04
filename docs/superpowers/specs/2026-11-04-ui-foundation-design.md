@@ -5,7 +5,8 @@
 day after a four-lens review on Sonnet subagents (codebase fit and tests, tooling, UX and
 accessibility, internal coherence), judged by the author. Revised again for the accessible test
 queries migration, with visual-review checks for the losses it left. Approved by the user on
-2026-11-04.
+2026-11-04. Amended after planning, at the user's word: the seconds field's width and text color
+(_`SecondsSlider.svelte`_).
 Spec 1 of the three-spec UI revamp series (see _Series_). Facts measured for this spec are in
 _Measurements_ at the end, cited as _M1_ to _M12_.
 
@@ -292,8 +293,17 @@ interface SecondsSliderProps {
 ```
 
 Renders the range, then `<span class="seconds">` holding the number field and the unit text `s`.
-Sizes: `sm` is `range range-sm w-32` and `input input-sm w-[4.5em]`; `xs` is
-`range range-xs w-[110px]` (today's overlay width) and `input input-xs w-[4.5em]`.
+Sizes: `sm` is `range range-sm w-32` and `input input-sm w-[4.5rem]`; `xs` is
+`range range-xs w-[110px]` (today's overlay width) and `input input-xs w-[4.5rem]`. The number
+field also takes `text-base-content` at both sizes.
+
+- **Width in `rem`.** `4.5rem` is today's 72 px. At `4.5em` the field follows its own smaller font
+  (12 px at `-sm`, 11 px at `-xs`), and daisyUI pads every `.input` by 0.75rem on each side, so the
+  value is cut off: the setup page shows `0.` and the overlay shows nothing (measured in Firefox 155
+  while planning).
+- **Text color.** daisyUI's `.input` paints a `base-100` background without setting a text color,
+  and preflight makes inputs inherit theirs. Inside the overlay (`text-neutral-content`) the value
+  would be white on white, 1.04:1. `text-base-content` gives 17.72:1, the look the field has today.
 
 Behavior, as today:
 
