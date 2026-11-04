@@ -45,7 +45,7 @@
 <div class="share-row">
 	<button type="button" class="copy-link" onclick={share}>Share link</button>
 	<input type="text" class="share-url" readonly aria-label="Share link" value={liveUrl} />
-	<span class="copy-status" role="status">{copyStatus}</span>
+	<span class="copy-status" role="status" aria-label="Copy status">{copyStatus}</span>
 </div>
 <label class="share-ecc-field"
 	>Share QR error correction
@@ -60,7 +60,7 @@
 	<!-- eslint-disable-next-line svelte/no-at-html-tags -- qrSvg comes only from uqr's renderSVG, which never reflects its input into markup (security-reviewed) -->
 	{@html qrSvg}
 </div>
-<p class="qr-status" role="status">{statusMessage(status)}</p>
+<p class="qr-status" role="status" aria-label="QR code status">{statusMessage(status)}</p>
 
 <style>
 	.share-url {

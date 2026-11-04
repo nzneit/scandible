@@ -186,6 +186,8 @@
 		{/if}
 		<div
 			class="overlay"
+			role="group"
+			aria-label="Playback controls"
 			class:hidden={!overlayVisible}
 			bind:this={overlayEl}
 			onfocusout={showOverlay}
@@ -253,6 +255,7 @@
 				<input
 					type="range"
 					class="ctl-speed"
+					aria-label="Speed"
 					min="10"
 					max="5000"
 					step="5"
@@ -267,7 +270,7 @@
 		     region: a status region inserted already holding its text is announced inconsistently. -->
 		<p class="finish-status" role="status">{finishText ?? ''}</p>
 		{#if finishText !== null}
-			<div class="finish-screen">
+			<div class="finish-screen" role="group" aria-label="Run finished">
 				<p class="finish-text">{finishText}</p>
 				<button type="button" class="finish-restart" bind:this={finishRestartEl} onclick={restart}
 					>Restart</button

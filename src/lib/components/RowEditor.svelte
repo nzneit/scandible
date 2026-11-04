@@ -61,7 +61,7 @@
 	}
 </script>
 
-<ol class="row-editor" role="list" bind:this={listEl}>
+<ol class="row-editor" role="list" aria-label="Codes" bind:this={listEl}>
 	{#each rows as row, i (row)}
 		{@const entry = entries[i]}
 		{@const opt = FORMAT_BY_ID.get(row.format)?.ecc}
