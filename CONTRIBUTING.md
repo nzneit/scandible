@@ -12,6 +12,7 @@ npm run lint     # Prettier check + ESLint
 npm run build    # production build to dist/
 npm run preview  # serve the production build locally
 npm run gs1-ais  # regenerate src/lib/gs1-ais.json from the pinned GS1 Syntax Dictionary
+npm run stage-check  # compare the play stage with main in headless Firefox
 ```
 
 ## Stack
