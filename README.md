@@ -102,9 +102,14 @@ Code and GS1 DotCode. They take bracketed element strings, one code per line, or
 (01)09501101530003(17)261231(10)LOT42
 ```
 
+Each bracketed number is a GS1 Application Identifier (AI), which names the value after it: `(01)`
+marks a GTIN, `(17)` a use-by or expiry date and `(10)` a batch or lot. The app writes the term out
+in full and shows an AI in its bracket notation, since a cold reader may take "AI" for artificial
+intelligence.
+
 Spaces and line breaks inside a code are dropped, commas are data, and parentheses inside a value
 are not supported. Each code is checked by BWIPP's Application Identifier linter; a code that
-fails shows the reason in the list, for example `✗ AI 01: Bad checksum`. A valid code shows what
+fails shows the reason in the list, for example `✗ (01) GTIN: Bad checksum`. A valid code shows what
 a scanner sends:
 
 ```

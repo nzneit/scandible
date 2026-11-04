@@ -10,6 +10,7 @@ import {
 	displayData,
 	gtinCheckDigit,
 	parseElementString,
+	plainGs1Message,
 	readGs1Input,
 	scanData,
 	splitScanData
@@ -116,7 +117,7 @@ describe('readGs1Input', () => {
 		fromScan ? { ok: true, value, fromScan } : { ok: true, value };
 	const no = (message: string) => ({ ok: false, message });
 	const NON_GS1 =
-		'is not a GS1 symbology identifier; GS1 scan data starts with ]C1, ]e0, ]d2, ]Q3 or ]J1, or with its first AI';
+		'is not a GS1 symbology identifier; GS1 scan data starts with ]C1, ]e0, ]d2, ]Q3 or ]J1, or with its first Application Identifier';
 
 	it.each(['<GS>', '<gs>', '␝', '\\x1d', '\\u001d'])(
 		'passes bracketed text untouched with %j',
@@ -172,18 +173,18 @@ describe('readGs1Input', () => {
 	it.each([
 		[
 			'0109501101530003(10)LOT42',
-			'Brackets and scan data cannot be mixed; put every AI in brackets or none (stopped at "(10)LOT4…" after (01))'
+			'Brackets and scan data cannot be mixed; put every Application Identifier in brackets or none (stopped at "(10)LOT4…" after (01))'
 		],
 		[
 			']C1(01)09501101530003',
-			'Brackets and scan data cannot be mixed; put every AI in brackets or none (stopped at "(01)0950…")'
+			'Brackets and scan data cannot be mixed; put every Application Identifier in brackets or none (stopped at "(01)0950…")'
 		],
 		[
 			'09501101530003',
-			'No GS1 AI starts at "09501101…"; GS1 data starts with an AI, such as 01 before a GTIN'
+			'No GS1 Application Identifier starts at "09501101…"; GS1 data starts with an Application Identifier, such as 01 before a GTIN'
 		],
-		['01095011015300039Z45', 'No GS1 AI starts at "9Z45" after (01)'],
-		[`01095011015300039Z${GS}10A`, 'No GS1 AI starts at "9Z␝10A" after (01)'],
+		['01095011015300039Z45', 'No GS1 Application Identifier starts at "9Z45" after (01)'],
+		[`01095011015300039Z${GS}10A`, 'No GS1 Application Identifier starts at "9Z␝10A" after (01)'],
 		['010950110153', '(01) takes 14 characters; only 10 follow'],
 		['010950110153000', '(01) takes 14 characters; only 13 follow'],
 		['011', '(01) takes 14 characters; only 1 follows'],
@@ -193,9 +194,9 @@ describe('readGs1Input', () => {
 		['10', '(10) has no value'],
 		['10A(B)C', '(10) contains a parenthesis; parentheses inside a value are not supported'],
 		['10A)B', '(10) contains a parenthesis; parentheses inside a value are not supported'],
-		[']C1', 'No AIs in the scan data'],
-		['<GS>', 'No AIs in the scan data'],
-		[']C1<GS>', 'No AIs in the scan data']
+		[']C1', 'No Application Identifiers in the scan data'],
+		['<GS>', 'No Application Identifiers in the scan data'],
+		[']C1<GS>', 'No Application Identifiers in the scan data']
 	])('refuses %j', (input, message) => {
 		expect(readGs1Input(input)).toStrictEqual(no(message));
 	});
@@ -218,7 +219,7 @@ describe('splitScanData', () => {
 				{ ai: '01', value: '09501101530003' },
 				{ ai: '10', value: 'LOT42' }
 			],
-			stop: 'No GS1 AI starts at "9Z" after (10)'
+			stop: 'No GS1 Application Identifier starts at "9Z" after (10)'
 		});
 	});
 });
@@ -245,14 +246,47 @@ describe('breakdown', () => {
 	it('returns the lines read before a stop', () => {
 		expect(breakdown('01095011015300039Z', T)).toStrictEqual({
 			lines: [{ ai: '01', title: 'GTIN', text: '09501101530003' }],
-			stop: 'No GS1 AI starts at "9Z" after (01)'
+			stop: 'No GS1 Application Identifier starts at "9Z" after (01)'
 		});
 	});
 
 	it('does not split a bracketed fallback', () => {
 		expect(breakdown('(01)0950110153000(', T)).toStrictEqual({
 			lines: [],
-			stop: 'The bracketed string could not be split into AIs'
+			stop: 'The bracketed string could not be split into Application Identifiers'
 		});
+	});
+});
+
+describe('plainGs1Message', () => {
+	it.each([
+		['AI 17: Invalid day of month', '(17) USE BY or EXPIRY: Invalid day of month'],
+		['AI 01: Bad checksum', '(01) GTIN: Bad checksum'],
+		['AI 1A: Unrecognised AI', '(1A) is not a GS1 Application Identifier'],
+		['AI 99999: Unrecognised AI', '(99999) is not a GS1 Application Identifier'],
+		['AIs (02) and (01) are mutually exclusive', '(02) and (01) cannot be in the same code'],
+		[
+			'Repeated AIs (10) must have the same value',
+			'(10) appears more than once with different values'
+		]
+	])('rewords %j', (text, expected) => {
+		expect(plainGs1Message(text)).toBe(expected);
+	});
+
+	it('leaves the title out for an identifier the dictionary does not name', () => {
+		expect(plainGs1Message('AI 8110: Coupon too long')).toBe('(8110): Coupon too long');
+	});
+
+	it('spells out any other "AI" and leaves other text alone', () => {
+		expect(plainGs1Message("AIs must end with ')'")).toBe(
+			"Application Identifiers must end with ')'"
+		);
+		expect(plainGs1Message('The path was too short to contain AI info')).toBe(
+			'The path was too short to contain Application Identifier info'
+		);
+		expect(plainGs1Message('GS1 DataBar Omnidirectional must be 13 or 14 digits')).toBe(
+			'GS1 DataBar Omnidirectional must be 13 or 14 digits'
+		);
+		expect(plainGs1Message('(10) has no value')).toBe('(10) has no value');
 	});
 });

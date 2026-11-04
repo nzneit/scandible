@@ -8,8 +8,8 @@
 	const count = $derived(result.lines.length);
 	const summary = $derived(
 		count === 0 && result.stop !== undefined
-			? 'No readable AIs'
-			: `${count === 1 ? '1 AI' : `${count} AIs`}${result.stop !== undefined ? ', then reading stops' : ''}`
+			? 'No readable Application Identifiers'
+			: `${count === 1 ? '1 Application Identifier' : `${count} Application Identifiers`}${result.stop !== undefined ? ', then reading stops' : ''}`
 	);
 </script>
 
@@ -18,7 +18,7 @@
 	<table>
 		<thead>
 			<tr>
-				<th><span class="visually-hidden">AI</span></th>
+				<th><span class="visually-hidden">Application Identifier</span></th>
 				<th><span class="visually-hidden">Name</span></th>
 				<th><span class="visually-hidden">Value</span></th>
 			</tr>

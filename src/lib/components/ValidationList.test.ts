@@ -186,7 +186,7 @@ describe('ValidationList GS1 rows', () => {
 		).toEqual([['valid'], ['lenient']]);
 		expect(items[1].querySelector('.raw')!.textContent).toBe('(01)09501101530004');
 		expect(items[1].querySelector('.verdict')!.textContent).toBe(
-			' ⚠ rendered anyway · AI 01: Bad checksum · 134 modules wide · 16 characters → ]C1 0109501101530004'
+			' ⚠ rendered anyway · (01) GTIN: Bad checksum · 134 modules wide · 16 characters → ]C1 0109501101530004'
 		);
 		expect(c.querySelector('.scan-hint')?.textContent).toBe(SCAN_HINT);
 		expect(list('(01)09501101530004', false).querySelectorAll('li.invalid').length).toBe(1);
@@ -211,8 +211,8 @@ describe('ValidationList GS1 rows', () => {
 		const c = list(`${S}\n(01)09501101530004\nbad`, true);
 		const items = [...c.querySelectorAll('.validation-list li')];
 		expect([...c.querySelectorAll('summary')].map((el) => el.getAttribute('aria-label'))).toEqual([
-			'Code 1 breakdown: 3 AIs',
-			'Code 2 breakdown: 1 AI'
+			'Code 1 breakdown: 3 Application Identifiers',
+			'Code 2 breakdown: 1 Application Identifier'
 		]);
 		expect(items[2].querySelector('details')).toBeNull();
 		const rows = [...items[0].querySelectorAll('tbody tr')].map((tr) =>
