@@ -45,9 +45,7 @@ export default defineConfig(
 		ignores: [
 			// Stage tests: their classes are the engine-to-CSS contract (CONTRIBUTING.md, Writing tests).
 			'src/lib/components/ScrollColumn.test.ts',
-			'src/lib/components/StepStage.test.ts',
-			// Not migrated yet: each migration task removes its own file from this list.
-			'src/routes/page.test.ts'
+			'src/lib/components/StepStage.test.ts'
 		]
 	},
 	{

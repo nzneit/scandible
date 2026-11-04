@@ -14,7 +14,8 @@ vi.mock('$app/navigation', () => ({ goto }));
 vi.mock('$app/paths', () => ({ resolve: (id: string) => id }));
 vi.mock('$lib/fileInput', () => ({ readCodesFile: vi.fn() }));
 
-const q = <T extends Element>(c: Element, sel: string) => c.querySelector(sel) as T;
+const EDITOR_HINT =
+	'Per row gives each code its own format, error-correction level and GS1 validation setting, and lets a code span several lines.';
 const FLASH_NOTE =
 	'Dwells under 0.33 s flash the screen more than three times a second. Do not use them near anyone sensitive to flashing lights.';
 const DUP_HINT = /^Codes \d+ and \d+ are identical/; // Questions 3: the duplicate hint, whose text varies
@@ -551,37 +552,47 @@ describe('setup page: per-row editor', () => {
 	const LIMIT =
 		'Plain text keeps one format and one error-correction level for the whole list, and one code per line.';
 	let c: HTMLElement;
+	/** Queries in the latest render: one test opens the page three times without unmounting (R1). */
+	const ui = () => within(c);
 	const open = (url = 'http://localhost/?codes=036000291452&seed=0') => {
 		mockPage.url = new URL(url);
 		c = render(SetupPage).container;
 	};
-	const has = (sel: string) => c.querySelector(sel) !== null;
-	const v = (sel: string) => q<HTMLInputElement>(c, sel).value;
-	const at = (k: number, sel: string) =>
-		c.querySelectorAll('li.row')[k - 1].querySelector(sel) as HTMLInputElement;
-	const values = (sel: string) =>
-		[...c.querySelectorAll<HTMLInputElement>(sel)].map((el) => el.value);
-	const rowCount = () => c.querySelectorAll('li.row').length;
-	const set = (el: Element, value: string) => fireEvent.change(el, { target: { value } });
-	const editor = (value: string) => set(q(c, '.editor-input'), value);
-	const note = () => q(c, '.switch-note p').textContent;
-	/** The Format field's label: its first text node, trimmed. */
-	const formatLabel = () => q(c, '.format-input').parentElement!.firstChild!.textContent!.trim();
+	const rows = () => within(ui().getByRole('list', { name: 'Codes' })).getAllByRole('listitem');
+	/** Each row's payload, in row order, read from its `Code k` textbox. */
+	const payloads = () =>
+		rows().map(
+			(row, i) =>
+				(within(row).getByRole('textbox', { name: `Code ${i + 1}` }) as HTMLTextAreaElement).value
+		);
+	/** Each row's format, in row order, read from its `Format of code k` select. */
+	const formats = () =>
+		rows().map(
+			(row, i) =>
+				(
+					within(row).getByRole('combobox', {
+						name: `Format of code ${i + 1}`
+					}) as HTMLSelectElement
+				).value
+		);
+	const set = (el: HTMLElement, value: string) => fireEvent.change(el, { target: { value } });
+	const editor = (value: string) => set(ui().getByRole('combobox', { name: 'Editor' }), value);
+	const note = () => within(ui().getByRole('alert')).getByRole('paragraph').textContent;
 	const start = async () => {
-		await fireEvent.click(q(c, '.start'));
+		await fireEvent.click(ui().getByRole('button', { name: 'Start' }));
 		return goto.mock.calls.at(-1)?.[0];
 	};
 	/** Mock one readCodesFile call to resolve to `text`, or reject when it is null, then pick a
-	 *  file in .file-input. */
+	 *  file in the file input. */
 	const upload = async (text: string | null) => {
 		if (text === null) vi.mocked(readCodesFile).mockRejectedValueOnce(new Error('boom'));
 		else vi.mocked(readCodesFile).mockResolvedValueOnce(text);
-		const fileInput = q<HTMLInputElement>(c, '.file-input');
+		const fileInput = ui().getByLabelText('Load codes from a file');
 		const file = new File(['x'], 'codes.txt', { type: 'text/plain' });
 		Object.defineProperty(fileInput, 'files', { value: [file], configurable: true });
 		await fireEvent.change(fileInput);
 	};
-	const share = () => v('.share-url');
+	const share = () => (ui().getByRole('textbox', { name: 'Share link' }) as HTMLInputElement).value;
 	const lossy = async () => {
 		open(MIXED);
 		await editor('text');
@@ -589,106 +600,104 @@ describe('setup page: per-row editor', () => {
 
 	it('opens in Plain text by default', () => {
 		open();
-		expect(v('.editor-input')).toBe('text');
-		expect(has('.code-input')).toBe(true);
-		expect(has('.row-editor')).toBe(false);
+		expect(ui().getByRole('combobox', { name: 'Editor' })).toHaveValue('text');
+		expect(ui().getByRole('textbox', { name: 'Codes' })).toBeInTheDocument();
+		expect(ui().queryByRole('list', { name: 'Codes' })).toBeNull();
 	});
 
 	it('opens a records link in Per row with its rows', () => {
 		open(DECK);
-		expect(v('.editor-input')).toBe('rows');
-		expect(has('.code-input')).toBe(false);
-		expect(has('.validation-list')).toBe(false);
-		expect(values('.row-payload')).toEqual(['036000291452', 'hello']);
-		expect(values('.row-format')).toEqual(['upc', 'qr']);
-		expect(at(2, '.row-ecc').value).toBe('H');
+		expect(ui().getByRole('combobox', { name: 'Editor' })).toHaveValue('rows');
+		expect(ui().queryByRole('textbox', { name: 'Codes' })).toBeNull();
+		expect(ui().queryByRole('list', { name: 'Validation results' })).toBeNull();
+		expect(payloads()).toEqual(['036000291452', 'hello']);
+		expect(formats()).toEqual(['upc', 'qr']);
+		expect(ui().getByRole('combobox', { name: 'Error correction of code 2' })).toHaveValue('H');
 	});
 
 	it('shows the Editor hint in Plain text only', async () => {
 		open();
-		expect(q(c, '.editor-hint').textContent).toBe(
-			'Per row gives each code its own format, error-correction level and GS1 validation setting, and lets a code span several lines.'
-		);
+		expect(ui().getByText(EDITOR_HINT).textContent).toBe(EDITOR_HINT);
 		await editor('rows');
-		expect(has('.editor-hint')).toBe(false);
+		expect(ui().queryByText(EDITOR_HINT)).toBeNull();
 	});
 
 	it('turns the list into one row per code at the list format', async () => {
 		open('http://localhost/#codes=036000291452%2C012345678905&seed=0');
 		await editor('rows');
-		expect(values('.row-payload')).toEqual(['036000291452', '012345678905']);
-		expect(values('.row-format')).toEqual(['upc', 'upc']);
+		expect(payloads()).toEqual(['036000291452', '012345678905']);
+		expect(formats()).toEqual(['upc', 'upc']);
 	});
 
 	it('copies the list level into the rows and swaps the list controls', async () => {
 		open('http://localhost/#codes=hello%0Aworld&seed=0&fmt=qr&ecc=H');
-		expect(formatLabel()).toBe('Format');
+		expect(ui().getByRole('combobox', { name: 'Format' })).toBeInTheDocument();
 		await editor('rows');
-		expect(values('.row-format')).toEqual(['qr', 'qr']);
-		expect(at(1, '.row-ecc').value).toBe('H');
-		expect(at(2, '.row-ecc').value).toBe('H');
-		expect(has('.ecc-input')).toBe(false);
-		expect(formatLabel()).toBe('Format for new rows');
+		expect(formats()).toEqual(['qr', 'qr']);
+		expect(ui().getByRole('combobox', { name: 'Error correction of code 1' })).toHaveValue('H');
+		expect(ui().getByRole('combobox', { name: 'Error correction of code 2' })).toHaveValue('H');
+		expect(ui().queryByRole('combobox', { name: 'Error correction' })).toBeNull();
+		expect(ui().getByRole('combobox', { name: 'Format for new rows' })).toBeInTheDocument();
 	});
 
 	it('switches back at once when nothing is lost', async () => {
 		open('http://localhost/#codes=hello%0Aworld&seed=0&fmt=qr&ecc=H');
 		await editor('rows');
 		await editor('text');
-		expect(v('.code-input')).toBe('hello\nworld');
-		expect(v('.format-input')).toBe('qr');
-		expect(v('.ecc-input')).toBe('H');
-		expect(v('.editor-input')).toBe('text');
-		expect(has('.switch-note')).toBe(false);
+		expect(ui().getByRole('textbox', { name: 'Codes' })).toHaveValue('hello\nworld');
+		expect(ui().getByRole('combobox', { name: 'Format' })).toHaveValue('qr');
+		expect(ui().getByRole('combobox', { name: 'Error correction' })).toHaveValue('H');
+		expect(ui().getByRole('combobox', { name: 'Editor' })).toHaveValue('text');
+		expect(ui().queryByRole('alert')).toBeNull();
 	});
 
 	it('opens an empty codes= link in Plain text with its settings', () => {
 		open('http://localhost/#codes=&speed=120&seed=0&fmt=qr');
-		expect(v('.editor-input')).toBe('text');
-		expect(v('.code-input')).toBe('');
-		expect(v('.format-input')).toBe('qr');
-		expect(v('.speed-input')).toBe('120');
+		expect(ui().getByRole('combobox', { name: 'Editor' })).toHaveValue('text');
+		expect(ui().getByRole('textbox', { name: 'Codes' })).toHaveValue('');
+		expect(ui().getByRole('combobox', { name: 'Format' })).toHaveValue('qr');
+		expect(ui().getByRole('slider', { name: 'Speed' })).toHaveValue('120');
 	});
 
 	it('shows the loss note on a lossy switch and stays in Per row', async () => {
 		await lossy();
-		expect(q(c, '.switch-note').getAttribute('role')).toBe('alert');
+		expect(ui().getByRole('alert')).toBeInTheDocument();
 		expect(note()).toBe(
 			`${LIMIT} Switching now drops the format of 2 rows and cuts 1 payload at line breaks or commas. Every code will take the format of the first code, UPC-A.`
 		);
-		expect(v('.editor-input')).toBe('rows');
-		expect(rowCount()).toBe(3);
+		expect(ui().getByRole('combobox', { name: 'Editor' })).toHaveValue('rows');
+		expect(rows()).toHaveLength(3);
 	});
 
 	it('keeps the note as a snapshot, and Switch anyway applies a list now lossless', async () => {
 		await lossy();
 		const before = note();
-		await fireEvent.click(at(3, '.row-delete'));
-		await fireEvent.click(at(2, '.row-delete'));
+		await fireEvent.click(ui().getByRole('button', { name: 'Delete code 3' }));
+		await fireEvent.click(ui().getByRole('button', { name: 'Delete code 2' }));
 		expect(note()).toBe(before);
-		await fireEvent.click(q(c, '.switch-anyway'));
-		expect(v('.code-input')).toBe('036000291452');
-		expect(v('.editor-input')).toBe('text');
+		await fireEvent.click(ui().getByRole('button', { name: 'Switch anyway' }));
+		expect(ui().getByRole('textbox', { name: 'Codes' })).toHaveValue('036000291452');
+		expect(ui().getByRole('combobox', { name: 'Editor' })).toHaveValue('text');
 	});
 
 	it('refreshes a stale note on Switch anyway, and switches on the second click', async () => {
 		await lossy();
 		const before = note();
-		await set(at(2, '.row-format'), 'upc');
+		await set(ui().getByRole('combobox', { name: 'Format of code 2' }), 'upc');
 		expect(note()).toBe(before);
-		await fireEvent.click(q(c, '.switch-anyway'));
+		await fireEvent.click(ui().getByRole('button', { name: 'Switch anyway' }));
 		expect(note()).toBe(
 			`${LIMIT} Switching now drops the format of 1 row and cuts 1 payload at line breaks or commas. Every code will take the format of the first code, UPC-A.`
 		);
-		expect(v('.editor-input')).toBe('rows');
-		expect(rowCount()).toBe(3);
-		await fireEvent.click(q(c, '.switch-anyway'));
-		expect(v('.editor-input')).toBe('text');
+		expect(ui().getByRole('combobox', { name: 'Editor' })).toHaveValue('rows');
+		expect(rows()).toHaveLength(3);
+		await fireEvent.click(ui().getByRole('button', { name: 'Switch anyway' }));
+		expect(ui().getByRole('combobox', { name: 'Editor' })).toHaveValue('text');
 	});
 
 	it('takes a fresh snapshot when Plain text is chosen again', async () => {
 		await lossy();
-		await fireEvent.click(at(3, '.row-delete'));
+		await fireEvent.click(ui().getByRole('button', { name: 'Delete code 3' }));
 		await editor('text');
 		expect(note()).toBe(
 			`${LIMIT} Switching now drops the format of 1 row. Every code will take the format of the first code, UPC-A.`
@@ -697,24 +706,28 @@ describe('setup page: per-row editor', () => {
 
 	it("applies the first code's format on Switch anyway and returns focus to the Editor select", async () => {
 		await lossy();
-		await fireEvent.click(q(c, '.switch-anyway'));
-		expect(v('.code-input')).toBe('036000291452\nhello\nline 1\nline 2');
-		expect(v('.format-input')).toBe('upc');
-		expect(v('.editor-input')).toBe('text');
-		expect(has('.switch-note')).toBe(false);
-		expect(c.querySelectorAll('.validation-list li').length).toBe(4);
+		await fireEvent.click(ui().getByRole('button', { name: 'Switch anyway' }));
+		expect(ui().getByRole('textbox', { name: 'Codes' })).toHaveValue(
+			'036000291452\nhello\nline 1\nline 2'
+		);
+		expect(ui().getByRole('combobox', { name: 'Format' })).toHaveValue('upc');
+		expect(ui().getByRole('combobox', { name: 'Editor' })).toHaveValue('text');
+		expect(ui().queryByRole('alert')).toBeNull();
+		expect(
+			within(ui().getByRole('list', { name: 'Validation results' })).getAllByRole('listitem')
+		).toHaveLength(4);
 		await tick();
-		expect(document.activeElement).toBe(q(c, '.editor-input'));
+		expect(ui().getByRole('combobox', { name: 'Editor' })).toHaveFocus();
 	});
 
 	it('closes the note on Cancel, keeping the rows and returning focus', async () => {
 		await lossy();
-		await fireEvent.click(q(c, '.switch-cancel'));
-		expect(has('.switch-note')).toBe(false);
-		expect(v('.editor-input')).toBe('rows');
-		expect(rowCount()).toBe(3);
+		await fireEvent.click(ui().getByRole('button', { name: 'Cancel' }));
+		expect(ui().queryByRole('alert')).toBeNull();
+		expect(ui().getByRole('combobox', { name: 'Editor' })).toHaveValue('rows');
+		expect(rows()).toHaveLength(3);
 		await tick();
-		expect(document.activeElement).toBe(q(c, '.editor-input'));
+		expect(ui().getByRole('combobox', { name: 'Editor' })).toHaveFocus();
 	});
 
 	it("carries records in the share link and Start, storing a default level as ''", async () => {
@@ -724,27 +737,27 @@ describe('setup page: per-row editor', () => {
 		expect(await start()).toBe(
 			'/play#r1=upc_036000291452&r2=qr-H_hello&speed=60&loop=0&rot=0&rotmax=8&skew=0&skewmax=8&seed=0&fmt=upc'
 		);
-		await set(at(2, '.row-ecc'), 'M');
+		await set(ui().getByRole('combobox', { name: 'Error correction of code 2' }), 'M');
 		expect(share()).toContain('r2=qr_hello&');
 	});
 
 	it('gives Add code the Format for new rows', async () => {
 		open(DECK);
-		await set(q(c, '.format-input'), 'datamatrix');
-		await fireEvent.click(q(c, '.row-add'));
-		expect(at(3, '.row-format').value).toBe('datamatrix');
+		await set(ui().getByRole('combobox', { name: 'Format for new rows' }), 'datamatrix');
+		await fireEvent.click(ui().getByRole('button', { name: 'Add code' }));
+		expect(ui().getByRole('combobox', { name: 'Format of code 3' })).toHaveValue('datamatrix');
 	});
 
 	it('appends an uploaded file as rows in Per row', async () => {
 		open('http://localhost/#r1=upc_036000291452&r2=qr-H_hello&fmt=qr&ecc=H&seed=0');
 		await upload('a\nb');
 		await vi.waitFor(() => {
-			expect(rowCount()).toBe(4);
-			expect(values('.row-payload')).toEqual(['036000291452', 'hello', 'a', 'b']);
-			expect(values('.row-format')).toEqual(['upc', 'qr', 'qr', 'qr']);
-			expect(at(2, '.row-ecc').value).toBe('H');
-			expect(at(3, '.row-ecc').value).toBe('M');
-			expect(at(4, '.row-ecc').value).toBe('M');
+			expect(rows()).toHaveLength(4);
+			expect(payloads()).toEqual(['036000291452', 'hello', 'a', 'b']);
+			expect(formats()).toEqual(['upc', 'qr', 'qr', 'qr']);
+			expect(ui().getByRole('combobox', { name: 'Error correction of code 2' })).toHaveValue('H');
+			expect(ui().getByRole('combobox', { name: 'Error correction of code 3' })).toHaveValue('M');
+			expect(ui().getByRole('combobox', { name: 'Error correction of code 4' })).toHaveValue('M');
 		});
 	});
 
@@ -752,67 +765,71 @@ describe('setup page: per-row editor', () => {
 		open(DECK);
 		await upload('a\r\nb\r\n');
 		await vi.waitFor(() => {
-			expect(rowCount()).toBe(4);
-			expect(values('.row-payload')).toEqual(['036000291452', 'hello', 'a', 'b']);
+			expect(rows()).toHaveLength(4);
+			expect(payloads()).toEqual(['036000291452', 'hello', 'a', 'b']);
 		});
 	});
 
 	it('clears the file error in Per row on a good read or a switch', async () => {
 		open();
 		await upload(null);
-		await vi.waitFor(() => expect(q<HTMLElement>(c, '.file-error').hidden).toBe(false));
+		await vi.waitFor(() => expect(ui().getByText('Could not read file')).toBeVisible());
 		await editor('rows');
-		expect(q<HTMLElement>(c, '.file-error').hidden).toBe(true);
+		expect(ui().queryByText('Could not read file')).toBeNull();
 		open('http://localhost/#r1=upc_036000291452&seed=0');
 		await upload(null);
 		await vi.waitFor(() => {
-			expect(q<HTMLElement>(c, '.file-error').hidden).toBe(false);
-			expect(q(c, '.file-error').textContent).toBe('Could not read file');
+			expect(ui().getByText('Could not read file')).toBeVisible();
+			expect(ui().getByText('Could not read file').textContent).toBe('Could not read file');
 		});
 		await upload('c');
 		await vi.waitFor(() => {
-			expect(rowCount()).toBe(2);
-			expect(q<HTMLElement>(c, '.file-error').hidden).toBe(true);
+			expect(rows()).toHaveLength(2);
+			expect(ui().queryByText('Could not read file')).toBeNull();
 		});
 		await upload(null);
-		await vi.waitFor(() => expect(q<HTMLElement>(c, '.file-error').hidden).toBe(false));
+		await vi.waitFor(() => expect(ui().getByText('Could not read file')).toBeVisible());
 		await editor('text');
-		expect(v('.editor-input')).toBe('text');
-		expect(q<HTMLElement>(c, '.file-error').hidden).toBe(true);
+		expect(ui().getByRole('combobox', { name: 'Editor' })).toHaveValue('text');
+		expect(ui().queryByText('Could not read file')).toBeNull();
 		open(MIXED);
 		await upload(null);
-		await vi.waitFor(() => expect(q<HTMLElement>(c, '.file-error').hidden).toBe(false));
+		await vi.waitFor(() => expect(ui().getByText('Could not read file')).toBeVisible());
 		await editor('text');
-		expect(q<HTMLElement>(c, '.file-error').hidden).toBe(true);
+		expect(ui().queryByText('Could not read file')).toBeNull();
 		await upload(null);
-		await vi.waitFor(() => expect(q<HTMLElement>(c, '.file-error').hidden).toBe(false));
-		await fireEvent.click(q(c, '.switch-anyway'));
-		expect(q<HTMLElement>(c, '.file-error').hidden).toBe(true);
+		await vi.waitFor(() => expect(ui().getByText('Could not read file')).toBeVisible());
+		await fireEvent.click(ui().getByRole('button', { name: 'Switch anyway' }));
+		expect(ui().queryByText('Could not read file')).toBeNull();
 	});
 
 	it('names editor rows in the duplicate hint', async () => {
 		open('http://localhost/#r1=qr_x&r2=qr_a&r3=qr_a&mode=step&seed=0');
-		await fireEvent.input(at(1, '.row-payload'), { target: { value: '' } });
-		expect(q(c, '.dup-hint').textContent).toMatch(/^Codes 2 and 3 are identical/);
+		await fireEvent.input(ui().getByRole('textbox', { name: 'Code 1' }), {
+			target: { value: '' }
+		});
+		expect(ui().getByText(DUP_HINT)).toHaveTextContent(/^Codes 2 and 3 are identical/);
 	});
 
 	it('switches an empty list to no rows, and a blank row changes neither Start nor the link', async () => {
 		open('http://localhost/#codes=&seed=0');
 		await editor('rows');
-		expect(rowCount()).toBe(0);
-		expect(q<HTMLButtonElement>(c, '.start').disabled).toBe(true);
+		expect(
+			within(ui().getByRole('list', { name: 'Codes' })).queryAllByRole('listitem')
+		).toHaveLength(0);
+		expect(ui().getByRole('button', { name: 'Start' })).toBeDisabled();
 		expect(share().endsWith(EMPTY)).toBe(true);
-		await fireEvent.click(q(c, '.row-add'));
-		expect(rowCount()).toBe(1);
-		expect(q<HTMLButtonElement>(c, '.start').disabled).toBe(true);
+		await fireEvent.click(ui().getByRole('button', { name: 'Add code' }));
+		expect(rows()).toHaveLength(1);
+		expect(ui().getByRole('button', { name: 'Start' })).toBeDisabled();
 		expect(share().endsWith(EMPTY)).toBe(true);
 	});
 
 	it("keeps each record's format on a link without fmt, and Start writes fmt=upc", async () => {
 		open('http://localhost/#r1=qr_x&r2=datamatrix_y&seed=0');
-		expect(values('.row-format')).toEqual(['qr', 'datamatrix']);
-		expect(v('.format-input')).toBe('upc');
-		expect(formatLabel()).toBe('Format for new rows');
+		expect(formats()).toEqual(['qr', 'datamatrix']);
+		expect(ui().getByRole('combobox', { name: 'Format for new rows' })).toHaveValue('upc');
+		expect(ui().getByRole('combobox', { name: 'Format for new rows' })).toBeInTheDocument();
 		expect(await start()).toBe(
 			'/play#r1=qr_x&r2=datamatrix_y&speed=60&loop=0&rot=0&rotmax=8&skew=0&skewmax=8&seed=0&fmt=upc'
 		);
@@ -820,24 +837,28 @@ describe('setup page: per-row editor', () => {
 
 	it('writes no record for a blank new row, and its record once typed', async () => {
 		open(DECK);
-		await set(q(c, '.format-input'), 'qr');
+		await set(ui().getByRole('combobox', { name: 'Format for new rows' }), 'qr');
 		const before = share();
-		await fireEvent.click(q(c, '.row-add'));
-		expect(at(3, '.row-ecc').value).toBe('M');
+		await fireEvent.click(ui().getByRole('button', { name: 'Add code' }));
+		expect(ui().getByRole('combobox', { name: 'Error correction of code 3' })).toHaveValue('M');
 		expect(share()).toBe(before);
-		await fireEvent.input(at(3, '.row-payload'), { target: { value: 'x' } });
+		await fireEvent.input(ui().getByRole('textbox', { name: 'Code 3' }), {
+			target: { value: 'x' }
+		});
 		expect(share()).toContain('&r2=qr-H_hello&r3=qr_x&speed=60&');
 		expect(share().endsWith('&fmt=qr')).toBe(true);
 	});
 
 	it('empties the deck on the last Delete, focusing Add code', async () => {
 		open(DECK);
-		await fireEvent.click(at(1, '.row-delete'));
-		await fireEvent.click(at(1, '.row-delete'));
+		await fireEvent.click(ui().getByRole('button', { name: 'Delete code 1' }));
+		await fireEvent.click(ui().getByRole('button', { name: 'Delete code 1' }));
 		await tick();
-		expect(document.activeElement).toBe(q(c, '.row-add'));
-		expect(rowCount()).toBe(0);
-		expect(q<HTMLButtonElement>(c, '.start').disabled).toBe(true);
+		expect(ui().getByRole('button', { name: 'Add code' })).toHaveFocus();
+		expect(
+			within(ui().getByRole('list', { name: 'Codes' })).queryAllByRole('listitem')
+		).toHaveLength(0);
+		expect(ui().getByRole('button', { name: 'Start' })).toBeDisabled();
 		expect(share().endsWith(EMPTY)).toBe(true);
 	});
 });
@@ -847,82 +868,97 @@ describe('setup page: GS1 validation setting', () => {
 	const BAD = '(01)09501101530004';
 	const GS1_LIMIT =
 		'Plain text keeps one format, one error-correction level and one render-if-invalid setting for the whole list, and one code per line.';
+	/** BAD's verdict in the validation list: strict, and with the box ticked (R6). */
+	const INVALID = ' ✗ (01) GTIN: Bad checksum';
+	const LENIENT =
+		' ⚠ rendered anyway · (01) GTIN: Bad checksum · 134 modules wide · 16 characters → ]C1 0109501101530004';
+	/** The scan-data verdict of 10LOT42, a GS, then 0109501101530003. */
+	const GS_VERDICT = ' ✓ · 222 modules wide · 23 characters → ]C1 10LOT42␝0109501101530003';
 	const list = (payload: string, tail = '') =>
 		`http://localhost/#codes=${encodeURIComponent(payload)}&seed=0&fmt=gs1128${tail}`;
-	let c: HTMLElement;
 	const open = (url: string) => {
 		mockPage.url = new URL(url);
-		c = render(SetupPage).container;
+		render(SetupPage);
 	};
-	const has = (sel: string) => c.querySelector(sel) !== null;
-	const box = () => q<HTMLInputElement>(c, '.lax-input');
-	const set = (sel: string, value: string) => fireEvent.change(q(c, sel), { target: { value } });
-	const share = () => q<HTMLInputElement>(c, '.share-url').value;
+	const box = () => screen.getByRole('checkbox', { name: 'Render GS1 data that fails validation' });
+	const set = (el: HTMLElement, value: string) => fireEvent.change(el, { target: { value } });
+	const share = () =>
+		(screen.getByRole('textbox', { name: 'Share link' }) as HTMLInputElement).value;
+	const rows = () => within(screen.getByRole('list', { name: 'Codes' })).getAllByRole('listitem');
+	/** Each row's render-if-invalid box, in row order, as checked or not. */
 	const rowBoxes = () =>
-		[...c.querySelectorAll<HTMLInputElement>('.row-lax-input')].map((el) => el.checked);
-	/** Whether the element at `a` precedes the one at `b` in the document. */
-	const precedes = (a: string, b: string) =>
-		Boolean(q(c, a).compareDocumentPosition(q(c, b)) & Node.DOCUMENT_POSITION_FOLLOWING);
+		rows().map(
+			(row, i) =>
+				(
+					within(row).getByRole('checkbox', {
+						name: `Render code ${i + 1} if invalid`
+					}) as HTMLInputElement
+				).checked
+		);
 
 	it('shows the box, its note, the GS1 hint and the GS1 placeholder for a GS1 list, after the level select', async () => {
 		open(list(S));
-		expect(box().checked).toBe(false);
-		expect(
-			q(c, '.lax-field').textContent?.trim().startsWith('Render GS1 data that fails validation')
-		).toBe(true);
-		expect(q(c, '.lax-note').textContent).toBe(LAX_NOTE);
-		expect(box().getAttribute('aria-describedby')).toBe(q(c, '.lax-note').id);
-		expect(q(c, '.gs1-hint').textContent).toBe(GS1_HINT);
-		expect(q<HTMLTextAreaElement>(c, '.code-input').placeholder).toBe(
+		expect(box()).not.toBeChecked();
+		expect(box()).toBeInTheDocument();
+		expect(screen.getByText(LAX_NOTE).textContent).toBe(LAX_NOTE);
+		expect(box()).toHaveAccessibleDescription(LAX_NOTE);
+		expect(screen.getByText(GS1_HINT).textContent).toBe(GS1_HINT);
+		expect(screen.getByRole('textbox', { name: 'Codes' })).toHaveAttribute(
+			'placeholder',
 			'Paste GS1 element strings or scan data — one per line'
 		);
-		expect(precedes('.format-input', '.lax-input') && precedes('.lax-input', '.mode-input')).toBe(
-			true
-		);
-		await set('.format-input', 'gs1qr');
-		expect(precedes('.ecc-input', '.lax-input') && precedes('.lax-input', '.mode-input')).toBe(
-			true
-		);
-		await set('.format-input', 'upc');
-		expect([has('.lax-input'), has('.lax-note'), has('.gs1-hint')]).toEqual([false, false, false]);
-		expect(q<HTMLTextAreaElement>(c, '.code-input').placeholder).toBe(
+		expect(screen.getByRole('combobox', { name: 'Format' })).toAppearBefore(box());
+		expect(box()).toAppearBefore(screen.getByRole('combobox', { name: 'Playback' }));
+		await set(screen.getByRole('combobox', { name: 'Format' }), 'gs1qr');
+		expect(screen.getByRole('combobox', { name: 'Error correction' })).toAppearBefore(box());
+		expect(box()).toAppearBefore(screen.getByRole('combobox', { name: 'Playback' }));
+		await set(screen.getByRole('combobox', { name: 'Format' }), 'upc');
+		expect(
+			screen.queryByRole('checkbox', { name: 'Render GS1 data that fails validation' })
+		).toBeNull();
+		expect(screen.queryByText(LAX_NOTE)).toBeNull();
+		expect(screen.queryByText(GS1_HINT)).toBeNull();
+		expect(screen.getByRole('textbox', { name: 'Codes' })).toHaveAttribute(
+			'placeholder',
 			'Paste codes — one per line, or comma-separated'
 		);
 	});
 
 	it('prefills the box from lax=1, flags the row amber with the scan hint, and clears when the format leaves GS1', async () => {
 		open(list(BAD, '&lax=1'));
-		expect(box().checked).toBe(true);
-		expect(q(c, '.validation-list li').classList.contains('lenient')).toBe(true);
-		expect(q(c, '.scan-hint').textContent).toBe(SCAN_HINT);
+		expect(box()).toBeChecked();
+		expect(exactText(items()[0], LENIENT)).toBe(LENIENT);
+		expect(screen.getByText(SCAN_HINT).textContent).toBe(SCAN_HINT);
 		expect(share()).toContain('&fmt=gs1128&lax=1');
-		expect(q<HTMLButtonElement>(c, '.start').disabled).toBe(false);
-		await set('.format-input', 'upc');
-		await set('.format-input', 'gs1128');
-		expect(box().checked).toBe(false);
+		expect(screen.getByRole('button', { name: 'Start' })).toBeEnabled();
+		await set(screen.getByRole('combobox', { name: 'Format' }), 'upc');
+		await set(screen.getByRole('combobox', { name: 'Format' }), 'gs1128');
+		expect(box()).not.toBeChecked();
 		expect(share()).not.toContain('lax=');
-		expect(q(c, '.validation-list li').classList.contains('invalid')).toBe(true);
-		expect(q<HTMLButtonElement>(c, '.start').disabled).toBe(true);
+		expect(exactText(items()[0], INVALID)).toBe(INVALID);
+		expect(screen.getByRole('button', { name: 'Start' })).toBeDisabled();
 	});
 
 	it('ticks the box, validates leniently and writes lax=1 at the end of the link', async () => {
 		open(list(BAD));
-		expect(q(c, '.validation-list li').classList.contains('invalid')).toBe(true);
+		expect(exactText(items()[0], INVALID)).toBe(INVALID);
 		await fireEvent.click(box());
-		expect(q(c, '.validation-list li').classList.contains('lenient')).toBe(true);
+		expect(exactText(items()[0], LENIENT)).toBe(LENIENT);
 		expect(share()).toMatch(/&fmt=gs1128&lax=1$/);
 	});
 
 	it('carries the box into Per row rows and back, hiding the page box in Per row', async () => {
 		open(list(`${BAD}\n${S}`, '&lax=1'));
-		await set('.editor-input', 'rows');
-		expect(has('.lax-field')).toBe(false);
+		await set(screen.getByRole('combobox', { name: 'Editor' }), 'rows');
+		expect(
+			screen.queryByRole('checkbox', { name: 'Render GS1 data that fails validation' })
+		).toBeNull();
 		expect(rowBoxes()).toEqual([true, true]);
-		expect(c.querySelectorAll('.lax-note').length).toBe(1); // the row editor's
-		expect(c.querySelectorAll('.gs1-hint').length).toBe(1);
-		await set('.editor-input', 'text');
-		expect(has('.switch-note')).toBe(false);
-		expect(box().checked).toBe(true);
+		expect(screen.getAllByText(LAX_NOTE)).toHaveLength(1); // the row editor's
+		expect(screen.getAllByText(GS1_HINT)).toHaveLength(1);
+		await set(screen.getByRole('combobox', { name: 'Editor' }), 'text');
+		expect(screen.queryByRole('alert')).toBeNull();
+		expect(box()).toBeChecked();
 		expect(share()).toContain('&fmt=gs1128&lax=1');
 	});
 
@@ -930,8 +966,8 @@ describe('setup page: GS1 validation setting', () => {
 		open(
 			`http://localhost/#r1=gs1128_${encodeURIComponent(S)}&r2=gs1128-lax_${encodeURIComponent(S)}&seed=0`
 		);
-		await set('.editor-input', 'text');
-		expect(q(c, '.switch-note p').textContent).toBe(
+		await set(screen.getByRole('combobox', { name: 'Editor' }), 'text');
+		expect(within(screen.getByRole('alert')).getByRole('paragraph').textContent).toBe(
 			`${GS1_LIMIT} Switching now drops the render-if-invalid setting of 1 row. Every code will take the format of the first code, GS1-128, with invalid GS1 data skipped.`
 		);
 	});
@@ -939,7 +975,7 @@ describe('setup page: GS1 validation setting', () => {
 	it('appends uploaded rows with the box off', async () => {
 		open(`http://localhost/#r1=gs1128-lax_${encodeURIComponent(BAD)}&fmt=gs1128&lax=1&seed=0`);
 		vi.mocked(readCodesFile).mockResolvedValueOnce(S);
-		const fileInput = q<HTMLInputElement>(c, '.file-input');
+		const fileInput = screen.getByLabelText('Load codes from a file');
 		Object.defineProperty(fileInput, 'files', {
 			value: [new File(['x'], 'codes.txt', { type: 'text/plain' })],
 			configurable: true
@@ -951,17 +987,16 @@ describe('setup page: GS1 validation setting', () => {
 
 	it('shows a GS in the list as the mark, with the scan-data verdict', () => {
 		open(list(`]C110LOT42${'\u001d'}0109501101530003`));
-		expect(q(c, '.validation-list .raw').textContent).toBe(']C110LOT42␝0109501101530003');
-		expect(q(c, '.validation-list .verdict').textContent).toBe(
-			' ✓ · 222 modules wide · 23 characters → ]C1 10LOT42␝0109501101530003'
-		);
+		const raw = ']C110LOT42␝0109501101530003';
+		expect(exactText(items()[0], raw)).toBe(raw);
+		expect(exactText(items()[0], GS_VERDICT)).toBe(GS_VERDICT);
 	});
 
 	it('keeps a real GS in a row record and shows the same verdict', () => {
 		open('http://localhost/#r1=gs1128_10LOT42%1D0109501101530003&seed=0');
-		expect(q<HTMLTextAreaElement>(c, '.row-payload').value).toBe('10LOT42\u001d0109501101530003');
-		expect(q(c, '.row-verdict').textContent).toBe(
-			' ✓ · 222 modules wide · 23 characters → ]C1 10LOT42␝0109501101530003'
+		expect(screen.getByRole('textbox', { name: 'Code 1' })).toHaveValue(
+			'10LOT42\u001d0109501101530003'
 		);
+		expect(exactText(rows()[0], GS_VERDICT)).toBe(GS_VERDICT);
 	});
 });
