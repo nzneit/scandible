@@ -3,7 +3,8 @@
 **Date:** 2026-11-03
 **Status:** Design agreed in conversation on 2026-11-03 and revised the same day after a four-lens
 review on Sonnet subagents (codebase fit, GS1 and decoding correctness, UX and copy, internal
-coherence) judged by the author; awaits a re-review and the user's approval of this file. Spec 2 of the four-spec GS1 series (see _Series_).
+coherence) and one Sonnet re-review, judged by the author; awaits the user's approval of this
+file. Spec 2 of the four-spec GS1 series (see _Series_).
 **Builds on:** spec 1, [`2026-11-03-gs1-carriers-design.md`](2026-11-03-gs1-carriers-design.md),
 merged as `9cedd6d`; its measurements note is cited as _measurements §n_. Facts measured for this
 spec are in _Measurements_ at the end, cited as _M1_ to _M8_.
@@ -345,10 +346,11 @@ The splitter does not check a variable field's maximum length or character set; 
   swallowed text overflows the field, BWIPP's lint says so, such as `AI 10: Too long`; when it
   fits, nothing flags it and the breakdown shows the long value. The GS1 hint tells the tester to
   set the scanner to send `<GS>`.
-- **A 13-digit GTIN as raw input** is refused, `(01) takes 14 characters; only 13 follow`, by
-  design: the splitter treats (01) as a fixed 14-character field with no exception per carrier,
+- **`01` and a 13-digit GTIN as raw input**, such as `010950110153000`, is refused with
+  `(01) takes 14 characters; only 13 follow`, by design: the splitter treats (01) as a fixed 14-character field with no exception per carrier,
   and a scanner always sends 14. Bracketed, the five GTIN-only DataBar formats still accept 13
-  digits; the other six refuse them anyway (`AI 01: Too short`).
+  digits; the other six refuse them anyway (`AI 01: Too short`). A bare 13-digit string, without
+  the `01`, gets the bare-GTIN message below.
 - **A bare GTIN**, such as `09501101530003`, is refused with
   `No GS1 AI starts at "09501101…"; GS1 data starts with an AI, such as 01 before a GTIN`.
 - **Mixed forms.** Raw data with brackets later, such as `0109501101530003(10)LOT42`, is refused
@@ -381,8 +383,10 @@ receiving system's parser makes of the data.
 
 - **Codes drawn under the render-anyway setting** have `gs1`, so they get a breakdown too.
 - **`scanData`'s fallback.** When the value did not parse, `scanData` returns it unchanged as
-  `gs1.data` (spec 1). The splitter then stops at its first `(`: the summary reads
-  `No readable AIs` and the table holds only the stop row.
+  `gs1.data` (spec 1). `breakdown` recognises such data by its leading `(` and does not run the
+  splitter, whose mixed-forms message would mislead for a code written fully in brackets. It
+  returns no lines and the stop `The bracketed string could not be split into AIs`: the summary
+  reads `No readable AIs` and the table holds only the stop row.
 - **No elements and no stop** cannot occur, since a drawn code carries data.
 
 ### Decoding — `describeValue`
@@ -452,8 +456,8 @@ name, which keeps the visible text: with `label` `Code 3 breakdown`, the summary
 </details>
 ```
 
-- **Summary text.** `1 AI` or `N AIs`; with a stop, `N AIs, then unreadable data`; with a stop
-  and no element, `No readable AIs`.
+- **Summary text.** `1 AI` or `N AIs`; with a stop, `N AIs, then reading stops`; with a stop and
+  no element, `No readable AIs`.
 - **Table.** It is tabular data, so a table gives screen readers its headers. The header cells
   keep their place in the table and hide only their text, with a clip-based `visually-hidden`
   class the component defines; the header row has no padding or border, so it takes no visible
@@ -556,10 +560,11 @@ optional. Write a separator as the GS character, ␝, <GS>, \x1d or \u001d. If a
 scanner drops separators, set it to send <GS>. One code per line; spaces and line breaks are
 removed, commas are data, and parentheses inside a value are not supported.`
 - `LAX_NOTE`: `Ticked, a code that fails GS1 validation is drawn anyway, flagged amber with the
-reason. Three failures cannot be overridden: malformed brackets, scan data that cannot be split
-into AIs, and a code too long for its symbol. GS1 DataBar Omnidirectional, Truncated, Stacked,
-Stacked Omnidirectional and Limited still refuse a wrong GTIN, and GS1 DataBar Expanded and
-Expanded Stacked carry the corrected check digit of a leading GTIN.`
+reason. Three kinds of failure can never be overridden: malformed brackets, scan data that cannot
+be read (an unknown AI or identifier, or a parenthesis in a value), and a code too long for its
+symbol. Separately, GS1 DataBar Omnidirectional, Truncated, Stacked, Stacked Omnidirectional and
+Limited still refuse a wrong GTIN, and GS1 DataBar Expanded and Expanded Stacked carry the
+corrected check digit of a leading GTIN.`
 - The GS1 placeholder in `+page.svelte`, `Paste GS1 element strings — one per line`, becomes
   `Paste GS1 element strings or scan data — one per line`.
 
@@ -577,10 +582,16 @@ also hit the engine's encode cache.
 ## Testing
 
 Baseline: 29 test files, 529 tests. Before any implementation, the changes below turn exactly
-these existing tests red, and nothing else: the eleven cases of the `verdict.test.ts` it.each that
-feeds `0109501101530003`, the GS1 QR level H too-long test in the same file (run with the setting
-on), `ValidationList.test.ts` lines 184 and 195, and the placeholder test at `page.test.ts` line 841. Each is rewritten as described below. The engine tests that call `check` with unbracketed
-input directly (`bwipjs.test.ts` lines 222 and 298–310) stay green, since the engine is
+these existing tests red, and nothing else:
+
+- in `src/lib/verdict.test.ts`, the eleven cases of the it.each that feeds `0109501101530003`, the
+  GS1 QR level H too-long test (run with the setting on) and the `hint texts` test, which pins
+  `LAX_NOTE` and `GS1_HINT`;
+- `src/lib/components/ValidationList.test.ts` lines 184 and 195;
+- the placeholder test at `src/routes/page.test.ts` line 841.
+
+Each is rewritten as described below. The engine tests that call `check` with unbracketed input
+directly (`src/lib/engines/bwipjs.test.ts` lines 222 and 298–310) stay green, since the engine is
 unchanged.
 
 New and changed tests, by file:
@@ -618,13 +629,13 @@ New and changed tests, by file:
     `aim + data` is fed back as raw input in the GS-character, `␝` and `<GS>` forms. Each gives
     identical `gs1` and an identical rendered SVG.
 - **`src/lib/verdict.test.ts`**:
+  - The `hint texts` test pins the new `GS1_HINT` and `LAX_NOTE`.
   - The scan-data note, present on a mismatch and absent on a match or no identifier.
   - The worked examples above.
   - The it.each that fed `0109501101530003` to all eleven carriers now feeds `(01)09501101530003(10`, whose last AI lacks its closing bracket, and expects
     the suffix on all eleven with the setting on. `0109501101530003` itself is now valid on all
     eleven, asserted once.
   - The GS1 QR level H too-long test gains the suffix.
-  - `GS1_HINT` and `LAX_NOTE` word for word.
 - **`src/lib/components/Gs1Breakdown.test.ts`** (new), with `today` passed:
   - The summary text in its four forms, and its accessible name with and without `label`.
   - Closed by default.
@@ -692,7 +703,8 @@ Method: throwaway scripts on Node v24.17.0 against
 `node_modules/bwip-js/dist/bwip-js-node.mjs` (bwip-js 4.11.4, BWIPP 2026-05-28), with
 `lintreqs: false` as the engine passes it; the dictionary fetched with `gh api` at tag
 `2026-01-27`; throwaway Python over the dictionary. The scripts are not kept. The GS1 review lens
-re-ran M3, M5, M6 and M7 independently and checked M1 and M2 on two encoders.
+re-ran M3, M5, M6 and M7 independently and checked M1 and M2 on two encoders; M8 was run by the
+author only.
 
 - **M1. Input without brackets is refused everywhere.** `09501101530003`, `0950110153000`,
   `0109501101530003`, `]C10109501101530003` and `01095011015300031726123110LOT42` fail on all
@@ -700,8 +712,8 @@ re-ran M3, M5, M6 and M7 independently and checked M1 and M2 on two encoders.
   on the five GTIN-only members.
 - **M2. Malformed brackets.** `(01)09501101530003(10` and `(01` fail strict and with `dontlint`
   on all eleven: `AIs must end with ')'` on six, the 13-or-14-digits message on the five. A lone
-  `(` fails on GS1-128, strict and lax, with no message (pinned by `bwipjs.test.ts`, the test
-  that refuses a lone `(` on every carrier).
+  `(` fails on GS1-128, strict and lax, with no message (pinned by
+  `src/lib/engines/bwipjs.test.ts`, the test that refuses a lone `(` on every carrier).
 - **M3. The dictionary.** Release 2026-01-27: 344 lines, 30 280 bytes, SHA-256
   `6461ece7c03420fb27a3f18163ef9a08694aa4bb2491dea25f63bcdf22451a99`, 224 entries expanding to
   541 AIs. BWIPP's `gs1syntax` holds the same 541 AIs, none missing on either side, with

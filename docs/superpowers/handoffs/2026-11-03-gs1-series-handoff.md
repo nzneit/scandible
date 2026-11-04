@@ -50,22 +50,25 @@ to pick any item below and act on it without re-reading the previous session.
 
 ## Summary
 
-| ID  | Item                                                            | Tier | Owner / Lands in                                         | Blocks? |
-| --- | --------------------------------------------------------------- | ---- | -------------------------------------------------------- | ------- |
-| T1  | Pull `main`, retire the merged worktree and branch              | 1    | `/home/nn/Projects/scandible` (git)                      | ✅      |
-| T2  | Commit this handoff and keep it current                         | 1    | `docs/superpowers/handoffs/`                             | ✅      |
-| T3  | Brainstorm and spec the North American coupon next              | 2    | new `docs/superpowers/specs/<date>-gs1-coupon-design.md` | —       |
-| Q1  | Coupon: field breakdown only, or a field-by-field composer too? | 2    | the coupon spec's _Decisions_                            | —       |
-| Q2  | Uniform override-suffix rule for every carrier                  | 2    | the coupon spec; `src/lib/verdict.ts` `override`         | —       |
-| T4  | Spec raw scan data input and the per-AI breakdown               | 2    | new spec; needs an AI table                              | —       |
-| T5  | Spec GS1 Digital Link                                           | 2    | new spec; `gs1dlqrcode`, `gs1dldatamatrix`               | —       |
-| V1  | GS1 carriers: 22 hardware and browser rows                      | 3    | plan `2026-11-03-gs1-carriers.md` verification record    | —       |
-| V2  | Earlier series: 58 rows still unverified                        | 3    | the three earlier plans' verification records            | —       |
-| F1  | `RowEditor` calls `rowEntry` three times per row per render     | 4    | `src/lib/components/RowEditor.svelte`                    | —       |
-| F2  | `ECC_OPTIONS` carries ten empty entries                         | 4    | `src/lib/engines/bwipjs.ts`                              | —       |
-| F3  | `verdict.ts` looks the descriptor up in four helpers            | 4    | `src/lib/verdict.ts`                                     | —       |
-| F4  | The `deck` test helper is copied into three test files          | 4    | `src/lib/rows.test.ts` and two siblings                  | —       |
-| F5  | `Gs1Carrier` will need an input `kind` before Digital Link      | 4    | `src/lib/formats.ts`, decided in T5                      | —       |
+| ID  | Item                                                                                                                                                                                                                                                                                                                                                                           | Tier                                          | Owner / Lands in                                         | Blocks?    |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------- | -------------------------------------------------------- | ---------- |
+| T1  | Pull `main`, retire the merged worktree and branch                                                                                                                                                                                                                                                                                                                             | 1                                             | `/home/nn/Projects/scandible` (git)                      | ✅         |
+| T2  | Commit this handoff and keep it current                                                                                                                                                                                                                                                                                                                                        | 1                                             | `docs/superpowers/handoffs/`                             | ✅         |
+| T3  | Series order kept: raw scan data is spec 2, Digital Link 3, the coupon 4; Q1 waits for spec 4                                                                                                                                                                                                                                                                                  | this file                                     | user                                                     | 2026-11-03 |
+| T4  | Purpose: regenerate. Notations: raw GS, `␝`, `<GS>`, `\x1d`, `\u001d`. AIM identifier optional, a mismatch noted, not refused. AI table generated from the GS1 Syntax Dictionary 2026-01-27 with a bwip-js parity test. Breakdown: names plus light decoding, in a closed disclosure per code. Approach: a read step before the engine sharing one splitter with the breakdown | spec `2026-11-03-gs1-raw-scan-data-design.md` | user                                                     | 2026-11-03 |
+| Q2  | Uniform override suffix on every refused GS1 code under the render-anyway setting, including too long and plain invalid                                                                                                                                                                                                                                                        | spec `2026-11-03-gs1-raw-scan-data-design.md` | user                                                     | 2026-11-03 |
+| T3  | Brainstorm and spec the North American coupon next                                                                                                                                                                                                                                                                                                                             | 2                                             | new `docs/superpowers/specs/<date>-gs1-coupon-design.md` | —          |
+| Q1  | Coupon: field breakdown only, or a field-by-field composer too?                                                                                                                                                                                                                                                                                                                | 2                                             | the coupon spec's _Decisions_                            | —          |
+| Q2  | Uniform override-suffix rule for every carrier                                                                                                                                                                                                                                                                                                                                 | 2                                             | the coupon spec; `src/lib/verdict.ts` `override`         | —          |
+| T4  | Spec raw scan data input and the per-AI breakdown                                                                                                                                                                                                                                                                                                                              | 2                                             | new spec; needs an AI table                              | —          |
+| T5  | Spec GS1 Digital Link                                                                                                                                                                                                                                                                                                                                                          | 2                                             | new spec; `gs1dlqrcode`, `gs1dldatamatrix`               | —          |
+| V1  | GS1 carriers: 22 hardware and browser rows                                                                                                                                                                                                                                                                                                                                     | 3                                             | plan `2026-11-03-gs1-carriers.md` verification record    | —          |
+| V2  | Earlier series: 58 rows still unverified                                                                                                                                                                                                                                                                                                                                       | 3                                             | the three earlier plans' verification records            | —          |
+| F1  | `RowEditor` calls `rowEntry` three times per row per render                                                                                                                                                                                                                                                                                                                    | 4                                             | `src/lib/components/RowEditor.svelte`                    | —          |
+| F2  | `ECC_OPTIONS` carries ten empty entries                                                                                                                                                                                                                                                                                                                                        | 4                                             | `src/lib/engines/bwipjs.ts`                              | —          |
+| F3  | `verdict.ts` looks the descriptor up in four helpers                                                                                                                                                                                                                                                                                                                           | 4                                             | `src/lib/verdict.ts`                                     | —          |
+| F4  | The `deck` test helper is copied into three test files                                                                                                                                                                                                                                                                                                                         | 4                                             | `src/lib/rows.test.ts` and two siblings                  | —          |
+| F5  | `Gs1Carrier` will need an input `kind` before Digital Link                                                                                                                                                                                                                                                                                                                     | 4                                             | `src/lib/formats.ts`, decided in T5                      | —          |
 
 ---
 
@@ -157,7 +160,8 @@ to pick any item below and act on it without re-reading the previous session.
   reviewed by the multi-lens pass, and the user has said "approved" to the written file; its
   _Decisions_ section records the series order and Q1.
 - **Relates to:** Q1, Q2, F5.
-- **Status:** ☐ open
+- **Status:** ☐ open. The order question was settled on 2026-11-03: the user kept the original
+  order, so the coupon stays spec 4 and Q1 waits for it.
 
 ### Q1 — Coupon: field breakdown only, or a field-by-field composer too?
 
@@ -198,7 +202,9 @@ to pick any item below and act on it without re-reading the previous session.
 - **Acceptance:** the coupon spec states the rule; `verdict.test.ts` pins it for every carrier;
   `grep -n "gtinCheck === 'own'" src/lib/verdict.ts` prints nothing if the uniform rule won.
 - **Relates to:** T3.
-- **Status:** ☐ open
+- **Status:** ☐ open. Decided 2026-11-03 in the spec 2 brainstorm: the uniform rule, extended to
+  "too long" and plain "invalid" refusals. The raw scan data spec states it; it closes when that
+  spec's implementation lands.
 
 ### T4 — Spec raw scan data input and the per-AI breakdown
 
@@ -220,7 +226,9 @@ to pick any item below and act on it without re-reading the previous session.
 - **Acceptance:** a spec file approved by the user; it names the table's source, licence and
   regeneration command.
 - **Relates to:** T3 (the coupon breakdown wants the same table), F5.
-- **Status:** ☐ open
+- **Status:** ☐ open. Spec written 2026-11-03 as
+  `docs/superpowers/specs/2026-11-03-gs1-raw-scan-data-design.md`, revised after a four-lens Sonnet
+  review; awaits the user's approval.
 
 ### T5 — Spec GS1 Digital Link
 
