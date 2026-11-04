@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, fireEvent } from '@testing-library/svelte';
+import { render, fireEvent, screen, within } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import SetupPage from './+page.svelte';
 import { readCodesFile } from '$lib/fileInput';
@@ -15,6 +15,15 @@ vi.mock('$app/paths', () => ({ resolve: (id: string) => id }));
 vi.mock('$lib/fileInput', () => ({ readCodesFile: vi.fn() }));
 
 const q = <T extends Element>(c: Element, sel: string) => c.querySelector(sel) as T;
+const FLASH_NOTE =
+	'Dwells under 0.33 s flash the screen more than three times a second. Do not use them near anyone sensitive to flashing lights.';
+const DUP_HINT = /^Codes \d+ and \d+ are identical/; // Questions 3: the duplicate hint, whose text varies
+/** The raw textContent of the element in `scope` whose trimmed text is `text`. */
+const exactText = (scope: HTMLElement, text: string) =>
+	within(scope).getByText(text.trim()).textContent; // R3
+/** The validation list's items. */
+const items = () =>
+	within(screen.getByRole('list', { name: 'Validation results' })).getAllByRole('listitem');
 
 beforeEach(() => {
 	mockPage.url = new URL('http://localhost/');
@@ -24,41 +33,39 @@ beforeEach(() => {
 describe('setup page', () => {
 	it('prefills the textarea and settings from a legacy ?codes= URL', () => {
 		mockPage.url = new URL('http://localhost/?codes=036000291452&speed=120&loop=1');
-		const { container } = render(SetupPage);
-		expect(q<HTMLTextAreaElement>(container, '.code-input').value).toBe('036000291452');
-		expect(q<HTMLInputElement>(container, '.speed-input').value).toBe('120');
-		expect(q<HTMLInputElement>(container, '.loop-input').checked).toBe(true);
+		render(SetupPage);
+		expect(screen.getByRole('textbox', { name: 'Codes' })).toHaveValue('036000291452');
+		expect(screen.getByRole('slider', { name: 'Speed' })).toHaveValue('120');
+		expect(screen.getByRole('checkbox', { name: 'Loop' })).toBeChecked();
 	});
 
 	it('prefills the textarea and settings from a #codes= fragment URL', () => {
 		mockPage.url = new URL('http://localhost/#codes=036000291452&speed=120&loop=1');
-		const { container } = render(SetupPage);
-		expect(q<HTMLTextAreaElement>(container, '.code-input').value).toBe('036000291452');
-		expect(q<HTMLInputElement>(container, '.speed-input').value).toBe('120');
-		expect(q<HTMLInputElement>(container, '.loop-input').checked).toBe(true);
+		render(SetupPage);
+		expect(screen.getByRole('textbox', { name: 'Codes' })).toHaveValue('036000291452');
+		expect(screen.getByRole('slider', { name: 'Speed' })).toHaveValue('120');
+		expect(screen.getByRole('checkbox', { name: 'Loop' })).toBeChecked();
 	});
 
 	it('flags invalid entries and disables Start until there is a valid one', async () => {
-		const { container } = render(SetupPage);
-		const input = q<HTMLTextAreaElement>(container, '.code-input');
-		const start = q<HTMLButtonElement>(container, '.start');
-		expect(start.disabled).toBe(true);
+		render(SetupPage);
+		const input = screen.getByRole('textbox', { name: 'Codes' });
+		const start = screen.getByRole('button', { name: 'Start' });
+		expect(start).toBeDisabled();
 
 		await fireEvent.input(input, { target: { value: 'bad' } });
-		expect(container.querySelectorAll('.validation-list li').length).toBe(1);
-		expect(container.querySelector('.validation-list li')?.classList.contains('invalid')).toBe(
-			true
-		);
-		expect(start.disabled).toBe(true);
+		expect(items()).toHaveLength(1);
+		expect(exactText(items()[0], ' ✗ invalid')).toBe(' ✗ invalid');
+		expect(start).toBeDisabled();
 
 		await fireEvent.input(input, { target: { value: 'bad\n036000291452' } });
-		expect(start.disabled).toBe(false);
+		expect(start).toBeEnabled();
 	});
 
 	it('navigates to /play with the full encoded state on Start', async () => {
 		mockPage.url = new URL('http://localhost/?codes=036000291452&seed=0');
-		const { container } = render(SetupPage);
-		await fireEvent.click(q(container, '.start'));
+		render(SetupPage);
+		await fireEvent.click(screen.getByRole('button', { name: 'Start' }));
 		expect(goto).toHaveBeenCalledWith(
 			'/play#codes=036000291452&speed=60&loop=0&rot=0&rotmax=8&skew=0&skewmax=8&seed=0&fmt=upc'
 		);
@@ -68,8 +75,8 @@ describe('setup page', () => {
 		mockPage.url = new URL(
 			'http://localhost/?codes=036000291452&rot=1&rotmax=25&skew=1&skewmax=20&seed=999'
 		);
-		const { container } = render(SetupPage);
-		await fireEvent.click(q(container, '.start'));
+		render(SetupPage);
+		await fireEvent.click(screen.getByRole('button', { name: 'Start' }));
 		const url = goto.mock.calls[0][0] as string;
 		expect(url).toContain('rot=1');
 		expect(url).toContain('rotmax=25');
@@ -82,46 +89,50 @@ describe('setup page', () => {
 		mockPage.url = new URL(
 			'http://localhost/?codes=036000291452&rot=0&rotmax=20&skew=0&skewmax=15&seed=77'
 		);
-		const { container } = render(SetupPage);
-		expect(q<HTMLInputElement>(container, '.rotate-input').checked).toBe(false);
-		expect(q<HTMLInputElement>(container, '.rotate-max-input').value).toBe('20');
-		expect(q<HTMLInputElement>(container, '.rotate-max-input').disabled).toBe(true);
-		expect(q<HTMLInputElement>(container, '.skew-input').checked).toBe(false);
-		expect(q<HTMLInputElement>(container, '.skew-max-input').value).toBe('15');
-		expect(q<HTMLInputElement>(container, '.skew-max-input').disabled).toBe(true);
+		render(SetupPage);
+		expect(screen.getByRole('checkbox', { name: 'Random rotation' })).not.toBeChecked();
+		expect(screen.getByRole('slider', { name: 'Maximum rotation' })).toHaveValue('20');
+		expect(screen.getByRole('slider', { name: 'Maximum rotation' })).toBeDisabled();
+		expect(screen.getByRole('checkbox', { name: 'Random skew' })).not.toBeChecked();
+		expect(screen.getByRole('slider', { name: 'Maximum skew' })).toHaveValue('15');
+		expect(screen.getByRole('slider', { name: 'Maximum skew' })).toBeDisabled();
 	});
 
 	it('enables the rotation slider when its checkbox is checked', async () => {
 		mockPage.url = new URL('http://localhost/?codes=036000291452');
-		const { container } = render(SetupPage);
-		const cb = q<HTMLInputElement>(container, '.rotate-input');
-		const slider = q<HTMLInputElement>(container, '.rotate-max-input');
-		expect(slider.disabled).toBe(true);
+		render(SetupPage);
+		const cb = screen.getByRole('checkbox', { name: 'Random rotation' });
+		const slider = screen.getByRole('slider', { name: 'Maximum rotation' });
+		expect(slider).toBeDisabled();
 		await fireEvent.click(cb);
-		expect(slider.disabled).toBe(false);
+		expect(slider).toBeEnabled();
 	});
 
-	it('builds a share URL into .share-url via ShareLink', async () => {
+	it('builds a share URL into the Share link field via ShareLink', async () => {
 		mockPage.url = new URL('http://localhost/?codes=036000291452');
-		const { container } = render(SetupPage);
-		await fireEvent.click(q(container, '.copy-link'));
-		expect(q<HTMLInputElement>(container, '.share-url').value).toContain('codes=036000291452');
+		render(SetupPage);
+		await fireEvent.click(screen.getByRole('button', { name: 'Share link' }));
+		expect(
+			(screen.getByRole('textbox', { name: 'Share link' }) as HTMLInputElement).value
+		).toContain('codes=036000291452');
 	});
 
 	it('preserves a URL-provided seed in the share URL', async () => {
 		mockPage.url = new URL('http://localhost/?codes=036000291452&skew=1&seed=424242');
-		const { container } = render(SetupPage);
-		await fireEvent.click(q(container, '.copy-link'));
-		expect(q<HTMLInputElement>(container, '.share-url').value).toContain('seed=424242');
+		render(SetupPage);
+		await fireEvent.click(screen.getByRole('button', { name: 'Share link' }));
+		expect(
+			(screen.getByRole('textbox', { name: 'Share link' }) as HTMLInputElement).value
+		).toContain('seed=424242');
 	});
 
 	it('generates a session seed from Math.random when the URL has none', async () => {
 		const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.42);
 		try {
 			mockPage.url = new URL('http://localhost/?codes=036000291452');
-			const { container } = render(SetupPage);
-			await fireEvent.click(q(container, '.copy-link'));
-			const url = q<HTMLInputElement>(container, '.share-url').value;
+			render(SetupPage);
+			await fireEvent.click(screen.getByRole('button', { name: 'Share link' }));
+			const url = (screen.getByRole('textbox', { name: 'Share link' }) as HTMLInputElement).value;
 			const expectedSeed = Math.floor(0.42 * 0x100000000) >>> 0;
 			expect(randomSpy).toHaveBeenCalled();
 			expect(url).toContain(`seed=${expectedSeed}`);
@@ -135,13 +146,15 @@ describe('setup page', () => {
 		const randomSpy = vi.spyOn(Math, 'random').mockReturnValueOnce(0.25).mockReturnValueOnce(0.75);
 		try {
 			mockPage.url = new URL('http://localhost/?codes=036000291452');
-			const first = render(SetupPage);
-			await fireEvent.click(q(first.container, '.copy-link'));
-			const url1 = q<HTMLInputElement>(first.container, '.share-url').value;
+			const { container: first } = render(SetupPage);
+			await fireEvent.click(within(first).getByRole('button', { name: 'Share link' }));
+			const url1 = (within(first).getByRole('textbox', { name: 'Share link' }) as HTMLInputElement)
+				.value;
 
-			const second = render(SetupPage);
-			await fireEvent.click(q(second.container, '.copy-link'));
-			const url2 = q<HTMLInputElement>(second.container, '.share-url').value;
+			const { container: second } = render(SetupPage);
+			await fireEvent.click(within(second).getByRole('button', { name: 'Share link' }));
+			const url2 = (within(second).getByRole('textbox', { name: 'Share link' }) as HTMLInputElement)
+				.value;
 
 			expect(url1.match(/[?&]seed=(\d+)/)![1]).not.toBe(url2.match(/[?&]seed=(\d+)/)![1]);
 		} finally {
@@ -151,180 +164,196 @@ describe('setup page', () => {
 
 	it('clears a rendered QR when the code list is edited afterwards', async () => {
 		mockPage.url = new URL('http://localhost/?codes=036000291452');
-		const { container } = render(SetupPage);
-		await fireEvent.click(q(container, '.copy-link'));
-		expect(q<HTMLElement>(container, '.qr-code').querySelector('svg')).not.toBeNull();
-		await fireEvent.input(q(container, '.code-input'), { target: { value: '012345678905' } });
-		const qr = q<HTMLElement>(container, '.qr-code');
-		expect(qr.hidden).toBe(true);
-		expect(qr.querySelector('svg')).toBeNull();
+		render(SetupPage);
+		await fireEvent.click(screen.getByRole('button', { name: 'Share link' }));
+		expect(screen.getByLabelText('QR code for the share link')).not.toBeEmptyDOMElement();
+		await fireEvent.input(screen.getByRole('textbox', { name: 'Codes' }), {
+			target: { value: '012345678905' }
+		});
+		const qr = screen.getByLabelText('QR code for the share link');
+		expect(qr).not.toBeVisible();
+		expect(qr).toBeEmptyDOMElement();
 	});
 
 	it('clears a rendered QR when a setting is changed afterwards', async () => {
 		mockPage.url = new URL('http://localhost/?codes=036000291452');
-		const { container } = render(SetupPage);
-		await fireEvent.click(q(container, '.copy-link'));
-		expect(q<HTMLElement>(container, '.qr-code').querySelector('svg')).not.toBeNull();
-		await fireEvent.click(q(container, '.loop-input'));
-		expect(q<HTMLElement>(container, '.qr-code').hidden).toBe(true);
+		render(SetupPage);
+		await fireEvent.click(screen.getByRole('button', { name: 'Share link' }));
+		expect(screen.getByLabelText('QR code for the share link')).not.toBeEmptyDOMElement();
+		await fireEvent.click(screen.getByRole('checkbox', { name: 'Loop' }));
+		expect(screen.getByLabelText('QR code for the share link')).not.toBeVisible();
 	});
 
 	it('clears a rendered QR when the format is switched afterwards', async () => {
 		mockPage.url = new URL('http://localhost/?codes=036000291452');
-		const { container } = render(SetupPage);
-		await fireEvent.click(q(container, '.copy-link'));
-		expect(q<HTMLElement>(container, '.qr-code').querySelector('svg')).not.toBeNull();
-		await fireEvent.change(q(container, '.format-input'), { target: { value: 'code39' } });
-		expect(q<HTMLElement>(container, '.qr-code').hidden).toBe(true);
+		render(SetupPage);
+		await fireEvent.click(screen.getByRole('button', { name: 'Share link' }));
+		expect(screen.getByLabelText('QR code for the share link')).not.toBeEmptyDOMElement();
+		await fireEvent.change(screen.getByRole('combobox', { name: 'Format' }), {
+			target: { value: 'code39' }
+		});
+		expect(screen.getByLabelText('QR code for the share link')).not.toBeVisible();
 	});
 
 	it('loads codes from a file into the textarea', async () => {
-		const { container } = render(SetupPage);
+		render(SetupPage);
 		vi.mocked(readCodesFile).mockResolvedValueOnce('036000291452\n012345678905');
-		const fileInput = q<HTMLInputElement>(container, '.file-input');
+		const fileInput = screen.getByLabelText('Load codes from a file');
 		const file = new File(['x'], 'codes.txt', { type: 'text/plain' });
 		Object.defineProperty(fileInput, 'files', { value: [file], configurable: true });
 		await fireEvent.change(fileInput);
 		await vi.waitFor(() =>
-			expect(q<HTMLTextAreaElement>(container, '.code-input').value).toBe(
+			expect(screen.getByRole('textbox', { name: 'Codes' })).toHaveValue(
 				'036000291452\n012345678905'
 			)
 		);
-		expect(container.querySelectorAll('.validation-list li').length).toBe(2);
+		expect(items()).toHaveLength(2);
 	});
 
 	it('shows an inline file error and leaves the existing validation list untouched on read failure', async () => {
 		mockPage.url = new URL('http://localhost/?codes=036000291452');
-		const { container } = render(SetupPage);
-		const originalCount = container.querySelectorAll('.validation-list li').length;
-		const originalFirst = container.querySelector('.validation-list li')?.textContent;
+		render(SetupPage);
+		const originalCount = items().length;
+		const originalFirst = items()[0].textContent;
 		expect(originalCount).toBeGreaterThan(0);
 
 		vi.mocked(readCodesFile).mockRejectedValueOnce(new Error('boom'));
-		const fileInput = q<HTMLInputElement>(container, '.file-input');
+		const fileInput = screen.getByLabelText('Load codes from a file');
 		const file = new File(['x'], 'codes.txt', { type: 'text/plain' });
 		Object.defineProperty(fileInput, 'files', { value: [file], configurable: true });
 		await fireEvent.change(fileInput);
 
-		const fileError = q<HTMLElement>(container, '.file-error');
-		await vi.waitFor(() => expect(fileError.hidden).toBe(false));
-		expect(fileError.textContent).toBeTruthy();
-		expect(container.querySelectorAll('.validation-list li').length).toBe(originalCount);
-		expect(container.querySelector('.validation-list li')?.textContent).toBe(originalFirst);
+		await vi.waitFor(() => expect(screen.getByText('Could not read file')).toBeVisible());
+		expect(screen.getByText('Could not read file').textContent).toBe('Could not read file');
+		expect(items()).toHaveLength(originalCount);
+		expect(items()[0].textContent).toBe(originalFirst);
 	});
 
 	it('renders the grouped format dropdown with 36 options', () => {
-		const { container } = render(SetupPage);
-		expect(container.querySelectorAll('.format-input optgroup').length).toBe(8);
-		expect(container.querySelectorAll('.format-input option').length).toBe(36);
-		expect(q<HTMLSelectElement>(container, '.format-input').value).toBe('upc');
+		render(SetupPage);
+		const select = screen.getByRole('combobox', { name: 'Format' });
+		expect(within(select).getAllByRole('group')).toHaveLength(8);
+		expect(within(select).getAllByRole('option')).toHaveLength(36);
+		expect(select).toHaveValue('upc');
 	});
 
 	it('revalidates on format switch: HELLO flips invalid→valid and enables Start', async () => {
-		const { container } = render(SetupPage);
-		await fireEvent.input(q(container, '.code-input'), { target: { value: 'HELLO' } });
-		expect(q<HTMLButtonElement>(container, '.start').disabled).toBe(true);
-		await fireEvent.change(q(container, '.format-input'), { target: { value: 'code39' } });
-		expect(container.querySelector('.validation-list li')?.classList.contains('valid')).toBe(true);
-		expect(q<HTMLButtonElement>(container, '.start').disabled).toBe(false);
+		render(SetupPage);
+		await fireEvent.input(screen.getByRole('textbox', { name: 'Codes' }), {
+			target: { value: 'HELLO' }
+		});
+		expect(screen.getByRole('button', { name: 'Start' })).toBeDisabled();
+		await fireEvent.change(screen.getByRole('combobox', { name: 'Format' }), {
+			target: { value: 'code39' }
+		});
+		expect(exactText(items()[0], ' ✓')).toBe(' ✓');
+		expect(screen.getByRole('button', { name: 'Start' })).toBeEnabled();
 	});
 
 	it('switches the placeholder between the numeric and text copy', async () => {
-		const { container } = render(SetupPage);
-		const input = q<HTMLTextAreaElement>(container, '.code-input');
-		expect(input.placeholder).toBe('Paste codes — one per line, or comma-separated');
-		await fireEvent.change(q(container, '.format-input'), { target: { value: 'code128' } });
-		expect(input.placeholder).toBe('Paste codes — one per line');
+		render(SetupPage);
+		const input = screen.getByRole('textbox', { name: 'Codes' });
+		expect(input).toHaveAttribute('placeholder', 'Paste codes — one per line, or comma-separated');
+		await fireEvent.change(screen.getByRole('combobox', { name: 'Format' }), {
+			target: { value: 'code128' }
+		});
+		expect(input).toHaveAttribute('placeholder', 'Paste codes — one per line');
 	});
 
 	it('shows exact arrow rows for encoder mutations, numeric and text', async () => {
 		mockPage.url = new URL('http://localhost/?codes=590123412345&fmt=ean13');
-		const { container } = render(SetupPage);
-		expect(container.querySelector('.validation-list li')?.textContent).toBe(
-			'590123412345 ✓ → 5901234123457'
-		);
-		await fireEvent.change(q(container, '.format-input'), { target: { value: 'code39' } });
-		await fireEvent.input(q(container, '.code-input'), { target: { value: 'hello' } });
-		expect(container.querySelector('.validation-list li')?.textContent).toBe('hello ✓ → HELLO');
+		render(SetupPage);
+		expect(items()[0].textContent).toBe('590123412345 ✓ → 5901234123457');
+		await fireEvent.change(screen.getByRole('combobox', { name: 'Format' }), {
+			target: { value: 'code39' }
+		});
+		await fireEvent.input(screen.getByRole('textbox', { name: 'Codes' }), {
+			target: { value: 'hello' }
+		});
+		expect(items()[0].textContent).toBe('hello ✓ → HELLO');
 	});
 
 	it('shows no arrow for app-side whitespace stripping', async () => {
-		const { container } = render(SetupPage);
-		await fireEvent.input(q(container, '.code-input'), { target: { value: '0360 00291452' } });
-		expect(container.querySelector('.validation-list li')?.textContent).toBe('0360 00291452 ✓');
+		render(SetupPage);
+		await fireEvent.input(screen.getByRole('textbox', { name: 'Codes' }), {
+			target: { value: '0360 00291452' }
+		});
+		expect(items()[0].textContent).toBe('0360 00291452 ✓');
 	});
 
 	it('carries a non-default format into the Start URL', async () => {
 		mockPage.url = new URL('http://localhost/?codes=HELLO&fmt=code39&seed=0');
-		const { container } = render(SetupPage);
-		await fireEvent.click(q(container, '.start'));
+		render(SetupPage);
+		await fireEvent.click(screen.getByRole('button', { name: 'Start' }));
 		expect(goto.mock.calls[0][0]).toContain('fmt=code39');
 	});
 });
 
 describe('setup page: error correction', () => {
 	const X2000 = 'x'.repeat(2000);
-	const setText = (c: Element, v: string) =>
-		fireEvent.input(q(c, '.code-input'), { target: { value: v } });
-	const choose = (c: Element, sel: string, v: string) =>
-		fireEvent.change(q(c, sel), { target: { value: v } });
-	const setFormat = (c: Element, v: string) => choose(c, '.format-input', v);
-	const setEcc = (c: Element, v: string) => choose(c, '.ecc-input', v);
-	const firstRow = (c: Element) => c.querySelector('.validation-list li')?.textContent;
+	const setText = (v: string) =>
+		fireEvent.input(screen.getByRole('textbox', { name: 'Codes' }), { target: { value: v } });
+	const choose = (el: HTMLElement, v: string) => fireEvent.change(el, { target: { value: v } });
+	const setFormat = (v: string) => choose(screen.getByRole('combobox', { name: 'Format' }), v);
+	const setEcc = (v: string) =>
+		choose(screen.getByRole('combobox', { name: 'Error correction' }), v);
+	const firstRow = () => items()[0].textContent;
 
 	it('validates hello world as qr with the facts row and shows the field at the default level', async () => {
-		const { container } = render(SetupPage);
-		await setText(container, 'hello world');
-		await setFormat(container, 'qr');
-		expect(firstRow(container)).toBe('hello world ✓ · 21×21 modules · 11 bytes');
-		const select = q<HTMLSelectElement>(container, '.ecc-input');
-		expect(select.value).toBe('M');
-		expect(select.selectedOptions[0].textContent).toBe('level M (~15% recovery, default)');
-		expect(q(container, '.ecc-field').textContent?.startsWith('Error correction')).toBe(true);
-		const input = q<HTMLTextAreaElement>(container, '.code-input');
-		expect(input.placeholder).toBe('Paste codes — one per line');
+		render(SetupPage);
+		await setText('hello world');
+		await setFormat('qr');
+		expect(firstRow()).toBe('hello world ✓ · 21×21 modules · 11 bytes');
+		const select = screen.getByRole('combobox', { name: 'Error correction' });
+		expect(select).toHaveValue('M');
+		expect(select).toHaveDisplayValue('level M (~15% recovery, default)');
+		expect(screen.getByRole('combobox', { name: 'Error correction' })).toBeInTheDocument();
+		const input = screen.getByRole('textbox', { name: 'Codes' });
+		expect(input).toHaveAttribute('placeholder', 'Paste codes — one per line');
 	});
 
 	it('renders no field for upc or datamatrix', async () => {
-		const { container } = render(SetupPage);
-		expect(container.querySelector('.ecc-input')).toBeNull();
-		await setFormat(container, 'datamatrix');
-		expect(container.querySelector('.ecc-input')).toBeNull();
+		render(SetupPage);
+		expect(screen.queryByRole('combobox', { name: 'Error correction' })).toBeNull();
+		await setFormat('datamatrix');
+		expect(screen.queryByRole('combobox', { name: 'Error correction' })).toBeNull();
 	});
 
 	it('applies the chosen level to validation and returns to the default', async () => {
-		const { container } = render(SetupPage);
-		await setText(container, X2000);
-		await setFormat(container, 'qr');
-		expect(firstRow(container)).toBe(`${X2000} ✓ · 169×169 modules · 2000 bytes · dense`);
-		await setEcc(container, 'H');
-		expect(firstRow(container)).toBe(`${X2000} ✗ too long for QR Code (level H)`);
-		await setEcc(container, 'M');
-		expect(q<HTMLSelectElement>(container, '.ecc-input').value).toBe('M');
-		expect(firstRow(container)).toBe(`${X2000} ✓ · 169×169 modules · 2000 bytes · dense`);
+		render(SetupPage);
+		await setText(X2000);
+		await setFormat('qr');
+		expect(firstRow()).toBe(`${X2000} ✓ · 169×169 modules · 2000 bytes · dense`);
+		await setEcc('H');
+		expect(firstRow()).toBe(`${X2000} ✗ too long for QR Code (level H)`);
+		await setEcc('M');
+		expect(screen.getByRole('combobox', { name: 'Error correction' })).toHaveValue('M');
+		expect(firstRow()).toBe(`${X2000} ✓ · 169×169 modules · 2000 bytes · dense`);
 	});
 
 	it('resets to the new format’s default when switching from qr at H to aztec', async () => {
-		const { container } = render(SetupPage);
-		await setText(container, 'hello world');
-		await setFormat(container, 'qr');
-		await setEcc(container, 'H');
-		await setFormat(container, 'aztec');
-		const select = q<HTMLSelectElement>(container, '.ecc-input');
-		expect(select.value).toBe('23');
-		expect(select.selectedOptions[0].textContent).toBe('≥23% error correction (default)');
-		expect(firstRow(container)).toBe('hello world ✓ · 19×19 modules · 11 bytes');
+		render(SetupPage);
+		await setText('hello world');
+		await setFormat('qr');
+		await setEcc('H');
+		await setFormat('aztec');
+		const select = screen.getByRole('combobox', { name: 'Error correction' });
+		expect(select).toHaveValue('23');
+		expect(select).toHaveDisplayValue('≥23% error correction (default)');
+		expect(firstRow()).toBe('hello world ✓ · 19×19 modules · 11 bytes');
 	});
 });
 
 describe('setup page: fragment URLs and ecc in the Start URL', () => {
-	const setEcc = (c: Element, v: string) =>
-		fireEvent.change(q(c, '.ecc-input'), { target: { value: v } });
+	const setEcc = (v: string) =>
+		fireEvent.change(screen.getByRole('combobox', { name: 'Error correction' }), {
+			target: { value: v }
+		});
 
 	it('ends the Start URL with &fmt=qr&ecc=H for qr at level H', async () => {
 		mockPage.url = new URL('http://localhost/#codes=hello%20world&seed=0&fmt=qr&ecc=H');
-		const { container } = render(SetupPage);
-		await fireEvent.click(q(container, '.start'));
+		render(SetupPage);
+		await fireEvent.click(screen.getByRole('button', { name: 'Start' }));
 		expect(goto).toHaveBeenCalledWith(
 			'/play#codes=hello+world&speed=60&loop=0&rot=0&rotmax=8&skew=0&skewmax=8&seed=0&fmt=qr&ecc=H'
 		);
@@ -332,20 +361,22 @@ describe('setup page: fragment URLs and ecc in the Start URL', () => {
 
 	it('drops ecc from the Start URL after choosing level H then level M', async () => {
 		mockPage.url = new URL('http://localhost/#codes=hello%20world&seed=0&fmt=qr');
-		const { container } = render(SetupPage);
-		await setEcc(container, 'H');
-		await fireEvent.click(q(container, '.start'));
-		await setEcc(container, 'M');
-		await fireEvent.click(q(container, '.start'));
+		render(SetupPage);
+		await setEcc('H');
+		await fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+		await setEcc('M');
+		await fireEvent.click(screen.getByRole('button', { name: 'Start' }));
 		expect(goto.mock.calls[0][0]).toMatch(/&fmt=qr&ecc=H$/);
 		expect(goto.mock.calls[1][0]).toMatch(/&fmt=qr$/);
 	});
 
 	it('emits no ecc after switching from qr at H to aztec', async () => {
 		mockPage.url = new URL('http://localhost/#codes=hello%20world&seed=0&fmt=qr&ecc=H');
-		const { container } = render(SetupPage);
-		await fireEvent.change(q(container, '.format-input'), { target: { value: 'aztec' } });
-		await fireEvent.click(q(container, '.start'));
+		render(SetupPage);
+		await fireEvent.change(screen.getByRole('combobox', { name: 'Format' }), {
+			target: { value: 'aztec' }
+		});
+		await fireEvent.click(screen.getByRole('button', { name: 'Start' }));
 		expect(goto.mock.calls[0][0]).toMatch(/^\/play#codes=hello\+world&/);
 		expect(goto.mock.calls[0][0]).toMatch(/&fmt=aztec$/);
 	});
@@ -354,9 +385,9 @@ describe('setup page: fragment URLs and ecc in the Start URL', () => {
 		const codes = ['a#b&c%d+e,f g'];
 		const s = { ...DEFAULT_SETTINGS, format: 'code128' as const, seed: 7 };
 		mockPage.url = new URL('http://localhost/' + encodeShareUrl(codes, s));
-		const { container } = render(SetupPage);
-		expect(q<HTMLTextAreaElement>(container, '.code-input').value).toBe('a#b&c%d+e,f g');
-		await fireEvent.click(q(container, '.start'));
+		render(SetupPage);
+		expect(screen.getByRole('textbox', { name: 'Codes' })).toHaveValue('a#b&c%d+e,f g');
+		await fireEvent.click(screen.getByRole('button', { name: 'Start' }));
 		expect(goto.mock.calls[0][0]).toMatch(/^\/play#codes=/);
 		expect(goto).toHaveBeenCalledWith('/play' + encodeShareUrl(codes, s));
 	});
@@ -379,121 +410,126 @@ describe('setup page: fragment URLs and ecc in the Start URL', () => {
 });
 
 describe('setup page: step playback', () => {
-	let c: HTMLElement;
 	const open = (url = 'http://localhost/?codes=036000291452&seed=0') => {
 		mockPage.url = new URL(url);
-		c = render(SetupPage).container;
+		render(SetupPage);
 	};
-	const has = (sel: string) => c.querySelector(sel) !== null;
-	const v = (sel: string) => q<HTMLInputElement>(c, sel).value;
-	const set = (sel: string, value: string) => fireEvent.change(q(c, sel), { target: { value } });
-	const slide = (sel: string, value: string) => fireEvent.input(q(c, sel), { target: { value } });
+	const playback = () => screen.getByRole('combobox', { name: 'Playback' });
+	const speedSlider = () => screen.getByRole('slider', { name: 'Speed' });
+	const dwellSlider = () => screen.getByRole('slider', { name: 'Dwell' });
+	const gapSlider = () => screen.getByRole('slider', { name: 'Gap' });
+	const dwellSeconds = () => screen.getByRole('spinbutton', { name: 'Dwell in seconds' });
+	const gapSeconds = () => screen.getByRole('spinbutton', { name: 'Gap in seconds' });
+	const set = (el: HTMLElement, value: string) => fireEvent.change(el, { target: { value } });
+	const slide = (el: HTMLElement, value: string) => fireEvent.input(el, { target: { value } });
 	const start = async () => {
-		await fireEvent.click(q(c, '.start'));
+		await fireEvent.click(screen.getByRole('button', { name: 'Start' }));
 		return goto.mock.calls.at(-1)?.[0];
 	};
 
 	it('offers Scroll and Step after Error correction and before Speed, showing scroll', () => {
 		open('http://localhost/#codes=hello&fmt=qr');
-		const opts = [...q<HTMLSelectElement>(c, '.mode-input').options].map((o) => [o.value, o.text]);
+		const opts = within(playback())
+			.getAllByRole('option')
+			.map((o) => [(o as HTMLOptionElement).value, (o as HTMLOptionElement).text]);
 		expect(opts).toEqual([
 			['scroll', 'Scroll'],
 			['step', 'Step']
 		]);
-		expect(v('.mode-input')).toBe('scroll');
-		const follows = (a: string, b: string) =>
-			q(c, a).compareDocumentPosition(q(c, b)) & Node.DOCUMENT_POSITION_FOLLOWING;
-		expect(follows('.ecc-input', '.mode-input')).toBeTruthy();
-		expect(follows('.mode-input', '.speed-input')).toBeTruthy();
+		expect(playback()).toHaveValue('scroll');
+		expect(screen.getByRole('combobox', { name: 'Error correction' })).toAppearBefore(playback());
+		expect(playback()).toAppearBefore(speedSlider());
 	});
 
 	it('replaces Speed with Dwell and Gap in Step, with their ranges and seconds fields', async () => {
 		open();
-		await set('.mode-input', 'step');
-		expect(has('.speed-input')).toBe(false);
-		const dwell = q(c, '.dwell-input');
-		expect(dwell.getAttribute('min')).toBe('50');
-		expect(dwell.getAttribute('max')).toBe('5000');
-		expect(dwell.getAttribute('step')).toBe('10');
-		expect(dwell.getAttribute('aria-valuetext')).toBe('1.00 s');
-		const gap = q(c, '.gap-input');
-		expect(gap.getAttribute('min')).toBe('0');
-		expect(gap.getAttribute('max')).toBe('2000');
-		expect(gap.getAttribute('step')).toBe('10');
-		expect(gap.getAttribute('aria-valuetext')).toBe('0.00 s');
-		expect(v('.dwell-seconds')).toBe('1.00');
-		expect(v('.gap-seconds')).toBe('0.00');
-		await slide('.dwell-input', '500');
-		expect(v('.dwell-seconds')).toBe('0.50');
+		await set(playback(), 'step');
+		expect(screen.queryByRole('slider', { name: 'Speed' })).toBeNull();
+		const dwell = dwellSlider();
+		expect(dwell).toHaveAttribute('min', '50');
+		expect(dwell).toHaveAttribute('max', '5000');
+		expect(dwell).toHaveAttribute('step', '10');
+		expect(dwell).toHaveAttribute('aria-valuetext', '1.00 s');
+		const gap = gapSlider();
+		expect(gap).toHaveAttribute('min', '0');
+		expect(gap).toHaveAttribute('max', '2000');
+		expect(gap).toHaveAttribute('step', '10');
+		expect(gap).toHaveAttribute('aria-valuetext', '0.00 s');
+		expect(dwellSeconds()).toHaveDisplayValue('1.00');
+		expect(gapSeconds()).toHaveDisplayValue('0.00');
+		await slide(dwellSlider(), '500');
+		expect(dwellSeconds()).toHaveDisplayValue('0.50');
 	});
 
 	it('takes typed seconds snapped and clamped, and shows the value again when unchanged', async () => {
 		open();
-		await set('.mode-input', 'step');
-		await set('.dwell-seconds', '1');
-		expect(v('.dwell-input')).toBe('1000');
-		expect(v('.dwell-seconds')).toBe('1.00');
-		await set('.dwell-seconds', '0.4');
-		expect(v('.dwell-input')).toBe('400');
-		expect(v('.dwell-seconds')).toBe('0.40');
+		await set(playback(), 'step');
+		await set(dwellSeconds(), '1');
+		expect(dwellSlider()).toHaveValue('1000');
+		expect(dwellSeconds()).toHaveDisplayValue('1.00');
+		await set(dwellSeconds(), '0.4');
+		expect(dwellSlider()).toHaveValue('400');
+		expect(dwellSeconds()).toHaveDisplayValue('0.40');
 		expect(await start()).toContain('&mode=step&dwell=400');
-		await set('.dwell-seconds', '9');
-		expect(v('.dwell-input')).toBe('5000');
-		expect(v('.dwell-seconds')).toBe('5.00');
-		await set('.dwell-seconds', 'abc');
-		expect(v('.dwell-input')).toBe('5000');
-		expect(v('.dwell-seconds')).toBe('5.00');
-		await set('.gap-seconds', '2.5');
-		expect(v('.gap-input')).toBe('2000');
-		expect(v('.gap-seconds')).toBe('2.00');
+		await set(dwellSeconds(), '9');
+		expect(dwellSlider()).toHaveValue('5000');
+		expect(dwellSeconds()).toHaveDisplayValue('5.00');
+		await set(dwellSeconds(), 'abc');
+		expect(dwellSlider()).toHaveValue('5000');
+		expect(dwellSeconds()).toHaveDisplayValue('5.00');
+		await set(gapSeconds(), '2.5');
+		expect(gapSlider()).toHaveValue('2000');
+		expect(gapSeconds()).toHaveDisplayValue('2.00');
 	});
 
 	it('shows the flashing note for a dwell under 330 ms only', async () => {
 		open();
-		await set('.mode-input', 'step');
-		await slide('.dwell-input', '300');
-		expect(has('.flash-note')).toBe(true);
-		await slide('.dwell-input', '330');
-		expect(has('.flash-note')).toBe(false);
+		await set(playback(), 'step');
+		await slide(dwellSlider(), '300');
+		expect(screen.getByText(FLASH_NOTE)).toBeInTheDocument();
+		await slide(dwellSlider(), '330');
+		expect(screen.queryByText(FLASH_NOTE)).toBeNull();
 	});
 
 	it('names identical neighbours under Gap while the gap is under 1.00 s, in Step only', async () => {
 		open('http://localhost/#codes=a%0Ab%0Ab&fmt=code128');
-		expect(has('.dup-hint')).toBe(false);
-		await set('.mode-input', 'step');
-		expect(q(c, '.dup-hint').textContent).toBe(
+		expect(screen.queryByText(DUP_HINT)).toBeNull();
+		await set(playback(), 'step');
+		expect(screen.getByText(DUP_HINT).textContent).toBe(
 			"Codes 2 and 3 are identical. Many scanners skip a repeat read: set a gap of 1.00 s or more, or lower the scanner's reread delay."
 		);
-		await fireEvent.input(q(c, '.code-input'), { target: { value: 'a\na\nb\nb' } });
-		expect(q(c, '.dup-hint').textContent).toMatch(
+		await fireEvent.input(screen.getByRole('textbox', { name: 'Codes' }), {
+			target: { value: 'a\na\nb\nb' }
+		});
+		expect(screen.getByText(DUP_HINT)).toHaveTextContent(
 			/^Codes 1 and 2 are identical, and 1 more neighboring pair\./
 		);
-		await slide('.gap-input', '1000');
-		expect(has('.dup-hint')).toBe(false);
-		await slide('.gap-input', '990');
-		expect(has('.dup-hint')).toBe(true);
-		await set('.mode-input', 'scroll');
-		expect(has('.dup-hint')).toBe(false);
+		await slide(gapSlider(), '1000');
+		expect(screen.queryByText(DUP_HINT)).toBeNull();
+		await slide(gapSlider(), '990');
+		expect(screen.getByText(DUP_HINT)).toBeInTheDocument();
+		await set(playback(), 'scroll');
+		expect(screen.queryByText(DUP_HINT)).toBeNull();
 	});
 
 	it('keeps a hidden dwell and a hidden speed across mode switches', async () => {
 		open();
-		await set('.mode-input', 'step');
-		await slide('.dwell-input', '500');
-		await set('.mode-input', 'scroll');
-		await slide('.speed-input', '120');
-		await set('.mode-input', 'step');
-		expect(v('.dwell-input')).toBe('500');
-		await set('.mode-input', 'scroll');
-		expect(v('.speed-input')).toBe('120');
+		await set(playback(), 'step');
+		await slide(dwellSlider(), '500');
+		await set(playback(), 'scroll');
+		await slide(speedSlider(), '120');
+		await set(playback(), 'step');
+		expect(dwellSlider()).toHaveValue('500');
+		await set(playback(), 'scroll');
+		expect(speedSlider()).toHaveValue('120');
 	});
 
 	it('carries mode, dwell and gap into the Start URL in order', async () => {
 		open();
-		await set('.mode-input', 'step');
+		await set(playback(), 'step');
 		expect(await start()).toMatch(/&fmt=upc&mode=step$/);
-		await slide('.dwell-input', '500');
-		await slide('.gap-input', '250');
+		await slide(dwellSlider(), '500');
+		await slide(gapSlider(), '250');
 		expect(await start()).toBe(
 			'/play#codes=036000291452&speed=60&loop=0&rot=0&rotmax=8&skew=0&skewmax=8&seed=0&fmt=upc&mode=step&dwell=500&gap=250'
 		);
@@ -501,9 +537,9 @@ describe('setup page: step playback', () => {
 
 	it('prefills Step and the dwell from a step link', () => {
 		open('http://localhost/#codes=036000291452&mode=step&dwell=500');
-		expect(v('.mode-input')).toBe('step');
-		expect(v('.dwell-input')).toBe('500');
-		expect(v('.dwell-seconds')).toBe('0.50');
+		expect(playback()).toHaveValue('step');
+		expect(dwellSlider()).toHaveValue('500');
+		expect(dwellSeconds()).toHaveDisplayValue('0.50');
 	});
 });
 
