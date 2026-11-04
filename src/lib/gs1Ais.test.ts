@@ -217,7 +217,9 @@ describe('lookup', () => {
 
 /** BWIPP's gs1syntax dictionary from bwip-js's barcode.ps: AI → parts, linter names without `lint`. */
 function bwippSyntax(): Map<string, AiPart[]> {
-	const ps = readFileSync('node_modules/bwip-js/barcode.ps', 'latin1');
+	// Not a literal: Vite rewrites `new URL('literal', import.meta.url)` into an asset URL.
+	const relative = '../../node_modules/bwip-js/barcode.ps';
+	const ps = readFileSync(new URL(relative, import.meta.url), 'latin1');
 	const start = ps.indexOf('/gs1syntax <<');
 	const end = ps.indexOf('\n    >> readonly def', start);
 	const map = new Map<string, AiPart[]>();

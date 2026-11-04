@@ -181,8 +181,8 @@ export function readGs1Input(text: string): Gs1Read {
 			return {
 				ok: false,
 				message: match
-					? `${id} is not a GS1 symbology identifier; identifiers are case-sensitive, use ${match}`
-					: `${id} is not a GS1 symbology identifier; GS1 scan data starts with ]C1, ]e0, ]d2, ]Q3 or ]J1, or with its first AI`
+					? `${displayData(id)} is not a GS1 symbology identifier; identifiers are case-sensitive, use ${match}`
+					: `${displayData(id)} is not a GS1 symbology identifier; GS1 scan data starts with ]C1, ]e0, ]d2, ]Q3 or ]J1, or with its first AI`
 			};
 		}
 		rest = rest.slice(3);

@@ -118,11 +118,21 @@ describe('readGs1Input', () => {
 	const NON_GS1 =
 		'is not a GS1 symbology identifier; GS1 scan data starts with ]C1, ]e0, ]d2, ]Q3 or ]J1, or with its first AI';
 
-	it('passes bracketed text untouched', () => {
-		expect(readGs1Input(`(01)09501101530003(10)A${GS}`)).toStrictEqual(
-			ok(`(01)09501101530003(10)A${GS}`)
-		);
+	it.each(['<GS>', '<gs>', '␝', '\\x1d', '\\u001d'])(
+		'passes bracketed text untouched with %j',
+		(n) => {
+			expect(readGs1Input(`(01)09501101530003(10)A${n}B`)).toStrictEqual(
+				ok(`(01)09501101530003(10)A${n}B`)
+			);
+		}
+	);
+
+	it('passes a bare ( untouched', () => {
 		expect(readGs1Input('(')).toStrictEqual(ok('('));
+	});
+
+	it('shows a control character in an identifier refusal as ␝', () => {
+		expect(readGs1Input(`]C${GS}0109501101530003`)).toStrictEqual(no(`]C␝ ${NON_GS1}`));
 	});
 
 	it.each([GS, '␝', '<GS>', '<gs>', '\\x1d', '\\X1D', '\\u001d', '\\U001D'])(

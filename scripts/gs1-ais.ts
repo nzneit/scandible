@@ -146,6 +146,7 @@ async function main(): Promise<void> {
 		new URL('../src/lib/gs1-ais.json', import.meta.url),
 		JSON.stringify(table, null, '\t') + '\n'
 	);
+	console.log(`gs1-ais: wrote ${ais.length} records to src/lib/gs1-ais.json`);
 }
 
 if (import.meta.main) {

@@ -120,6 +120,11 @@ describe('verdictText for GS1 entries', () => {
 		],
 		[
 			'gs1128',
+			']C1010950110153000310LOT42<GS>17261231',
+			' ✓ · 266 modules wide · 31 characters → ]C1 010950110153000310LOT42␝17261231'
+		],
+		[
+			'gs1128',
 			']d201095011015300031726123110LOT42',
 			' ✓ · 255 modules wide · 31 characters · scan data from GS1 DataMatrix (]d2) → ]C1 01095011015300031726123110LOT42'
 		],

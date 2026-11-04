@@ -54,6 +54,7 @@
 		white-space: nowrap;
 	}
 	.validation-list .verdict {
+		overflow-wrap: anywhere;
 		white-space: pre-wrap;
 	}
 	.validation-list .valid {

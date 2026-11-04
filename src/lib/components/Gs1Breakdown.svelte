@@ -44,6 +44,7 @@
 
 <style>
 	.gs1-breakdown {
+		position: relative;
 		color: CanvasText;
 	}
 	table {
@@ -52,9 +53,14 @@
 	}
 	th,
 	td {
-		overflow-wrap: anywhere;
 		text-align: start;
 		vertical-align: top;
+	}
+	th[scope='row'] {
+		white-space: nowrap;
+	}
+	td:last-child {
+		overflow-wrap: anywhere;
 	}
 	thead th {
 		padding: 0;

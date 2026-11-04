@@ -212,6 +212,9 @@
 	.row-delete {
 		margin-left: auto;
 	}
+	.row-verdict {
+		overflow-wrap: anywhere;
+	}
 	.row-verdict.valid {
 		color: #007700;
 	}
