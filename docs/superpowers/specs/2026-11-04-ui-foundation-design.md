@@ -7,6 +7,11 @@ accessibility, internal coherence), judged by the author. Awaiting the user's ap
 Spec 1 of the three-spec UI revamp series (see _Series_). Facts measured for this spec are in
 _Measurements_ at the end, cited as _M1_ to _M12_.
 
+**Depends on the test migration.** This spec builds on the accessible test queries migration
+(`docs/superpowers/specs/2026-11-04-accessible-test-queries-design.md`), which merges first. Its
+tests find elements by role, label and text, not by class name or DOM shape. This spec's plan
+(c5090e8) is rewritten after that merge, because it cites test lines that move.
+
 ## Intent
 
 The interface grew one feature at a time. It has no styling layer: one 9-line global stylesheet,
@@ -29,7 +34,8 @@ This spec puts a styling foundation under the app **without changing what it doe
 **Done means:**
 
 1. No existing test file changes: `git diff --name-only --diff-filter=M main -- '*.test.ts'` prints
-   nothing. All 737 existing tests and the new ones pass, and `npm test` (with `svelte-check`) and
+   nothing, with `main` taken after the test migration merges. All 737 existing tests and the new
+   ones pass, and `npm test` (with `svelte-check`) and
    `npm run lint` are clean.
 2. `npm run build` passes, including its `check-css` step.
 3. `npm run stage-check` passes against `main`: in Step mode, with the overlay and readout hidden,
@@ -73,7 +79,7 @@ Decisions that hold for the whole series:
 
 1. **Library: daisyUI 5 on Tailwind v4.** daisyUI is CSS class names on native elements. The native
    `<select>` (with its 8 option groups), `<input type="range">` and checkboxes stay, so the tests'
-   class-selector reads of `.value`, `.checked` and `.disabled` keep working and jsdom keeps working.
+   reads of `.value`, `.checked` and `.disabled` keep working and jsdom keeps working.
    Rejected, from a survey of current releases (M1):
    - **shadcn-svelte** (on Bits UI): its slider, checkbox and switch are custom widgets, so about
      165 test lines (99 on selects, 49 on ranges, 17 on checkboxes, counted by the survey) would be
@@ -205,12 +211,12 @@ The test fails if a token it needs is missing.
 
 Four daisyUI defaults would make today's controls less accessible (M12). Each is overridden once:
 
-| daisyUI default                                                                                   | Override                                                                                                                                                         | Where                        |
-| ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
-| control borders at `base-content` 20% (`--input-color`): 1.53:1; today's browser borders pass 3:1 | `--input-color: color-mix(in oklab, var(--color-base-content) 55%, #0000)` on `.input`, `.select`, `.textarea`, `.file-input`, `.checkbox` and `.toggle`: 3.95:1 | `src/styles.css`             |
-| placeholder text at `base-content` 50%: 3.38:1                                                    | placeholder color `base-content` at 70% on `.input` and `.textarea`: 6.54:1                                                                                      | `src/styles.css`             |
-| focus outline of `btn`, `input`, `select` and `textarea` in `base-content`: 2.66:1 on the overlay | inside `.overlay`, the `:focus-visible` outline color is `neutral-content`: 6.38:1                                                                               | play page, scoped `<style>`  |
-| a disabled `btn` is 20% text on a 10% fill (1.39:1), so a disabled **Start** almost disappears    | `.start:disabled` keeps the primary fill and text at opacity 0.5, as today                                                                                       | setup page, scoped `<style>` |
+| daisyUI default                                                                                   | Override                                                                                                                                                                                                                                                                     | Where                        |
+| ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| control borders at `base-content` 20% (`--input-color`): 1.53:1; today's browser borders pass 3:1 | `--input-color: color-mix(in oklab, var(--color-base-content) 55%, #0000)` on `.input`, `.select`, `.textarea`, `.file-input`, `.checkbox` and `.toggle`, only while the control is not focused or checked (`:not(:focus, :focus-within, :checked, :indeterminate)`): 3.95:1 | `src/styles.css`             |
+| placeholder text at `base-content` 50%: 3.38:1                                                    | placeholder color `base-content` at 70% on `.input` and `.textarea`: 6.54:1                                                                                                                                                                                                  | `src/styles.css`             |
+| focus outline of `btn`, `input`, `select` and `textarea` in `base-content`: 2.66:1 on the overlay | inside `.overlay`, the `:focus-visible` outline color is `neutral-content`: 6.38:1                                                                                                                                                                                           | play page, scoped `<style>`  |
+| a disabled `btn` is 20% text on a 10% fill (1.39:1), so a disabled **Start** almost disappears    | `.start:disabled` keeps the primary fill and text at opacity 0.5, as today                                                                                                                                                                                                   | setup page, scoped `<style>` |
 
 Disabled ranges and toggles keep daisyUI's opacity 0.3. Disabled controls are exempt from the
 contrast rules; the Start override exists because Start is the primary action and must stay
@@ -252,9 +258,9 @@ Preflight applies to the whole page. The effects that matter here:
 
 Each unit replaces markup or logic that exists more than once. Rules for all of them:
 
-- **Classes.** A unit's `class` prop carries the contract class the existing tests look for and, at
-  a call site, layout utilities such as a margin. The unit applies its own daisyUI classes, size and
-  tone; call sites do not pass those.
+- **Classes.** A unit's `class` prop carries the page's own class (for example `flash-note`) and,
+  at a call site, layout utilities such as a margin. The unit applies its own daisyUI classes,
+  size and tone; call sites do not pass those.
 - **Styles move with the markup.** A page's scoped `<style>` does not reach elements a child
   component renders, so each rule that styles moved markup moves into the unit, as utilities or the
   unit's own `<style>`, and is deleted from the page: `.field` and `.seconds` from the setup page;
@@ -274,7 +280,7 @@ interface SecondsSliderProps {
 	value: number; // $bindable, milliseconds
 	range: { min: number; max: number; step: number }; // DWELL_RANGE or GAP_RANGE
 	label: string; // 'Dwell' or 'Gap'; names the seconds field "<label> in seconds"
-	rangeAriaLabel?: string; // the overlay sets it; on the setup page the wrapping <label> names the range
+	rangeAriaLabel?: string; // 'Dwell' | 'Gap'; set at every call site, setup page and overlay
 	rangeClass: string; // 'dwell-input' | 'gap-input' | 'ctl-dwell' | 'ctl-gap'
 	secondsClass: string; // 'dwell-seconds' | 'gap-seconds' | 'ctl-dwell-seconds' | 'ctl-gap-seconds'
 	size?: 'sm' | 'xs'; // default 'sm' (setup page); 'xs' in the overlay
@@ -296,6 +302,9 @@ Behavior, as today:
   ignored. Either way the field then shows the current value to two decimals.
 - The caller keeps its wrapper: `<label class="field">` (through `Field`) on the setup page,
   `<div class="ctl-group">` with its `Dwell`/`Gap` text in the overlay.
+- **Names.** The range takes `rangeAriaLabel` at every call site: "Dwell" and "Gap". The seconds
+  field is named "<label> in seconds", so the setup page's fields keep "Dwell in seconds" and "Gap
+  in seconds".
 - **The named exception:** the overlay's trailing `<span>s</span>` becomes the component's
   `span.seconds`, which wraps the number field and `s`, as the setup page's markup already does
   today. No existing test reads that span (M10).
@@ -313,8 +322,7 @@ interface FormatSelectProps {
 }
 ```
 
-Renders a bare `<select class="select select-sm w-auto …">` with no wrapper: a test reads the
-format field's label as the select's parent's first text node (M10). The component binds its
+Renders a `<select class="select select-sm w-auto …">`. The component binds its
 `<select>` to `value`; callers bind the component with the same function bindings they use today,
 which tidy `ecc` and `lax` on a format change.
 
@@ -349,8 +357,8 @@ interface FieldProps {
 }
 ```
 
-Renders `<label class="field flex flex-col items-start gap-1 …">{label}{@render children()}</label>`
-with nothing, not even whitespace, before `{label}`: two tests read the label's leading text (M10).
+Renders `<label class="field flex flex-col items-start gap-1 …">{label}{@render children()}</label>`.
+`Field` must not change the accessible name of any control it wraps.
 
 ### `Note.svelte`
 
@@ -403,39 +411,41 @@ than going through `Field`.
 
 ### Rules for every file
 
-1. **The existing class names are the test contract.** They stay on the same elements; daisyUI and
-   Tailwind classes are added beside them.
+1. **Classes that code or CSS hooks onto stay.** These are the stage classes (`barcode-item`,
+   `barcode-item--qr`, `step-stage` and so on), the overlay's `hidden` class (the migrated play
+   test's visual-state fallback reads it) and any class this spec's own CSS hooks onto. They stay on
+   the same elements; daisyUI and Tailwind classes are added beside them.
 2. **No element is moved, removed or renamed; no text or ARIA changes**, except the one named
-   exception in `SecondsSlider`.
-3. **Reserved prefixes.** No added class may start with `ctl-` (a test reads the first `ctl-` class
-   of each overlay child) or `row-` (a test reads the first `row-` class of each row control;
-   Tailwind has `row-span-*` and `row-start-*`) (M10).
-4. **Class-name collisions.** Our own class names must not match a Tailwind utility or a daisyUI
+   exception in `SecondsSlider`. The setup page's call sites pass `rangeAriaLabel` "Dwell" and
+   "Gap", which keeps the names the migration gave the sliders; the seconds fields keep "Dwell in
+   seconds" and "Gap in seconds".
+3. **Class-name collisions.** Our own class names must not match a Tailwind utility or a daisyUI
    component by accident.
    - `hidden`: the overlay's fade state is the **class** `hidden` (`class:hidden`), which matches
      Tailwind's `hidden` utility, `display: none`. Unexcluded, the overlay would vanish instead of
-     fading out, and no test would notice (M6). Excluded with `@source not inline('hidden')`;
-     `check-css` fails if the rule returns.
+     fading out (M6), and the migrated play test's fallback reads the class. Excluded with
+     `@source not inline('hidden')`; `check-css` fails if the rule returns.
    - `file-input`: deliberately takes daisyUI's file-input style.
    - **One-time audit, in the plan:** every class name in `src/**/*.svelte` and in the DOM built by
      `scroller.ts` and `stepper.ts` is checked against the built CSS. The output is a list, recorded
      in the PR, of each class with a rule we did not write and how it was resolved (excluded,
-     accepted with a reason, or renamed in a later spec with its test change). There is no ongoing
+     accepted with a reason, or renamed in a later spec). There is no ongoing
      check beyond `check-css`'s `.hidden` rule.
-5. **Widths.** daisyUI's form controls default to `width: clamp(3rem, 20rem, 100%)` (M12), wider
+4. **Widths.** daisyUI's form controls default to `width: clamp(3rem, 20rem, 100%)` (M12), wider
    than today's. Each control gets an explicit width that keeps today's layout: selects and the file
    input `w-auto`; the code textarea full width, as today; the dwell and gap ranges per
-   `SecondsSlider`'s sizes; the speed, rotation and skew ranges `w-32`. The visual review compares
-   widths with `main`.
-6. **Focus.** Every control keeps a visible focus ring: daisyUI's outline, recolored inside the
+   `SecondsSlider`'s sizes; the speed, rotation and skew ranges `w-32`. The share URL field is the
+   exception: it fills its row (see _`ShareLink.svelte`_). The visual review compares widths with
+   `main`.
+5. **Focus.** Every control keeps a visible focus ring: daisyUI's outline, recolored inside the
    overlay (see _Overrides_). The GS1 breakdown's `<summary>` carries the `link` class, whose
    `:focus-visible` outline daisyUI provides; a bare `<summary>` gets one only inside a `collapse`
    (M12).
-7. **Touch.** The row editor's buttons keep their 36 px minimum height with `min-h-9` (`.btn` sets a
+6. **Touch.** The row editor's buttons keep their 36 px minimum height with `min-h-9` (`.btn` sets a
    fixed height, which `min-height` overrides). The other controls at `-sm` and `-xs` sizes are no
    smaller than today's browser defaults (M12), and toggles and checkboxes sit inside their labels,
    which are the touch target. The overlay's touch targets are spec 3's.
-8. **Toggle or checkbox.** `toggle` for settings that switch playback behavior (Loop, Random
+7. **Toggle or checkbox.** `toggle` for settings that switch playback behavior (Loop, Random
    rotation, Random skew); `checkbox` for the two "render it even though it fails validation"
    choices (the page's GS1 option and each row's "Render if invalid"). Both are native checkboxes,
    announced the same way.
@@ -471,14 +481,15 @@ in the validation list.
 
 ### `ShareLink.svelte`
 
-**Share link** as a small button; the URL field `input input-sm font-mono`, read-only, filling the
-row as today; the QR level select `select select-sm w-auto` in `Field`; the QR box stays literal
-white with a hairline `base-300` border; the status through `Note`.
+**Share link** as a small button; the URL field `input input-sm font-mono`, read-only; the
+share row becomes a flex row and the field takes `flex-1 min-w-0`, so it fills the row; the QR
+level select `select select-sm w-auto` in `Field`; the QR box stays literal white with a hairline
+`base-300` border; the status through `Note`.
 
 ### `Gs1Breakdown.svelte`
 
 The `<summary>` with the `link` class; the table `table table-xs`; `color: CanvasText` becomes
-`text-base-content`. The `visually-hidden` header spans stay: a test reads them.
+`text-base-content`.
 
 ### Play page — `src/routes/play/+page.svelte`
 
@@ -501,7 +512,8 @@ Only the size caps move to `barcode-caps.css`. Nothing else changes.
 ### The existing suite
 
 - `git diff --name-only --diff-filter=M main -- '*.test.ts'` prints nothing: no existing test file
-  changes. New test files are expected.
+  changes. `main` is taken after the test migration merges, and the guard is stronger there,
+  because those tests no longer depend on markup. New test files are expected.
 - All 737 existing tests pass, with `svelte-check` clean (`npm test`), and `npm run lint` passes.
 
 ### New unit tests, written test-first
@@ -509,13 +521,18 @@ Only the size caps move to `barcode-caps.css`. Nothing else changes.
 | Test file               | Covers                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `SecondsSlider.test.ts` | shows the value in seconds; a valid entry sets milliseconds (snapped, clamped) and fires `onchange`; an empty or non-numeric entry leaves the value and restores the display; moving the range fires `onchange`; the seconds field is named "<label> in seconds"; the range takes `rangeAriaLabel` when given and no `aria-label` otherwise; the passed classes land on the two inputs; both sizes                                                                                         |
-| `FormatSelect.test.ts`  | renders a bare `<select>`; 8 groups and every format from `FORMAT_GROUPS`, in order; the binding reads and writes `FormatId`s; class and `aria-label` land on the `<select>`                                                                                                                                                                                                                                                                                                               |
+| `FormatSelect.test.ts`  | renders a `<select>`; 8 groups and every format from `FORMAT_GROUPS`, in order; the binding reads and writes `FormatId`s; class and `aria-label` land on the `<select>`                                                                                                                                                                                                                                                                                                                    |
 | `EccSelect.test.ts`     | `''` shows the default level; choosing the default writes `''`; choosing another level writes it; option text with and without a note                                                                                                                                                                                                                                                                                                                                                      |
-| `Field.test.ts`         | the label's first child is the label text node; the children follow inside the same `<label>`; the class passes through                                                                                                                                                                                                                                                                                                                                                                    |
+| `Field.test.ts`         | the label text and the children sit inside the same `<label>`; a wrapped control keeps its accessible name; the class passes through                                                                                                                                                                                                                                                                                                                                                       |
 | `Note.test.ts`          | each tone's class; `id`, `hidden`, `role` and `aria-*` pass through to the `<p>`                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `theme.test.ts`         | every pair in both contrast tables, with the compositing rules above; fails if a token it needs is missing                                                                                                                                                                                                                                                                                                                                                                                 |
 | `colors.test.ts`        | parses each `<style>` block in `src/**/*.svelte` into rules (selector plus declarations); a color literal (hex, `rgb()`, `rgba()`, `hsl()`, `hsla()`) is allowed only as `#fff` or `#ffffff` in a rule whose selector is exactly `.play` or `.finish-screen` (play page) or `.qr-code` (`ShareLink`). Any other color literal in a `<style>` block, a `style=` attribute or a class string fails. System colors such as `CanvasText` are replaced by hand; the test does not look for them |
 | `check-css.test.ts`     | the pure `checkCss(cssText): string[]` behind `scripts/check-css.ts`, against fixtures: passes `.overlay.hidden.svelte-x{…}`, `.md\:hidden{…}`, `[hidden]:where(…){…}`, bare `[data-theme]`, `[data-theme=instrument]`, `[data-theme="instrument"]` and `theme-controller[value="instrument"]`; fails on a bare `.hidden{…}` (alone or in a selector list), `[data-theme=light]`, two theme blocks, a missing token, and empty input                                                       |
+
+The component tests (`SecondsSlider`, `FormatSelect`, `EccSelect`, `Field`, `Note`) follow the
+migration spec's _Query rules_ and fall under its lint block (`eslint-plugin-testing-library`
+`flat/svelte`, on `src/routes/**/*.test.ts` and `src/lib/components/**/*.test.ts`). A class read
+there needs a fallback marker as that spec's _Fallbacks_ describe.
 
 The theme and color tests read source files with `node:fs`; they need no build.
 
@@ -531,7 +548,7 @@ exits non-zero if there are any. Problems:
 - there is no CSS at all;
 - a selector that, after the selector list is split on commas, is exactly `.hidden` (compound
   selectors such as `.overlay.hidden.svelte-…`, variants such as `.md\:hidden` and the `[hidden]`
-  attribute selector are fine);
+  attribute selector are fine). This rule also protects the migrated play test's overlay fallback;
 - a `[data-theme=…]` selector whose value, quoted or not, is not `instrument` (a bare
   `[data-theme]` is fine);
 - not exactly one rule declaring `--color-base-100` (the Instrument theme), or that rule missing a
@@ -587,7 +604,7 @@ Listed in the PR as open, not passed, until the user does them:
 
 - **CONTRIBUTING.md:** the stack gains Tailwind CSS 4 and daisyUI 5; the commands list gains
   `npm run stage-check`; a short "Styling" section states the rules: classes only in `.svelte`
-  files; color only through theme tokens; no added class starting with `ctl-` or `row-`; the stage,
+  files; color only through theme tokens; the stage,
   the finish screen and the share QR stay literal black on white; run `stage-check` after any change
   that could touch the play page.
 - **docs/guide.md:** a "Browser support" section (with its Contents entry) before "Scanner settings
@@ -648,14 +665,11 @@ are in the brainstorming session's scratchpad and are not committed.
   (`ESBUILD_BASELINE_WIDELY_AVAILABLE_TARGET` in `node_modules/vite`). Tailwind v4 states it
   depends on Chrome 111, Safari 16.4 and Firefox 128 (tailwindcss.com/docs/compatibility, quoted by
   the survey). The spike CSS uses `oklch(`, `color-mix(`, `@property` and `@layer`.
-- **M10 — test inventory:** about 120 `querySelector` calls in the test files locate native controls
-  by class name. The overlay-order test (`src/routes/play/page.test.ts:192`) reads the first `ctl-`
-  class of each overlay child; the row-control-order test
-  (`src/lib/components/RowEditor.svelte.test.ts:200`) reads the first `row-` class of each control;
-  `formatLabel` (`src/routes/page.test.ts:533`) reads the format select's parent's first text node,
-  and a test reads `.ecc-field`'s text start (`page.test.ts:283`). No test reads the overlay's `s`
-  span. Tests check `classList` for `valid`, `invalid`, `lenient`, `hidden`, `barcode-item`,
-  `barcode-item--qr` and `step-stage`. 737 of 737 pass on the current tree.
+- **M10 — test inventory:** before the migration, about 120 `querySelector` calls in the test
+  files located native controls by class name; the migration spec replaces them with role, label
+  and text queries. The migrated tests still read the stage classes (`barcode-item`,
+  `barcode-item--qr`, `step-stage`) and the overlay's `hidden` class, as its _Fallbacks_ allow. No
+  test reads the overlay's `s` span. 737 of 737 pass on the current tree.
 - **M11 — tooling probe** (review, a scratch copy of the repo with the exact pins): the
   `styles.css` block builds; `themes: false` emits only `[data-theme="instrument"]`; `default: true`
   puts the theme on `:where(:root)` with no `prefers-color-scheme` block; the minified output
