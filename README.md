@@ -56,29 +56,9 @@ editor. The default is UPC-A.
 - **2D symbols** need a 2D area imager. Turn on the scanner's screen or mobile-display read mode
   if it has one.
 
-## Development
+## Contributing
 
-Requires Node 24 (the version in `.nvmrc`).
-
-```bash
-npm install      # install dependencies
-npm run dev      # start the Vite dev server
-npm test         # svelte-check + Vitest suite (jsdom)
-npm run lint     # Prettier check + ESLint
-npm run build    # production build to dist/
-npm run preview  # serve the production build locally
-npm run gs1-ais  # regenerate src/lib/gs1-ais.json from the pinned GS1 Syntax Dictionary
-```
-
-**Stack:** SvelteKit and Svelte 5 (static-adapter SPA, TypeScript). JsBarcode draws the 21 linear
-formats and bwip-js 4.11.4 the 2D and GS1 formats, both as inline SVG. Vitest and
-@testing-library/svelte (jsdom) run the unit tests.
-
-**Deployment:** every push to `main` runs the lint, tests and build in GitHub Actions
-(`.github/workflows/deploy.yml`) and publishes `dist/` to GitHub Pages with
-`actions/deploy-pages`. Production builds set SvelteKit's `paths.base` to `'/scandible'` for the
-project-site subpath, adapter-static emits the site to `dist/`, and the repository's Pages source
-is set to **GitHub Actions**.
+To build, test or change scandible, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
