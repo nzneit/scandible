@@ -32,7 +32,10 @@ import { join, relative } from 'node:path';
  * 'src/lib/components/ShareLink.test.ts :: ShareLink > shows the live URL before any click'.
  * An unlisted drop FAILs, and so does an entry, for a file in scope, that is not a drop.
  */
-const COUNT_DROPS: Record<string, string> = {}; // key: `${file} :: ${branch full name}` → reason
+const COUNT_DROPS: Record<string, string> = {
+	'src/lib/components/ShareLink.test.ts :: ShareLink > shows the live URL before any click':
+		'the .url-warning assertion is removed: c0cd905 removed that element, so the assertion could not fail (spec, Test names; M9)'
+}; // key: `${file} :: ${branch full name}` → reason
 
 /**
  * Check 4: absence checks with no presence query of the same text in the same file. The key is

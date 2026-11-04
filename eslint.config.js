@@ -49,7 +49,6 @@ export default defineConfig(
 			// Not migrated yet: each migration task removes its own file from this list.
 			'src/routes/page.test.ts',
 			'src/routes/play/page.test.ts',
-			'src/lib/components/ShareLink.test.ts',
 			'src/lib/components/ValidationList.test.ts',
 			'src/lib/components/RowEditor.svelte.test.ts'
 		]
