@@ -1,0 +1,3826 @@
+{
+	"source": "https://github.com/gs1/gs1-syntax-dictionary",
+	"release": "2026-01-27",
+	"sha256": "6461ece7c03420fb27a3f18163ef9a08694aa4bb2491dea25f63bcdf22451a99",
+	"licence": "Apache-2.0",
+	"ais": [
+		{
+			"ai": "00",
+			"title": "SSCC",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 18,
+					"max": 18,
+					"opt": false,
+					"linters": [
+						"csum",
+						"gcppos2"
+					]
+				}
+			]
+		},
+		{
+			"ai": "01",
+			"title": "GTIN",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 14,
+					"max": 14,
+					"opt": false,
+					"linters": [
+						"csum",
+						"gcppos2"
+					]
+				}
+			]
+		},
+		{
+			"ai": "02",
+			"title": "CONTENT",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 14,
+					"max": 14,
+					"opt": false,
+					"linters": [
+						"csum",
+						"gcppos2"
+					]
+				}
+			]
+		},
+		{
+			"ai": "03",
+			"title": "MTO GTIN",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 14,
+					"max": 14,
+					"opt": false,
+					"linters": [
+						"csum",
+						"gcppos2"
+					]
+				}
+			]
+		},
+		{
+			"ai": "10",
+			"title": "BATCH/LOT",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 20,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "11",
+			"title": "PROD DATE",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": [
+						"yymmd0"
+					]
+				}
+			]
+		},
+		{
+			"ai": "12",
+			"title": "DUE DATE",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": [
+						"yymmd0"
+					]
+				}
+			]
+		},
+		{
+			"ai": "13",
+			"title": "PACK DATE",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": [
+						"yymmd0"
+					]
+				}
+			]
+		},
+		{
+			"ai": "15",
+			"title": "BEST BEFORE or BEST BY",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": [
+						"yymmd0"
+					]
+				}
+			]
+		},
+		{
+			"ai": "16",
+			"title": "SELL BY",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": [
+						"yymmd0"
+					]
+				}
+			]
+		},
+		{
+			"ai": "17",
+			"title": "USE BY or EXPIRY",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": [
+						"yymmd0"
+					]
+				}
+			]
+		},
+		{
+			"ai": "20",
+			"title": "VARIANT",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 2,
+					"max": 2,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "21",
+			"title": "SERIAL",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 20,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "22",
+			"title": "CPV",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 20,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "235",
+			"title": "TPX",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 28,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "240",
+			"title": "ADDITIONAL ID",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 30,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "241",
+			"title": "CUST. PART No.",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 30,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "242",
+			"title": "MTO VARIANT",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 1,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "243",
+			"title": "PCN",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 20,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "250",
+			"title": "SECONDARY SERIAL",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 30,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "251",
+			"title": "REF. TO SOURCE",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 30,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "253",
+			"title": "GDTI",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 13,
+					"max": 13,
+					"opt": false,
+					"linters": [
+						"csum",
+						"gcppos1"
+					]
+				},
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 17,
+					"opt": true,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "254",
+			"title": "GLN EXTENSION COMPONENT",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 20,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "255",
+			"title": "GCN",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 13,
+					"max": 13,
+					"opt": false,
+					"linters": [
+						"csum",
+						"gcppos1"
+					]
+				},
+				{
+					"cset": "N",
+					"min": 1,
+					"max": 12,
+					"opt": true,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "30",
+			"title": "VAR. COUNT",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 1,
+					"max": 8,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3100-3105",
+			"title": "NET WEIGHT (kg)",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3110-3115",
+			"title": "LENGTH (m)",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3120-3125",
+			"title": "WIDTH (m)",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3130-3135",
+			"title": "HEIGHT (m)",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3140-3145",
+			"title": "AREA (m²)",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3150-3155",
+			"title": "NET VOLUME (l)",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3160-3165",
+			"title": "NET VOLUME (m³)",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3200-3205",
+			"title": "NET WEIGHT (lb)",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3210-3215",
+			"title": "LENGTH (in)",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3220-3225",
+			"title": "LENGTH (ft)",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3230-3235",
+			"title": "LENGTH (yd)",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3240-3245",
+			"title": "WIDTH (in)",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3250-3255",
+			"title": "WIDTH (ft)",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3260-3265",
+			"title": "WIDTH (yd)",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3270-3275",
+			"title": "HEIGHT (in)",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3280-3285",
+			"title": "HEIGHT (ft)",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3290-3295",
+			"title": "HEIGHT (yd)",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3300-3305",
+			"title": "GROSS WEIGHT (kg)",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3310-3315",
+			"title": "LENGTH (m), log",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3320-3325",
+			"title": "WIDTH (m), log",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3330-3335",
+			"title": "HEIGHT (m), log",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3340-3345",
+			"title": "AREA (m²), log",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3350-3355",
+			"title": "VOLUME (l), log",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3360-3365",
+			"title": "VOLUME (m³), log",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3370-3375",
+			"title": "KG PER m²",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3400-3405",
+			"title": "GROSS WEIGHT (lb)",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3410-3415",
+			"title": "LENGTH (in), log",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3420-3425",
+			"title": "LENGTH (ft), log",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3430-3435",
+			"title": "LENGTH (yd), log",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3440-3445",
+			"title": "WIDTH (in), log",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3450-3455",
+			"title": "WIDTH (ft), log",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3460-3465",
+			"title": "WIDTH (yd), log",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3470-3475",
+			"title": "HEIGHT (in), log",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3480-3485",
+			"title": "HEIGHT (ft), log",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3490-3495",
+			"title": "HEIGHT (yd), log",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3500-3505",
+			"title": "AREA (in²)",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3510-3515",
+			"title": "AREA (ft²)",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3520-3525",
+			"title": "AREA (yd²)",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3530-3535",
+			"title": "AREA (in²), log",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3540-3545",
+			"title": "AREA (ft²), log",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3550-3555",
+			"title": "AREA (yd²), log",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3560-3565",
+			"title": "NET WEIGHT (tr oz)",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3570-3575",
+			"title": "NET VOLUME (oz)",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3600-3605",
+			"title": "NET VOLUME (qt (US))",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3610-3615",
+			"title": "NET VOLUME (gal.)",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3620-3625",
+			"title": "VOLUME (qt (US)), log",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3630-3635",
+			"title": "VOLUME (gal (US)), log",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3640-3645",
+			"title": "NET VOLUME (in³)",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3650-3655",
+			"title": "NET VOLUME (ft³)",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3660-3665",
+			"title": "NET VOLUME (yd³)",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3670-3675",
+			"title": "VOLUME (in³), log",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3680-3685",
+			"title": "VOLUME (ft³), log",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3690-3695",
+			"title": "VOLUME (yd³), log",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "37",
+			"title": "COUNT",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 1,
+					"max": 8,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3900-3909",
+			"title": "AMOUNT",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 1,
+					"max": 15,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3910-3919",
+			"title": "AMOUNT",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 3,
+					"max": 3,
+					"opt": false,
+					"linters": [
+						"iso4217"
+					]
+				},
+				{
+					"cset": "N",
+					"min": 1,
+					"max": 15,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3920-3929",
+			"title": "PRICE",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 1,
+					"max": 15,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3930-3939",
+			"title": "PRICE",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 3,
+					"max": 3,
+					"opt": false,
+					"linters": [
+						"iso4217"
+					]
+				},
+				{
+					"cset": "N",
+					"min": 1,
+					"max": 15,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3940-3943",
+			"title": "PRCNT OFF",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 4,
+					"max": 4,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "3950-3955",
+			"title": "PRICE/UoM",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "400",
+			"title": "ORDER NUMBER",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 30,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "401",
+			"title": "GINC",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 30,
+					"opt": false,
+					"linters": [
+						"gcppos1"
+					]
+				}
+			]
+		},
+		{
+			"ai": "402",
+			"title": "GSIN",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 17,
+					"max": 17,
+					"opt": false,
+					"linters": [
+						"csum",
+						"gcppos1"
+					]
+				}
+			]
+		},
+		{
+			"ai": "403",
+			"title": "ROUTE",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 30,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "410",
+			"title": "SHIP TO LOC",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 13,
+					"max": 13,
+					"opt": false,
+					"linters": [
+						"csum",
+						"gcppos1"
+					]
+				}
+			]
+		},
+		{
+			"ai": "411",
+			"title": "BILL TO",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 13,
+					"max": 13,
+					"opt": false,
+					"linters": [
+						"csum",
+						"gcppos1"
+					]
+				}
+			]
+		},
+		{
+			"ai": "412",
+			"title": "PURCHASE FROM",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 13,
+					"max": 13,
+					"opt": false,
+					"linters": [
+						"csum",
+						"gcppos1"
+					]
+				}
+			]
+		},
+		{
+			"ai": "413",
+			"title": "SHIP FOR LOC",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 13,
+					"max": 13,
+					"opt": false,
+					"linters": [
+						"csum",
+						"gcppos1"
+					]
+				}
+			]
+		},
+		{
+			"ai": "414",
+			"title": "LOC No.",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 13,
+					"max": 13,
+					"opt": false,
+					"linters": [
+						"csum",
+						"gcppos1"
+					]
+				}
+			]
+		},
+		{
+			"ai": "415",
+			"title": "PAY TO",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 13,
+					"max": 13,
+					"opt": false,
+					"linters": [
+						"csum",
+						"gcppos1"
+					]
+				}
+			]
+		},
+		{
+			"ai": "416",
+			"title": "PROD/SERV LOC",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 13,
+					"max": 13,
+					"opt": false,
+					"linters": [
+						"csum",
+						"gcppos1"
+					]
+				}
+			]
+		},
+		{
+			"ai": "417",
+			"title": "PARTY",
+			"predefined": true,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 13,
+					"max": 13,
+					"opt": false,
+					"linters": [
+						"csum",
+						"gcppos1"
+					]
+				}
+			]
+		},
+		{
+			"ai": "420",
+			"title": "SHIP TO POST",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 20,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "421",
+			"title": "SHIP TO POST",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 3,
+					"max": 3,
+					"opt": false,
+					"linters": [
+						"iso3166"
+					]
+				},
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 9,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "422",
+			"title": "ORIGIN",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 3,
+					"max": 3,
+					"opt": false,
+					"linters": [
+						"iso3166"
+					]
+				}
+			]
+		},
+		{
+			"ai": "423",
+			"title": "COUNTRY - INITIAL PROCESS",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 3,
+					"max": 3,
+					"opt": false,
+					"linters": [
+						"iso3166"
+					]
+				},
+				{
+					"cset": "N",
+					"min": 3,
+					"max": 3,
+					"opt": true,
+					"linters": [
+						"iso3166"
+					]
+				},
+				{
+					"cset": "N",
+					"min": 3,
+					"max": 3,
+					"opt": true,
+					"linters": [
+						"iso3166"
+					]
+				},
+				{
+					"cset": "N",
+					"min": 3,
+					"max": 3,
+					"opt": true,
+					"linters": [
+						"iso3166"
+					]
+				},
+				{
+					"cset": "N",
+					"min": 3,
+					"max": 3,
+					"opt": true,
+					"linters": [
+						"iso3166"
+					]
+				}
+			]
+		},
+		{
+			"ai": "424",
+			"title": "COUNTRY - PROCESS",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 3,
+					"max": 3,
+					"opt": false,
+					"linters": [
+						"iso3166"
+					]
+				}
+			]
+		},
+		{
+			"ai": "425",
+			"title": "COUNTRY - DISASSEMBLY",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 3,
+					"max": 3,
+					"opt": false,
+					"linters": [
+						"iso3166"
+					]
+				},
+				{
+					"cset": "N",
+					"min": 3,
+					"max": 3,
+					"opt": true,
+					"linters": [
+						"iso3166"
+					]
+				},
+				{
+					"cset": "N",
+					"min": 3,
+					"max": 3,
+					"opt": true,
+					"linters": [
+						"iso3166"
+					]
+				},
+				{
+					"cset": "N",
+					"min": 3,
+					"max": 3,
+					"opt": true,
+					"linters": [
+						"iso3166"
+					]
+				},
+				{
+					"cset": "N",
+					"min": 3,
+					"max": 3,
+					"opt": true,
+					"linters": [
+						"iso3166"
+					]
+				}
+			]
+		},
+		{
+			"ai": "426",
+			"title": "COUNTRY - FULL PROCESS",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 3,
+					"max": 3,
+					"opt": false,
+					"linters": [
+						"iso3166"
+					]
+				}
+			]
+		},
+		{
+			"ai": "427",
+			"title": "ORIGIN SUBDIVISION",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 3,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "4300",
+			"title": "SHIP TO COMP",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 35,
+					"opt": false,
+					"linters": [
+						"pcenc"
+					]
+				}
+			]
+		},
+		{
+			"ai": "4301",
+			"title": "SHIP TO NAME",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 35,
+					"opt": false,
+					"linters": [
+						"pcenc"
+					]
+				}
+			]
+		},
+		{
+			"ai": "4302",
+			"title": "SHIP TO ADD1",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 70,
+					"opt": false,
+					"linters": [
+						"pcenc"
+					]
+				}
+			]
+		},
+		{
+			"ai": "4303",
+			"title": "SHIP TO ADD2",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 70,
+					"opt": false,
+					"linters": [
+						"pcenc"
+					]
+				}
+			]
+		},
+		{
+			"ai": "4304",
+			"title": "SHIP TO SUB",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 70,
+					"opt": false,
+					"linters": [
+						"pcenc"
+					]
+				}
+			]
+		},
+		{
+			"ai": "4305",
+			"title": "SHIP TO LOC",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 70,
+					"opt": false,
+					"linters": [
+						"pcenc"
+					]
+				}
+			]
+		},
+		{
+			"ai": "4306",
+			"title": "SHIP TO REG",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 70,
+					"opt": false,
+					"linters": [
+						"pcenc"
+					]
+				}
+			]
+		},
+		{
+			"ai": "4307",
+			"title": "SHIP TO COUNTRY",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 2,
+					"max": 2,
+					"opt": false,
+					"linters": [
+						"iso3166alpha2"
+					]
+				}
+			]
+		},
+		{
+			"ai": "4308",
+			"title": "SHIP TO PHONE",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 30,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "4309",
+			"title": "SHIP TO GEO",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 10,
+					"max": 10,
+					"opt": false,
+					"linters": [
+						"latitude"
+					]
+				},
+				{
+					"cset": "N",
+					"min": 10,
+					"max": 10,
+					"opt": false,
+					"linters": [
+						"longitude"
+					]
+				}
+			]
+		},
+		{
+			"ai": "4310",
+			"title": "RTN TO COMP",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 35,
+					"opt": false,
+					"linters": [
+						"pcenc"
+					]
+				}
+			]
+		},
+		{
+			"ai": "4311",
+			"title": "RTN TO NAME",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 35,
+					"opt": false,
+					"linters": [
+						"pcenc"
+					]
+				}
+			]
+		},
+		{
+			"ai": "4312",
+			"title": "RTN TO ADD1",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 70,
+					"opt": false,
+					"linters": [
+						"pcenc"
+					]
+				}
+			]
+		},
+		{
+			"ai": "4313",
+			"title": "RTN TO ADD2",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 70,
+					"opt": false,
+					"linters": [
+						"pcenc"
+					]
+				}
+			]
+		},
+		{
+			"ai": "4314",
+			"title": "RTN TO SUB",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 70,
+					"opt": false,
+					"linters": [
+						"pcenc"
+					]
+				}
+			]
+		},
+		{
+			"ai": "4315",
+			"title": "RTN TO LOC",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 70,
+					"opt": false,
+					"linters": [
+						"pcenc"
+					]
+				}
+			]
+		},
+		{
+			"ai": "4316",
+			"title": "RTN TO REG",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 70,
+					"opt": false,
+					"linters": [
+						"pcenc"
+					]
+				}
+			]
+		},
+		{
+			"ai": "4317",
+			"title": "RTN TO COUNTRY",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 2,
+					"max": 2,
+					"opt": false,
+					"linters": [
+						"iso3166alpha2"
+					]
+				}
+			]
+		},
+		{
+			"ai": "4318",
+			"title": "RTN TO POST",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 20,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "4319",
+			"title": "RTN TO PHONE",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 30,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "4320",
+			"title": "SRV DESCRIPTION",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 35,
+					"opt": false,
+					"linters": [
+						"pcenc"
+					]
+				}
+			]
+		},
+		{
+			"ai": "4321",
+			"title": "DANGEROUS GOODS",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 1,
+					"max": 1,
+					"opt": false,
+					"linters": [
+						"yesno"
+					]
+				}
+			]
+		},
+		{
+			"ai": "4322",
+			"title": "AUTH TO LEAVE",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 1,
+					"max": 1,
+					"opt": false,
+					"linters": [
+						"yesno"
+					]
+				}
+			]
+		},
+		{
+			"ai": "4323",
+			"title": "SIG REQUIRED",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 1,
+					"max": 1,
+					"opt": false,
+					"linters": [
+						"yesno"
+					]
+				}
+			]
+		},
+		{
+			"ai": "4324",
+			"title": "NOT BEF DEL DT",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": [
+						"yymmd0"
+					]
+				},
+				{
+					"cset": "N",
+					"min": 4,
+					"max": 4,
+					"opt": false,
+					"linters": [
+						"hhmi"
+					]
+				}
+			]
+		},
+		{
+			"ai": "4325",
+			"title": "NOT AFT DEL DT",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": [
+						"yymmd0"
+					]
+				},
+				{
+					"cset": "N",
+					"min": 4,
+					"max": 4,
+					"opt": false,
+					"linters": [
+						"hhmi"
+					]
+				}
+			]
+		},
+		{
+			"ai": "4326",
+			"title": "REL DATE",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": [
+						"yymmdd"
+					]
+				}
+			]
+		},
+		{
+			"ai": "4330",
+			"title": "MAX TEMP F.",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				},
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 1,
+					"opt": true,
+					"linters": [
+						"hyphen"
+					]
+				}
+			]
+		},
+		{
+			"ai": "4331",
+			"title": "MAX TEMP C.",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				},
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 1,
+					"opt": true,
+					"linters": [
+						"hyphen"
+					]
+				}
+			]
+		},
+		{
+			"ai": "4332",
+			"title": "MIN TEMP F.",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				},
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 1,
+					"opt": true,
+					"linters": [
+						"hyphen"
+					]
+				}
+			]
+		},
+		{
+			"ai": "4333",
+			"title": "MIN TEMP C.",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				},
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 1,
+					"opt": true,
+					"linters": [
+						"hyphen"
+					]
+				}
+			]
+		},
+		{
+			"ai": "7001",
+			"title": "NSN",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 13,
+					"max": 13,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "7002",
+			"title": "MEAT CUT",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 30,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "7003",
+			"title": "EXPIRY TIME",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": [
+						"yymmdd"
+					]
+				},
+				{
+					"cset": "N",
+					"min": 4,
+					"max": 4,
+					"opt": false,
+					"linters": [
+						"hhmi"
+					]
+				}
+			]
+		},
+		{
+			"ai": "7004",
+			"title": "ACTIVE POTENCY",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 1,
+					"max": 4,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "7005",
+			"title": "CATCH AREA",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 12,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "7006",
+			"title": "FIRST FREEZE DATE",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": [
+						"yymmdd"
+					]
+				}
+			]
+		},
+		{
+			"ai": "7007",
+			"title": "HARVEST DATE",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": [
+						"yymmdd"
+					]
+				},
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": true,
+					"linters": [
+						"yymmdd"
+					]
+				}
+			]
+		},
+		{
+			"ai": "7008",
+			"title": "AQUATIC SPECIES",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 3,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "7009",
+			"title": "FISHING GEAR TYPE",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 10,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "7010",
+			"title": "PROD METHOD",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 2,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "7011",
+			"title": "TEST BY DATE",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": [
+						"yymmdd"
+					]
+				},
+				{
+					"cset": "N",
+					"min": 4,
+					"max": 4,
+					"opt": true,
+					"linters": [
+						"hhmi"
+					]
+				}
+			]
+		},
+		{
+			"ai": "7020",
+			"title": "REFURB LOT",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 20,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "7021",
+			"title": "FUNC STAT",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 20,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "7022",
+			"title": "REV STAT",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 20,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "7023",
+			"title": "GIAI - ASSEMBLY",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 30,
+					"opt": false,
+					"linters": [
+						"gcppos1"
+					]
+				}
+			]
+		},
+		{
+			"ai": "7030",
+			"title": "PROCESSOR # 0",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 3,
+					"max": 3,
+					"opt": false,
+					"linters": [
+						"iso3166999"
+					]
+				},
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 27,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "7031",
+			"title": "PROCESSOR # 1",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 3,
+					"max": 3,
+					"opt": false,
+					"linters": [
+						"iso3166999"
+					]
+				},
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 27,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "7032",
+			"title": "PROCESSOR # 2",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 3,
+					"max": 3,
+					"opt": false,
+					"linters": [
+						"iso3166999"
+					]
+				},
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 27,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "7033",
+			"title": "PROCESSOR # 3",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 3,
+					"max": 3,
+					"opt": false,
+					"linters": [
+						"iso3166999"
+					]
+				},
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 27,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "7034",
+			"title": "PROCESSOR # 4",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 3,
+					"max": 3,
+					"opt": false,
+					"linters": [
+						"iso3166999"
+					]
+				},
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 27,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "7035",
+			"title": "PROCESSOR # 5",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 3,
+					"max": 3,
+					"opt": false,
+					"linters": [
+						"iso3166999"
+					]
+				},
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 27,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "7036",
+			"title": "PROCESSOR # 6",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 3,
+					"max": 3,
+					"opt": false,
+					"linters": [
+						"iso3166999"
+					]
+				},
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 27,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "7037",
+			"title": "PROCESSOR # 7",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 3,
+					"max": 3,
+					"opt": false,
+					"linters": [
+						"iso3166999"
+					]
+				},
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 27,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "7038",
+			"title": "PROCESSOR # 8",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 3,
+					"max": 3,
+					"opt": false,
+					"linters": [
+						"iso3166999"
+					]
+				},
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 27,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "7039",
+			"title": "PROCESSOR # 9",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 3,
+					"max": 3,
+					"opt": false,
+					"linters": [
+						"iso3166999"
+					]
+				},
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 27,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "7040",
+			"title": "UIC+EXT",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 1,
+					"max": 1,
+					"opt": false,
+					"linters": []
+				},
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 1,
+					"opt": false,
+					"linters": []
+				},
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 1,
+					"opt": false,
+					"linters": []
+				},
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 1,
+					"opt": false,
+					"linters": [
+						"importeridx"
+					]
+				}
+			]
+		},
+		{
+			"ai": "7041",
+			"title": "UFRGT UNIT TYPE",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 4,
+					"opt": false,
+					"linters": [
+						"packagetype"
+					]
+				}
+			]
+		},
+		{
+			"ai": "710",
+			"title": "NHRN PZN",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 20,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "711",
+			"title": "NHRN CIP",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 20,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "712",
+			"title": "NHRN CN",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 20,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "713",
+			"title": "NHRN DRN",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 20,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "714",
+			"title": "NHRN AIM",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 20,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "715",
+			"title": "NHRN NDC",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 20,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "716",
+			"title": "NHRN AIC",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 20,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "717",
+			"title": "NHRN SRN",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 20,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "7230",
+			"title": "CERT # 1",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 2,
+					"max": 2,
+					"opt": false,
+					"linters": []
+				},
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 28,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "7231",
+			"title": "CERT # 2",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 2,
+					"max": 2,
+					"opt": false,
+					"linters": []
+				},
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 28,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "7232",
+			"title": "CERT # 3",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 2,
+					"max": 2,
+					"opt": false,
+					"linters": []
+				},
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 28,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "7233",
+			"title": "CERT # 4",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 2,
+					"max": 2,
+					"opt": false,
+					"linters": []
+				},
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 28,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "7234",
+			"title": "CERT # 5",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 2,
+					"max": 2,
+					"opt": false,
+					"linters": []
+				},
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 28,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "7235",
+			"title": "CERT # 6",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 2,
+					"max": 2,
+					"opt": false,
+					"linters": []
+				},
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 28,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "7236",
+			"title": "CERT # 7",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 2,
+					"max": 2,
+					"opt": false,
+					"linters": []
+				},
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 28,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "7237",
+			"title": "CERT # 8",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 2,
+					"max": 2,
+					"opt": false,
+					"linters": []
+				},
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 28,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "7238",
+			"title": "CERT # 9",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 2,
+					"max": 2,
+					"opt": false,
+					"linters": []
+				},
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 28,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "7239",
+			"title": "CERT # 10",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 2,
+					"max": 2,
+					"opt": false,
+					"linters": []
+				},
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 28,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "7240",
+			"title": "PROTOCOL",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 20,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "7241",
+			"title": "AIDC MEDIA TYPE",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 2,
+					"max": 2,
+					"opt": false,
+					"linters": [
+						"mediatype"
+					]
+				}
+			]
+		},
+		{
+			"ai": "7242",
+			"title": "VCN",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 25,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "7250",
+			"title": "DOB",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 8,
+					"max": 8,
+					"opt": false,
+					"linters": [
+						"yyyymmdd"
+					]
+				}
+			]
+		},
+		{
+			"ai": "7251",
+			"title": "DOB TIME",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 8,
+					"max": 8,
+					"opt": false,
+					"linters": [
+						"yyyymmdd"
+					]
+				},
+				{
+					"cset": "N",
+					"min": 4,
+					"max": 4,
+					"opt": false,
+					"linters": [
+						"hhmi"
+					]
+				}
+			]
+		},
+		{
+			"ai": "7252",
+			"title": "BIO SEX",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 1,
+					"max": 1,
+					"opt": false,
+					"linters": [
+						"iso5218"
+					]
+				}
+			]
+		},
+		{
+			"ai": "7253",
+			"title": "FAMILY NAME",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 40,
+					"opt": false,
+					"linters": [
+						"pcenc"
+					]
+				}
+			]
+		},
+		{
+			"ai": "7254",
+			"title": "GIVEN NAME",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 40,
+					"opt": false,
+					"linters": [
+						"pcenc"
+					]
+				}
+			]
+		},
+		{
+			"ai": "7255",
+			"title": "SUFFIX",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 10,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "7256",
+			"title": "FULL NAME",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 90,
+					"opt": false,
+					"linters": [
+						"pcenc"
+					]
+				}
+			]
+		},
+		{
+			"ai": "7257",
+			"title": "PERSON ADDR",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 70,
+					"opt": false,
+					"linters": [
+						"pcenc"
+					]
+				}
+			]
+		},
+		{
+			"ai": "7258",
+			"title": "BIRTH SEQUENCE",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 3,
+					"max": 3,
+					"opt": false,
+					"linters": [
+						"posinseqslash"
+					]
+				}
+			]
+		},
+		{
+			"ai": "7259",
+			"title": "BABY",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 40,
+					"opt": false,
+					"linters": [
+						"pcenc"
+					]
+				}
+			]
+		},
+		{
+			"ai": "8001",
+			"title": "DIMENSIONS",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 4,
+					"max": 4,
+					"opt": false,
+					"linters": [
+						"nonzero"
+					]
+				},
+				{
+					"cset": "N",
+					"min": 5,
+					"max": 5,
+					"opt": false,
+					"linters": [
+						"nonzero"
+					]
+				},
+				{
+					"cset": "N",
+					"min": 3,
+					"max": 3,
+					"opt": false,
+					"linters": [
+						"nonzero"
+					]
+				},
+				{
+					"cset": "N",
+					"min": 1,
+					"max": 1,
+					"opt": false,
+					"linters": [
+						"winding"
+					]
+				},
+				{
+					"cset": "N",
+					"min": 1,
+					"max": 1,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "8002",
+			"title": "CMT No.",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 20,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "8003",
+			"title": "GRAI",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 1,
+					"max": 1,
+					"opt": false,
+					"linters": [
+						"zero"
+					]
+				},
+				{
+					"cset": "N",
+					"min": 13,
+					"max": 13,
+					"opt": false,
+					"linters": [
+						"csum",
+						"gcppos1"
+					]
+				},
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 16,
+					"opt": true,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "8004",
+			"title": "GIAI",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 30,
+					"opt": false,
+					"linters": [
+						"gcppos1"
+					]
+				}
+			]
+		},
+		{
+			"ai": "8005",
+			"title": "PRICE PER UNIT",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "8006",
+			"title": "ITIP",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 14,
+					"max": 14,
+					"opt": false,
+					"linters": [
+						"csum",
+						"gcppos2"
+					]
+				},
+				{
+					"cset": "N",
+					"min": 4,
+					"max": 4,
+					"opt": false,
+					"linters": [
+						"pieceoftotal"
+					]
+				}
+			]
+		},
+		{
+			"ai": "8007",
+			"title": "IBAN",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 34,
+					"opt": false,
+					"linters": [
+						"iban"
+					]
+				}
+			]
+		},
+		{
+			"ai": "8008",
+			"title": "PROD TIME",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 6,
+					"max": 6,
+					"opt": false,
+					"linters": [
+						"yymmdd"
+					]
+				},
+				{
+					"cset": "N",
+					"min": 2,
+					"max": 2,
+					"opt": false,
+					"linters": [
+						"hh"
+					]
+				},
+				{
+					"cset": "N",
+					"min": 2,
+					"max": 2,
+					"opt": true,
+					"linters": [
+						"mi"
+					]
+				},
+				{
+					"cset": "N",
+					"min": 2,
+					"max": 2,
+					"opt": true,
+					"linters": [
+						"ss"
+					]
+				}
+			]
+		},
+		{
+			"ai": "8009",
+			"title": "OPTSEN",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 50,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "8010",
+			"title": "CPID",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "Y",
+					"min": 1,
+					"max": 30,
+					"opt": false,
+					"linters": [
+						"gcppos1"
+					]
+				}
+			]
+		},
+		{
+			"ai": "8011",
+			"title": "CPID SERIAL",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 1,
+					"max": 12,
+					"opt": false,
+					"linters": [
+						"nozeroprefix"
+					]
+				}
+			]
+		},
+		{
+			"ai": "8012",
+			"title": "VERSION",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 20,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "8013",
+			"title": "GMN",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 25,
+					"opt": false,
+					"linters": [
+						"csumalpha",
+						"gcppos1"
+					]
+				}
+			]
+		},
+		{
+			"ai": "8014",
+			"title": "MUDI",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 25,
+					"opt": false,
+					"linters": [
+						"csumalpha",
+						"gcppos1",
+						"hasnondigit"
+					]
+				}
+			]
+		},
+		{
+			"ai": "8017",
+			"title": "GSRN - PROVIDER",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 18,
+					"max": 18,
+					"opt": false,
+					"linters": [
+						"csum",
+						"gcppos1"
+					]
+				}
+			]
+		},
+		{
+			"ai": "8018",
+			"title": "GSRN - RECIPIENT",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 18,
+					"max": 18,
+					"opt": false,
+					"linters": [
+						"csum",
+						"gcppos1"
+					]
+				}
+			]
+		},
+		{
+			"ai": "8019",
+			"title": "SRIN",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 1,
+					"max": 10,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "8020",
+			"title": "REF No.",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 25,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "8026",
+			"title": "ITIP CONTENT",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 14,
+					"max": 14,
+					"opt": false,
+					"linters": [
+						"csum",
+						"gcppos2"
+					]
+				},
+				{
+					"cset": "N",
+					"min": 4,
+					"max": 4,
+					"opt": false,
+					"linters": [
+						"pieceoftotal"
+					]
+				}
+			]
+		},
+		{
+			"ai": "8030",
+			"title": "DIGSIG",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "Z",
+					"min": 1,
+					"max": 90,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "8040",
+			"title": "IMEI",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 15,
+					"max": 15,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "8041",
+			"title": "IMEI2",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 15,
+					"max": 15,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "8042",
+			"title": "ESIM",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 32,
+					"max": 32,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "8043",
+			"title": "PSIM",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 18,
+					"max": 18,
+					"opt": false,
+					"linters": []
+				},
+				{
+					"cset": "N",
+					"min": 1,
+					"max": 2,
+					"opt": true,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "8110",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 70,
+					"opt": false,
+					"linters": [
+						"couponcode"
+					]
+				}
+			]
+		},
+		{
+			"ai": "8111",
+			"title": "POINTS",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "N",
+					"min": 4,
+					"max": 4,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "8112",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 70,
+					"opt": false,
+					"linters": [
+						"couponposoffer"
+					]
+				}
+			]
+		},
+		{
+			"ai": "8200",
+			"title": "PRODUCT URL",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 70,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "90",
+			"title": "INTERNAL",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 30,
+					"opt": false,
+					"linters": []
+				}
+			]
+		},
+		{
+			"ai": "91-99",
+			"title": "INTERNAL",
+			"predefined": false,
+			"parts": [
+				{
+					"cset": "X",
+					"min": 1,
+					"max": 90,
+					"opt": false,
+					"linters": []
+				}
+			]
+		}
+	]
+}

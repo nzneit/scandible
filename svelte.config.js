@@ -8,7 +8,13 @@ const config = {
 		// Emit to dist/ so the GitHub Pages workflow's upload path is unchanged.
 		adapter: adapter({ pages: 'dist', assets: 'dist' }),
 		// Project-site subpath on GitHub Pages; dev and tests serve from root.
-		paths: { base: process.env.NODE_ENV === 'production' ? '/scandible' : '' }
+		paths: { base: process.env.NODE_ENV === 'production' ? '/scandible' : '' },
+		// Type-check the generator too; paths here are relative to .svelte-kit/.
+		typescript: {
+			config: (config) => {
+				config.include.push('../scripts/**/*.ts');
+			}
+		}
 	}
 };
 
