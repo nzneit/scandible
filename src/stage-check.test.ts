@@ -2,8 +2,10 @@ import { describe, it, expect } from 'vitest';
 import {
 	diffPixels,
 	nonWhiteShare,
+	parseReady,
 	resolveRoute,
 	sameGeometry,
+	viewportMismatch,
 	type Ready
 } from '../scripts/stage-check';
 
@@ -49,7 +51,8 @@ it('diffPixels counts the pixels whose RGBA differs, and -1 when the sizes diffe
 it('sameGeometry compares displays exactly and sizes within the tolerance', () => {
 	const r: Ready = {
 		item: { width: 210, height: 120, display: 'flex' },
-		svg: { width: 190, height: 100, display: 'block' }
+		svg: { width: 190, height: 100, display: 'block' },
+		viewport: { width: 1280, height: 900 }
 	};
 	expect(sameGeometry(r, structuredClone(r), 0.01)).toBe(true);
 	const narrow = structuredClone(r);
@@ -61,4 +64,46 @@ it('sameGeometry compares displays exactly and sizes within the tolerance', () =
 	const block = structuredClone(r);
 	block.item.display = 'block';
 	expect(sameGeometry(r, block, 0.01)).toBe(false);
+});
+
+describe('parseReady', () => {
+	const item = { width: 210, height: 120, display: 'flex' };
+	const svg = { width: 190, height: 100, display: 'block' };
+
+	it('carries the item, the svg and the viewport', () => {
+		const text = JSON.stringify({ item, svg, viewport: { width: 1280, height: 900 } });
+		expect(parseReady(text)).toEqual({ item, svg, viewport: { width: 1280, height: 900 } });
+	});
+
+	it.each([
+		['no viewport', JSON.stringify({ item, svg })],
+		[
+			'a viewport that is not two numbers',
+			JSON.stringify({ item, svg, viewport: { width: '1280' } })
+		]
+	])('gives a null viewport for %s', (_, text) => {
+		expect(parseReady(text)).toEqual({ item, svg, viewport: null });
+	});
+
+	it.each([
+		['text that is not JSON', 'x'],
+		['no svg', JSON.stringify({ item, viewport: { width: 1280, height: 900 } })],
+		['JSON null', 'null']
+	])('gives null for %s', (_, text) => {
+		expect(parseReady(text)).toBeNull();
+	});
+});
+
+describe('viewportMismatch', () => {
+	it('passes the requested size', () => {
+		expect(viewportMismatch([1280, 900], { width: 1280, height: 900 })).toBeNull();
+	});
+
+	it.each([
+		[{ width: 1366, height: 768 }, 'viewport 1366x768, requested 1280x900'],
+		[{ width: 1280, height: 814 }, 'viewport 1280x814, requested 1280x900'],
+		[null, 'no viewport reported, requested 1280x900']
+	])('names both sizes for %j', (viewport, reason) => {
+		expect(viewportMismatch([1280, 900], viewport)).toBe(reason);
+	});
 });

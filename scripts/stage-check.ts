@@ -1,10 +1,19 @@
 import { spawn, spawnSync } from 'node:child_process';
-import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs';
+import {
+	cpSync,
+	existsSync,
+	mkdtempSync,
+	readFileSync,
+	realpathSync,
+	rmSync,
+	statSync
+} from 'node:fs';
 import { createServer } from 'node:http';
 import type { IncomingMessage, Server, ServerResponse } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
-import { extname, join } from 'node:path';
+import { dirname, extname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { PNG } from 'pngjs';
 
 export interface Box {
@@ -12,10 +21,17 @@ export interface Box {
 	height: number;
 	display: string;
 }
-/** What the injected script reports once `.barcode-item svg` exists: the first item and its svg. */
+/** A viewport in CSS px, as `innerWidth` and `innerHeight` give it. */
+export interface Viewport {
+	width: number;
+	height: number;
+}
+/** What the injected script reports once `.barcode-item svg` exists: the first item, its svg and
+ *  the viewport; `viewport` is null when the report has no valid one. */
 export interface Ready {
 	item: Box;
 	svg: Box;
+	viewport: Viewport | null;
 }
 /** An RGBA image, 4 bytes per pixel; pngjs's PNG fits it. */
 export interface Bitmap {
@@ -74,6 +90,18 @@ export function sameGeometry(a: Ready, b: Ready, tolerance: number): boolean {
 	return sameBox(a.item, b.item) && sameBox(a.svg, b.svg);
 }
 
+/** Null when `viewport` is the requested size; else why the run is not at that size. */
+export function viewportMismatch(
+	requested: [number, number],
+	viewport: Viewport | null
+): string | null {
+	const wanted = `requested ${requested[0]}x${requested[1]}`;
+	if (viewport === null) return `no viewport reported, ${wanted}`;
+	return viewport.width === requested[0] && viewport.height === requested[1]
+		? null
+		: `viewport ${viewport.width}x${viewport.height}, ${wanted}`;
+}
+
 const READY_PATH = '/__stage-ready';
 const MIN_NON_WHITE = 0.005;
 const TOLERANCE = 0.01;
@@ -115,7 +143,9 @@ const INJECTED = `<style>.overlay, .readout { visibility: hidden !important }</s
 			if (sent || !svg) return;
 			sent = true;
 			observer.disconnect();
-			navigator.sendBeacon('${READY_PATH}', JSON.stringify({ item: box(item), svg: box(svg) }));
+			const viewport = { width: innerWidth, height: innerHeight };
+			const ready = { item: box(item), svg: box(svg), viewport };
+			navigator.sendBeacon('${READY_PATH}', JSON.stringify(ready));
 		};
 		const observer = new MutationObserver(check);
 		observer.observe(document.documentElement, { childList: true, subtree: true });
@@ -167,7 +197,9 @@ const made: {
 
 let cleaning: Promise<void> | null = null;
 
-const repo = new URL('..', import.meta.url).pathname;
+/** The repository root, decoded (a space stays a space). Not `new URL('..', import.meta.url)`:
+ *  under Vitest, Vite rewrites that literal into an http URL, which fileURLToPath rejects. */
+const repo = dirname(dirname(fileURLToPath(import.meta.url)));
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
@@ -183,10 +215,12 @@ async function waitFor(condition: () => boolean, ms: number): Promise<boolean> {
 
 const message = (error: unknown) => (error instanceof Error ? error.message : String(error));
 
-/** Runs one build step; a non-zero status throws `<step> failed`. */
+/** Runs one build step; a non-zero status throws `<step> failed`, with the spawn error if any. */
 function runStep(step: string, command: string, args: string[], cwd: string): void {
 	const result = spawnSync(command, args, { cwd, stdio: 'inherit' });
-	if (result.status !== 0) throw new Error(`${step} failed`);
+	if (result.status !== 0) {
+		throw new Error(result.error ? `${step} failed: ${result.error.message}` : `${step} failed`);
+	}
 }
 
 function isBox(value: unknown): value is Box {
@@ -195,10 +229,24 @@ function isBox(value: unknown): value is Box {
 	return Number.isFinite(width) && Number.isFinite(height) && typeof display === 'string';
 }
 
-function parseReady(text: string): Ready | null {
+function isViewport(value: unknown): value is Viewport {
+	if (typeof value !== 'object' || value === null) return false;
+	const { width, height } = value as Record<string, unknown>;
+	return Number.isFinite(width) && Number.isFinite(height);
+}
+
+/** The `Ready` a beacon carries; null unless it has an item and an svg box. */
+export function parseReady(text: string): Ready | null {
 	try {
 		const value = JSON.parse(text) as Record<string, unknown> | null;
-		if (value && isBox(value.item) && isBox(value.svg)) return { item: value.item, svg: value.svg };
+		if (value && isBox(value.item) && isBox(value.svg)) {
+			const { viewport } = value;
+			return {
+				item: value.item,
+				svg: value.svg,
+				viewport: isViewport(viewport) ? { width: viewport.width, height: viewport.height } : null
+			};
+		}
 	} catch {
 		// not JSON: no Ready
 	}
@@ -254,12 +302,17 @@ async function startServer(dist: string): Promise<StageServer> {
 	return stage;
 }
 
-function startFirefox(args: string[]): Firefox {
+/** Starts headless Firefox at `size`. `--window-size` sizes a `--screenshot` run only; headless
+ *  Firefox takes any other run's window size from MOZ_HEADLESS_WIDTH and MOZ_HEADLESS_HEIGHT. */
+function startFirefox(size: [number, number], args: string[]): Firefox {
 	if (cleaning !== null) throw new Error('cleanup has begun');
 	const profile = mkdtempSync(join(made.tmp ?? tmpdir(), 'profile-'));
-	const child = spawn('firefox', ['--headless', '--no-remote', '--profile', profile, ...args], {
+	const [width, height] = size.map(String);
+	const firefoxArgs = ['--headless', '--no-remote', '--profile', profile];
+	const child = spawn('firefox', [...firefoxArgs, `--window-size=${width},${height}`, ...args], {
 		detached: true,
-		stdio: 'ignore'
+		stdio: 'ignore',
+		env: { ...process.env, MOZ_HEADLESS_WIDTH: width, MOZ_HEADLESS_HEIGHT: height }
 	});
 	const firefox: Firefox = { pid: child.pid, profile, exited: false, error: null };
 	made.firefoxes.add(firefox);
@@ -333,12 +386,7 @@ async function shoot(
 	size: [number, number]
 ): Promise<Outcome<Bitmap>> {
 	startRun(stage);
-	const firefox = startFirefox([
-		`--window-size=${size[0]},${size[1]}`,
-		'--screenshot',
-		file,
-		deckUrl(stage, deck, true)
-	]);
+	const firefox = startFirefox(size, ['--screenshot', file, deckUrl(stage, deck, true)]);
 	const finished = await waitFor(() => firefox.exited, SHOT_TIMEOUT_MS);
 	if (finished && !firefox.error) await waitFor(() => stage.ready !== null, BEACON_GRACE_MS);
 	await stopFirefox(firefox);
@@ -347,6 +395,8 @@ async function shoot(
 		return { ok: false, reason: `firefox timed out after ${SHOT_TIMEOUT_MS / 1000} s` };
 	}
 	if (!stage.ready) return { ok: false, reason: 'no ready message' };
+	const wrongSize = viewportMismatch(size, stage.ready.viewport);
+	if (wrongSize !== null) return { ok: false, reason: wrongSize };
 	if (stage.failures.length > 0) {
 		return { ok: false, reason: `not served: ${stage.failures.join(', ')}` };
 	}
@@ -367,16 +417,16 @@ async function shoot(
 /** A Scroll-mode load of one deck, stopped once its `Ready` arrives. */
 async function measure(stage: StageServer, deck: Deck): Promise<Outcome<Ready>> {
 	startRun(stage);
-	const firefox = startFirefox([
-		`--window-size=${SCROLL_SIZE[0]},${SCROLL_SIZE[1]}`,
-		deckUrl(stage, deck, false)
-	]);
+	// --kiosk drops the toolbars, which would take 86 px of MOZ_HEADLESS_HEIGHT (measured 1280x814).
+	const firefox = startFirefox(SCROLL_SIZE, ['--kiosk', deckUrl(stage, deck, false)]);
 	await waitFor(() => stage.ready !== null || firefox.exited, READY_TIMEOUT_MS);
 	await stopFirefox(firefox);
 	if (firefox.error) return { ok: false, reason: firefox.error };
 	if (!stage.ready) {
 		return { ok: false, reason: `no ready message within ${READY_TIMEOUT_MS / 1000} s` };
 	}
+	const wrongSize = viewportMismatch(SCROLL_SIZE, stage.ready.viewport);
+	if (wrongSize !== null) return { ok: false, reason: wrongSize };
 	if (stage.failures.length > 0) {
 		return { ok: false, reason: `not served: ${stage.failures.join(', ')}` };
 	}
@@ -507,9 +557,16 @@ function abort(reason: string): void {
 	void cleanup().finally(() => process.exit(2));
 }
 
-if (import.meta.main) {
-	process.on('SIGINT', () => abort('interrupted by SIGINT'));
-	process.on('SIGTERM', () => abort('interrupted by SIGTERM'));
+/** Node 24.0 and 24.1 lack `import.meta.main`: there, compare the entry script with this file. */
+const isMain =
+	import.meta.main ??
+	(process.argv[1] !== undefined &&
+		realpathSync(process.argv[1]) === fileURLToPath(import.meta.url));
+
+if (isMain) {
+	for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP', 'SIGQUIT'] as const) {
+		process.on(signal, () => abort(`interrupted by ${signal}`));
+	}
 	process.on('uncaughtException', (error) => abort(message(error)));
 	process.on('unhandledRejection', (error) => abort(message(error)));
 	let code = 2;

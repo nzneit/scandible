@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from 'node:fs';
+import { readdirSync, readFileSync, realpathSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
@@ -213,4 +213,10 @@ function main(): void {
 	if (problems.length > 0) process.exitCode = 1;
 }
 
-if (import.meta.main) main();
+/** Node 24.0 and 24.1 lack `import.meta.main`: there, compare the entry script with this file. */
+const isMain =
+	import.meta.main ??
+	(process.argv[1] !== undefined &&
+		realpathSync(process.argv[1]) === fileURLToPath(import.meta.url));
+
+if (isMain) main();
