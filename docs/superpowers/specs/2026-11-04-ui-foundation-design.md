@@ -3,14 +3,17 @@
 **Date:** 2026-11-04
 **Status:** Design agreed in conversation on 2026-11-04, section by section, then revised the same
 day after a four-lens review on Sonnet subagents (codebase fit and tests, tooling, UX and
-accessibility, internal coherence), judged by the author. Awaiting the user's approval.
+accessibility, internal coherence), judged by the author. Revised again for the accessible test
+queries migration, with visual-review checks for the losses it left. Approved by the user on
+2026-11-04.
 Spec 1 of the three-spec UI revamp series (see _Series_). Facts measured for this spec are in
 _Measurements_ at the end, cited as _M1_ to _M12_.
 
 **Depends on the test migration.** This spec builds on the accessible test queries migration
 (`docs/superpowers/specs/2026-11-04-accessible-test-queries-design.md`), which merges first. Its
-tests find elements by role, label and text, not by class name or DOM shape. This spec's plan
-(c5090e8) is rewritten after that merge, because it cites test lines that move.
+tests find elements by role, label and text, not by class name or DOM shape. This spec's first
+plan, written before the migration, is rewritten after that merge, because it cites test lines that
+move.
 
 ## Intent
 
@@ -586,9 +589,21 @@ in CI; specs 2 and 3 reuse it. Exit codes: 0 pass, 1 mismatch, 2 unverified (wit
 
 ### Visual review
 
-Before-and-after screenshots at 1280×900 and 390×844: the setup page at full height, the per-row
-editor, the switch note, the share QR, the step overlay and the finish screen. The author reads
-them, comparing control widths and spacing with `main`; they go in the PR for the user.
+Before-and-after screenshots at 1280×900 and 390×844: the setup page at full height, the
+validation list with valid, invalid and lenient entries, a GS1 row with its breakdown open (in the
+list and in the per-row editor), the per-row editor, the switch note, the share QR, the step overlay
+and the finish screen. The author reads them, comparing control widths and spacing with `main`;
+they go in the PR for the user.
+
+The migration to accessible test queries left five things to this review, because no test reads
+them any more (PR #9, _Deliberate losses_). The author checks each one on the before-and-after
+screenshots and says in the PR that it holds:
+
+1. each verdict keeps its status color: valid green, invalid red, lenient amber;
+2. an open GS1 breakdown shows no visible header row (its column headers stay visually hidden);
+3. in the per-row editor, a GS1 row's breakdown sits directly under that row's controls;
+4. in the step overlay, each slider sits beside its seconds field;
+5. every control's visible label still shows the text that names it.
 
 ### Human checks
 
