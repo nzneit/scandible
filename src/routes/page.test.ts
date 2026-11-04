@@ -912,4 +912,20 @@ describe('setup page: GS1 validation setting', () => {
 		await tick();
 		expect(rowBoxes()).toEqual([true, false]);
 	});
+
+	it('shows a GS in the list as the mark, with the scan-data verdict', () => {
+		open(list(`]C110LOT42${'\u001d'}0109501101530003`));
+		expect(q(c, '.validation-list .raw').textContent).toBe(']C110LOT42␝0109501101530003');
+		expect(q(c, '.validation-list .verdict').textContent).toBe(
+			' ✓ · 222 modules wide · 23 characters → ]C1 10LOT42␝0109501101530003'
+		);
+	});
+
+	it('keeps a real GS in a row record and shows the same verdict', () => {
+		open('http://localhost/#r1=gs1128_10LOT42%1D0109501101530003&seed=0');
+		expect(q<HTMLTextAreaElement>(c, '.row-payload').value).toBe('10LOT42\u001d0109501101530003');
+		expect(q(c, '.row-verdict').textContent).toBe(
+			' ✓ · 222 modules wide · 23 characters → ]C1 10LOT42␝0109501101530003'
+		);
+	});
 });
