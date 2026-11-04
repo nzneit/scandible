@@ -235,4 +235,12 @@ describe('overrides the tables rely on', () => {
 			)
 		);
 	});
+
+	it('the setup page keeps a disabled Start recognizable', () => {
+		expect(flat(read('./routes/+page.svelte'))).toContain(
+			flat(
+				'.start:disabled { background-color: var(--color-primary); color: var(--color-primary-content); opacity: 0.5; }'
+			)
+		);
+	});
 });

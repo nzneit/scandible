@@ -223,10 +223,15 @@
 	}
 </script>
 
-<div class="setup">
-	<h1>scandible</h1>
+<div class="setup bg-base-100">
+	<h1 class="text-2xl font-bold tracking-tight">scandible</h1>
 	<Field label="Editor">
-		<select class="editor-input" bind:this={editorSelect} value={editor} onchange={onEditorChange}>
+		<select
+			class="editor-input select select-sm w-auto"
+			bind:this={editorSelect}
+			value={editor}
+			onchange={onEditorChange}
+		>
 			<option value="text">Plain text</option>
 			<option value="rows">Per row</option>
 		</select>
@@ -235,15 +240,17 @@
 		<Note class="editor-hint">{EDITOR_HINT}</Note>
 	{/if}
 	{#if pending}
-		<div class="switch-note" role="alert">
+		<div class="switch-note alert alert-warning alert-soft" role="alert">
 			<p>{describeLoss(pending.loses, pending)}</p>
-			<button type="button" class="switch-anyway" onclick={switchAnyway}>Switch anyway</button>
-			<button type="button" class="switch-cancel" onclick={cancelSwitch}>Cancel</button>
+			<button type="button" class="switch-anyway btn btn-sm" onclick={switchAnyway}
+				>Switch anyway</button
+			>
+			<button type="button" class="switch-cancel btn btn-sm" onclick={cancelSwitch}>Cancel</button>
 		</div>
 	{/if}
 	{#if editor === 'text'}
 		<textarea
-			class="code-input"
+			class="code-input textarea w-full font-mono"
 			aria-label="Codes"
 			rows="8"
 			{placeholder}
@@ -254,7 +261,7 @@
 	{/if}
 	<input
 		type="file"
-		class="file-input"
+		class="file-input file-input-sm w-auto self-start"
 		accept=".txt,.csv"
 		aria-label="Load codes from a file"
 		onchange={onFileChange}
@@ -277,7 +284,7 @@
 			<Field label="Render GS1 data that fails validation" class="lax-field">
 				<input
 					type="checkbox"
-					class="lax-input"
+					class="lax-input checkbox checkbox-sm"
 					bind:checked={lax}
 					aria-describedby="{uid}-lax-note"
 				/>
@@ -285,7 +292,7 @@
 			<Note class="lax-note" id="{uid}-lax-note">{LAX_NOTE}</Note>
 		{/if}
 		<Field label="Playback">
-			<select class="mode-input" bind:value={mode}>
+			<select class="mode-input select select-sm w-auto" bind:value={mode}>
 				<option value="scroll">Scroll</option>
 				<option value="step">Step</option>
 			</select>
@@ -324,7 +331,7 @@
 			<Field label="Speed">
 				<input
 					type="range"
-					class="speed-input"
+					class="speed-input range range-sm w-32"
 					min="10"
 					max="5000"
 					step="5"
@@ -333,18 +340,18 @@
 			</Field>
 		{/if}
 		<Field label="Loop">
-			<input type="checkbox" class="loop-input" bind:checked={loop} />
+			<input type="checkbox" class="loop-input toggle toggle-sm" bind:checked={loop} />
 		</Field>
 		<Field label="Random rotation">
 			<input
 				type="checkbox"
-				class="rotate-input"
+				class="rotate-input toggle toggle-sm"
 				aria-label="Random rotation"
 				bind:checked={rotate}
 			/>
 			<input
 				type="range"
-				class="rotate-max-input"
+				class="rotate-max-input range range-sm w-32"
 				aria-label="Maximum rotation"
 				min="1"
 				max="30"
@@ -354,10 +361,15 @@
 			/>
 		</Field>
 		<Field label="Random skew">
-			<input type="checkbox" class="skew-input" aria-label="Random skew" bind:checked={skew} />
+			<input
+				type="checkbox"
+				class="skew-input toggle toggle-sm"
+				aria-label="Random skew"
+				bind:checked={skew}
+			/>
 			<input
 				type="range"
-				class="skew-max-input"
+				class="skew-max-input range range-sm w-32"
 				aria-label="Maximum skew"
 				min="1"
 				max="30"
@@ -371,7 +383,9 @@
 		<ValidationList {entries} />
 	{/if}
 	<ShareLink hash={shareHash} />
-	<button type="button" class="start" disabled={!canStart} onclick={start}>Start</button>
+	<button type="button" class="start btn btn-primary btn-lg" disabled={!canStart} onclick={start}
+		>Start</button
+	>
 </div>
 
 <style>
@@ -383,21 +397,17 @@
 		flex-direction: column;
 		gap: 12px;
 	}
-	.code-input {
-		width: 100%;
-		font-family: monospace;
-	}
 	/* Each setting on its own line: label text on top, input(s) below, spaced apart. */
 	.settings-row {
 		display: flex;
 		flex-direction: column;
 		gap: 16px;
 	}
-	.start {
-		padding: 12px;
-		font-size: 1.1rem;
-	}
+	/* daisyUI dims a disabled btn to 1.39:1. Start keeps its primary look at half opacity, as
+	   before, so it stays recognizable while it waits for a valid code. */
 	.start:disabled {
+		background-color: var(--color-primary);
+		color: var(--color-primary-content);
 		opacity: 0.5;
 	}
 </style>
