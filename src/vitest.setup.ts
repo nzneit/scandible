@@ -1,3 +1,5 @@
+import '@testing-library/jest-dom/vitest';
+
 // jsdom returns null from canvas.getContext(); JsBarcode measures text through a 2D
 // context and would throw "Cannot set properties of null (setting 'font')". Provide a
 // minimal stub. Bar geometry is still meaningless under jsdom (no layout) — visual
