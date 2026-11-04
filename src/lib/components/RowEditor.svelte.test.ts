@@ -30,7 +30,14 @@ const mount = (
 	newRowFormat: FormatId = 'datamatrix'
 ) => {
 	const rows = $state(initial);
-	c = render(RowEditor, { props: { rows, newRowFormat } }).container;
+	c = render(RowEditor, {
+		props: {
+			get rows() {
+				return rows;
+			},
+			newRowFormat
+		}
+	}).container;
 };
 /** Queries in the latest render: a test may mount more than once. */
 const ui = () => within(c);
@@ -212,7 +219,15 @@ describe('RowEditor', () => {
 
 	it('shows Render if invalid for GS1 rows only, after the level select, bound to the row', async () => {
 		const rows = $state(deck('upc_036000291452', `gs1128_${S}`, `gs1qr-H_${S}`));
-		c = render(RowEditor, { props: { rows, newRowFormat: 'upc' } }).container;
+		const current = () => rows;
+		c = render(RowEditor, {
+			props: {
+				get rows() {
+					return rows;
+				},
+				newRowFormat: 'upc'
+			}
+		}).container;
 		expect(within(row(1)).queryByRole('checkbox', { name: 'Render code 1 if invalid' })).toBeNull();
 		expect(ui().getByRole('checkbox', { name: 'Render code 2 if invalid' })).not.toBeChecked();
 		expect(exactText(row(2), 'Render if invalid')!.trim()).toBe('Render if invalid');
@@ -225,7 +240,7 @@ describe('RowEditor', () => {
 				.map((box) => box.getAttribute('aria-label'))
 		).toEqual(['Render code 2 if invalid', 'Render code 3 if invalid']);
 		await fireEvent.click(ui().getByRole('checkbox', { name: 'Render code 2 if invalid' }));
-		expect(rows[1].lax).toBe(true);
+		expect(current()[1].lax).toBe(true);
 		expect(ui().getByRole('checkbox', { name: 'Render code 2 if invalid' })).toBeChecked();
 		const third = row(3);
 		const controls = [
@@ -246,6 +261,7 @@ describe('RowEditor', () => {
 
 	it('clears the flag when a row leaves GS1, and Add code starts a row with it off', async () => {
 		let rows = $state(deck(`gs1128-lax_${BAD}`));
+		const current = () => rows;
 		c = render(RowEditor, {
 			props: {
 				get rows() {
@@ -260,11 +276,11 @@ describe('RowEditor', () => {
 		expect(ui().getByRole('checkbox', { name: 'Render code 1 if invalid' })).toBeChecked();
 		await change(ui().getByRole('combobox', { name: 'Format of code 1' }), 'upc');
 		expect(within(row(1)).queryByRole('checkbox', { name: 'Render code 1 if invalid' })).toBeNull();
-		expect(rows[0].lax).toBe(false);
+		expect(current()[0].lax).toBe(false);
 		await change(ui().getByRole('combobox', { name: 'Format of code 1' }), 'gs1128');
 		expect(ui().getByRole('checkbox', { name: 'Render code 1 if invalid' })).not.toBeChecked();
 		await fireEvent.click(ui().getByRole('button', { name: 'Add code' }));
-		expect(rows[1]).toEqual({ payload: '', format: 'gs1128', ecc: '', lax: false });
+		expect(current()[1]).toEqual({ payload: '', format: 'gs1128', ecc: '', lax: false });
 	});
 
 	it('shows the rendered-anyway verdict for a lax row that fails lint', () => {
