@@ -31,13 +31,13 @@
 		type Settings,
 		type CodeEntry
 	} from '$lib/types';
-	import { formatSeconds, parseSeconds } from '$lib/seconds';
 	import { duplicateNeighbours } from '$lib/duplicates';
 	import ValidationList from '$lib/components/ValidationList.svelte';
 	import RowEditor from '$lib/components/RowEditor.svelte';
 	import ShareLink from '$lib/components/ShareLink.svelte';
 	import Field from '$lib/components/Field.svelte';
 	import Note from '$lib/components/Note.svelte';
+	import SecondsSlider from '$lib/components/SecondsSlider.svelte';
 
 	const decoded = decodeShareUrl(page.url);
 	const initial: Settings = { ...DEFAULT_SETTINGS, ...decoded.settings };
@@ -97,16 +97,6 @@
 		editor === 'rows' ? encodeRowsShareUrl(rows, settings) : encodeShareUrl(rawCodes, settings)
 	);
 
-	function onDwellSeconds(e: Event & { currentTarget: HTMLInputElement }): void {
-		const ms = parseSeconds(e.currentTarget.value, DWELL_RANGE);
-		if (ms !== null) dwellMs = ms;
-		e.currentTarget.value = (dwellMs / 1000).toFixed(2);
-	}
-	function onGapSeconds(e: Event & { currentTarget: HTMLInputElement }): void {
-		const ms = parseSeconds(e.currentTarget.value, GAP_RANGE);
-		if (ms !== null) gapMs = ms;
-		e.currentTarget.value = (gapMs / 1000).toFixed(2);
-	}
 	const dupPairs = $derived(
 		duplicateNeighbours(
 			entries.filter((e) => e.valid),
@@ -322,30 +312,14 @@
 		</Field>
 		{#if mode === 'step'}
 			<Field label="Dwell">
-				<input
-					type="range"
-					class="dwell-input"
-					aria-label="Dwell"
-					min={DWELL_RANGE.min}
-					max={DWELL_RANGE.max}
-					step={DWELL_RANGE.step}
-					aria-valuetext={formatSeconds(dwellMs)}
+				<SecondsSlider
 					bind:value={dwellMs}
+					range={DWELL_RANGE}
+					label="Dwell"
+					rangeAriaLabel="Dwell"
+					rangeClass="dwell-input"
+					secondsClass="dwell-seconds"
 				/>
-				<span class="seconds">
-					<input
-						type="number"
-						class="dwell-seconds"
-						inputmode="decimal"
-						min={DWELL_RANGE.min / 1000}
-						max={DWELL_RANGE.max / 1000}
-						step="0.01"
-						aria-label="Dwell in seconds"
-						value={(dwellMs / 1000).toFixed(2)}
-						onchange={onDwellSeconds}
-					/>
-					s
-				</span>
 			</Field>
 			{#if dwellMs < 330}
 				<Note class="flash-note" tone="warning">
@@ -354,30 +328,14 @@
 				</Note>
 			{/if}
 			<Field label="Gap">
-				<input
-					type="range"
-					class="gap-input"
-					aria-label="Gap"
-					min={GAP_RANGE.min}
-					max={GAP_RANGE.max}
-					step={GAP_RANGE.step}
-					aria-valuetext={formatSeconds(gapMs)}
+				<SecondsSlider
 					bind:value={gapMs}
+					range={GAP_RANGE}
+					label="Gap"
+					rangeAriaLabel="Gap"
+					rangeClass="gap-input"
+					secondsClass="gap-seconds"
 				/>
-				<span class="seconds">
-					<input
-						type="number"
-						class="gap-seconds"
-						inputmode="decimal"
-						min={GAP_RANGE.min / 1000}
-						max={GAP_RANGE.max / 1000}
-						step="0.01"
-						aria-label="Gap in seconds"
-						value={(gapMs / 1000).toFixed(2)}
-						onchange={onGapSeconds}
-					/>
-					s
-				</span>
 			</Field>
 			{#if gapMs < 1000 && dupPairs.length > 0}
 				<Note class="dup-hint" tone="warning">{dupHint}</Note>
@@ -454,11 +412,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: 16px;
-	}
-	.seconds {
-		display: flex;
-		align-items: center;
-		gap: 4px;
 	}
 	.start {
 		padding: 12px;

@@ -7,12 +7,13 @@
 	import { rowEntries } from '$lib/rows';
 	import { decodeShareUrl, encodeRowsShareUrl, encodeShareUrl } from '$lib/shareUrl';
 	import { formatFinishMessage, formatStepFinishMessage } from '$lib/finish';
-	import { formatSeconds, parseSeconds } from '$lib/seconds';
+	import { formatSeconds } from '$lib/seconds';
 	import { DEFAULT_SETTINGS, DWELL_RANGE, GAP_RANGE, type Settings } from '$lib/types';
 	import type { Player } from '$lib/player';
 	import type { StepSummary } from '$lib/stepper';
 	import ScrollColumn, { type ScrollColumnHandle } from '$lib/components/ScrollColumn.svelte';
 	import StepStage, { type StepStageHandle } from '$lib/components/StepStage.svelte';
+	import SecondsSlider from '$lib/components/SecondsSlider.svelte';
 
 	const OVERLAY_IDLE_MS = 3000;
 
@@ -123,22 +124,6 @@
 			toggle();
 		}
 	}
-	function onDwellSeconds(e: Event & { currentTarget: HTMLInputElement }): void {
-		const ms = parseSeconds(e.currentTarget.value, DWELL_RANGE);
-		if (ms !== null) {
-			dwell = ms;
-			step?.setDwell(dwell);
-		}
-		e.currentTarget.value = (dwell / 1000).toFixed(2);
-	}
-	function onGapSeconds(e: Event & { currentTarget: HTMLInputElement }): void {
-		const ms = parseSeconds(e.currentTarget.value, GAP_RANGE);
-		if (ms !== null) {
-			gap = ms;
-			step?.setGap(gap);
-		}
-		e.currentTarget.value = (gap / 1000).toFixed(2);
-	}
 	// $derived.by, not $derived: at the top level TypeScript narrows `finish` and `stepFinish` to
 	// their initial null, and only a closure sees their declared types.
 	const finishText = $derived.by(() =>
@@ -201,55 +186,29 @@
 				<button type="button" class="ctl-next" onclick={() => step?.next()}>Next</button>
 				<div class="ctl-group">
 					<span>Dwell</span>
-					<input
-						type="range"
-						class="ctl-dwell"
-						min={DWELL_RANGE.min}
-						max={DWELL_RANGE.max}
-						step={DWELL_RANGE.step}
-						aria-label="Dwell"
-						aria-valuetext={formatSeconds(dwell)}
+					<SecondsSlider
 						bind:value={dwell}
-						oninput={() => step?.setDwell(dwell)}
+						range={DWELL_RANGE}
+						label="Dwell"
+						rangeAriaLabel="Dwell"
+						rangeClass="ctl-dwell"
+						secondsClass="ctl-dwell-seconds"
+						size="xs"
+						onchange={(ms) => step?.setDwell(ms)}
 					/>
-					<input
-						type="number"
-						class="ctl-dwell-seconds"
-						inputmode="decimal"
-						min={DWELL_RANGE.min / 1000}
-						max={DWELL_RANGE.max / 1000}
-						step="0.01"
-						aria-label="Dwell in seconds"
-						value={(dwell / 1000).toFixed(2)}
-						onchange={onDwellSeconds}
-					/>
-					<span>s</span>
 				</div>
 				<div class="ctl-group">
 					<span>Gap</span>
-					<input
-						type="range"
-						class="ctl-gap"
-						min={GAP_RANGE.min}
-						max={GAP_RANGE.max}
-						step={GAP_RANGE.step}
-						aria-label="Gap"
-						aria-valuetext={formatSeconds(gap)}
+					<SecondsSlider
 						bind:value={gap}
-						oninput={() => step?.setGap(gap)}
+						range={GAP_RANGE}
+						label="Gap"
+						rangeAriaLabel="Gap"
+						rangeClass="ctl-gap"
+						secondsClass="ctl-gap-seconds"
+						size="xs"
+						onchange={(ms) => step?.setGap(ms)}
 					/>
-					<input
-						type="number"
-						class="ctl-gap-seconds"
-						inputmode="decimal"
-						min={GAP_RANGE.min / 1000}
-						max={GAP_RANGE.max / 1000}
-						step="0.01"
-						aria-label="Gap in seconds"
-						value={(gap / 1000).toFixed(2)}
-						onchange={onGapSeconds}
-					/>
-					<span>s</span>
 				</div>
 			{:else}
 				<input
@@ -315,14 +274,6 @@
 		display: flex;
 		align-items: center;
 		gap: 6px;
-	}
-	.ctl-dwell,
-	.ctl-gap {
-		width: 110px;
-	}
-	.ctl-dwell-seconds,
-	.ctl-gap-seconds {
-		width: 4.5em;
 	}
 	.readout {
 		position: fixed;
