@@ -258,6 +258,7 @@
 	{#if editor === 'text'}
 		<textarea
 			class="code-input"
+			aria-label="Codes"
 			rows="8"
 			{placeholder}
 			bind:value={text}
@@ -265,7 +266,13 @@
 	{:else}
 		<RowEditor bind:rows newRowFormat={format} />
 	{/if}
-	<input type="file" class="file-input" accept=".txt,.csv" onchange={onFileChange} />
+	<input
+		type="file"
+		class="file-input"
+		accept=".txt,.csv"
+		aria-label="Load codes from a file"
+		onchange={onFileChange}
+	/>
 	<p class="file-error" hidden={!fileError}>{fileError}</p>
 	<div class="settings-row">
 		<label class="field"
@@ -322,6 +329,7 @@
 				<input
 					type="range"
 					class="dwell-input"
+					aria-label="Dwell"
 					min={DWELL_RANGE.min}
 					max={DWELL_RANGE.max}
 					step={DWELL_RANGE.step}
@@ -354,6 +362,7 @@
 				<input
 					type="range"
 					class="gap-input"
+					aria-label="Gap"
 					min={GAP_RANGE.min}
 					max={GAP_RANGE.max}
 					step={GAP_RANGE.step}
@@ -397,10 +406,16 @@
 		</label>
 		<label class="field"
 			>Random rotation
-			<input type="checkbox" class="rotate-input" bind:checked={rotate} />
+			<input
+				type="checkbox"
+				class="rotate-input"
+				aria-label="Random rotation"
+				bind:checked={rotate}
+			/>
 			<input
 				type="range"
 				class="rotate-max-input"
+				aria-label="Maximum rotation"
 				min="1"
 				max="30"
 				step="1"
@@ -410,10 +425,11 @@
 		</label>
 		<label class="field"
 			>Random skew
-			<input type="checkbox" class="skew-input" bind:checked={skew} />
+			<input type="checkbox" class="skew-input" aria-label="Random skew" bind:checked={skew} />
 			<input
 				type="range"
 				class="skew-max-input"
+				aria-label="Maximum skew"
 				min="1"
 				max="30"
 				step="1"

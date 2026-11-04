@@ -7,7 +7,7 @@
 	let { entries }: { entries: CodeEntry[] } = $props();
 </script>
 
-<ul class="validation-list">
+<ul class="validation-list" aria-label="Validation results">
 	{#each entries as entry, i (i)}
 		<!-- No whitespace between the verdict and the breakdown: the li text stays as it was. -->
 		<li class={entry.lint !== undefined ? 'lenient' : entry.valid ? 'valid' : 'invalid'}>

@@ -2,6 +2,7 @@ import prettier from 'eslint-config-prettier';
 import path from 'node:path';
 import js from '@eslint/js';
 import svelte from 'eslint-plugin-svelte';
+import testingLibrary from 'eslint-plugin-testing-library';
 import { defineConfig, includeIgnoreFile } from 'eslint/config';
 import globals from 'globals';
 import ts from 'typescript-eslint';
@@ -34,6 +35,18 @@ export default defineConfig(
 				svelteConfig
 			}
 		}
+	},
+	{
+		linterOptions: { reportUnusedDisableDirectives: 'error' }
+	},
+	{
+		...testingLibrary.configs['flat/svelte'],
+		files: ['src/routes/**/*.test.ts', 'src/lib/components/**/*.test.ts'],
+		ignores: [
+			// Stage tests: their classes are the engine-to-CSS contract (CONTRIBUTING.md, Writing tests).
+			'src/lib/components/ScrollColumn.test.ts',
+			'src/lib/components/StepStage.test.ts'
+		]
 	},
 	{
 		// Override or add rule settings here, such as:

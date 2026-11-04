@@ -1,11 +1,32 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render } from '@testing-library/svelte';
+import { render, within } from '@testing-library/svelte';
 import ValidationList from './ValidationList.svelte';
 import type { CodeEntry, SymbolFacts } from '$lib/types';
 import type { FormatId } from '$lib/formats';
 import { parseCodeList } from '$lib/codes';
 import { SCAN_HINT } from '$lib/verdict';
 import { GS } from '$lib/gs1';
+
+const BREAKDOWN = /^Code \d+ breakdown: /; // the labelled summary, whose text varies
+const HEADER = 'Application Identifier Name Value'; // the breakdown header row's computed name
+/** The raw textContent of the element in `scope` whose trimmed text is `text`. */
+const exactText = (scope: HTMLElement, text: string) =>
+	within(scope).getByText(text.trim()).textContent;
+/** The validation list's items in the render whose container is `c`. */
+const items = (c: HTMLElement) =>
+	within(within(c).getByRole('list', { name: 'Validation results' })).getAllByRole('listitem');
+/** The body rows of the one breakdown table in `scope`, each as its cells' text. */
+const bodyRows = (scope: HTMLElement) => {
+	const header = within(scope).getByRole('row', { name: HEADER });
+	return within(scope)
+		.getAllByRole('row')
+		.filter((row) => row !== header)
+		.map((row) =>
+			[...within(row).queryAllByRole('rowheader'), ...within(row).getAllByRole('cell')].map(
+				(cell) => cell.textContent
+			)
+		);
+};
 
 const entry = (raw: string, valid: boolean): CodeEntry => ({
 	raw,
@@ -16,21 +37,25 @@ const entry = (raw: string, valid: boolean): CodeEntry => ({
 });
 
 describe('ValidationList', () => {
-	it('renders one li per entry with valid/invalid classes and copy', () => {
+	it('renders one item per entry with its verdict and copy', () => {
 		const { container } = render(ValidationList, {
 			entries: [entry('036000291452', true), entry('bad', false)]
 		});
-		const items = container.querySelectorAll('.validation-list li');
-		expect(items.length).toBe(2);
-		expect(items[0].classList.contains('valid')).toBe(true);
-		expect(items[0].textContent).toBe('036000291452 ✓');
-		expect(items[1].classList.contains('invalid')).toBe(true);
-		expect(items[1].textContent).toBe('bad ✗ invalid');
+		const [first, second] = items(container);
+		expect(items(container)).toHaveLength(2);
+		expect(exactText(first, ' ✓')).toBe(' ✓');
+		expect(first.textContent).toBe('036000291452 ✓');
+		expect(exactText(second, ' ✗ invalid')).toBe(' ✗ invalid');
+		expect(second.textContent).toBe('bad ✗ invalid');
 	});
 
 	it('renders no items for an empty list', () => {
 		const { container } = render(ValidationList, { entries: [] });
-		expect(container.querySelectorAll('.validation-list li').length).toBe(0);
+		expect(
+			within(within(container).getByRole('list', { name: 'Validation results' })).queryAllByRole(
+				'listitem'
+			)
+		).toHaveLength(0);
 	});
 
 	it('shows the exact arrow row when the encoder mutates the value', () => {
@@ -46,9 +71,7 @@ describe('ValidationList', () => {
 				}
 			]
 		});
-		expect(container.querySelector('.validation-list li')?.textContent).toBe(
-			'590123412345 ✓ → 5901234123457'
-		);
+		expect(items(container)[0].textContent).toBe('590123412345 ✓ → 5901234123457');
 	});
 
 	it('keeps entries without encoded arrow-free (undefined guard)', () => {
@@ -57,7 +80,7 @@ describe('ValidationList', () => {
 				{ raw: '036000291452', value: '036000291452', format: 'upc', options: {}, valid: true }
 			]
 		});
-		expect(container.querySelector('.validation-list li')?.textContent).toBe('036000291452 ✓');
+		expect(items(container)[0].textContent).toBe('036000291452 ✓');
 	});
 });
 
@@ -87,9 +110,7 @@ const tooLong = (raw: string, format: FormatId, ecc?: string): CodeEntry => ({
 	reason: 'too-long'
 });
 const rowTexts = (entries: CodeEntry[]) =>
-	[...render(ValidationList, { entries }).container.querySelectorAll('.validation-list li')].map(
-		(li) => li.textContent
-	);
+	items(render(ValidationList, { entries }).container).map((li) => li.textContent);
 const X2000 = 'x'.repeat(2000);
 const DENSE_HINT =
 	'Dense: more than 100 modules across (PDF417 and the linear GS1 formats: 300), so each module is small on screen. If the scanner misses these, shorten the payload, lower error correction if the format offers it, or go full screen.';
@@ -146,10 +167,10 @@ describe('ValidationList 2D rows', () => {
 		expect(rowTexts([tooLong(X2000, 'qr')])).toEqual([`${X2000} ✗ too long for QR Code`]);
 	});
 
-	it('splits each row into a raw span and a verdict span that starts with a space', () => {
+	it("separates each row's raw text from its verdict with a space", () => {
 		const { container } = render(ValidationList, { entries: [qrHello] });
-		expect(container.querySelector('li .raw')?.textContent).toBe('hello world');
-		expect(container.querySelector('li .verdict')?.textContent).toBe(
+		expect(exactText(container, 'hello world')).toBe('hello world');
+		expect(exactText(container, ' ✓ · 21×21 modules · 11 bytes')).toBe(
 			' ✓ · 21×21 modules · 11 bytes'
 		);
 	});
@@ -157,15 +178,14 @@ describe('ValidationList 2D rows', () => {
 	it('renders no arrow for entries without encoded', () => {
 		const entries = [qrHello, qrDense, entry('036000291452', true)];
 		const { container } = render(ValidationList, { entries });
-		for (const v of container.querySelectorAll('.verdict'))
-			expect(v.textContent).not.toContain('→');
+		// The raw texts hold no arrow, so an arrow in an item is an arrow in its verdict.
+		for (const item of items(container)) expect(item).not.toHaveTextContent('→');
 	});
 
 	it('shows the dense hint only when an entry is dense', () => {
-		const hint = (entries: CodeEntry[]) =>
-			render(ValidationList, { entries }).container.querySelector('.dense-hint');
-		expect(hint([qrHello, qrDense])?.textContent).toBe(DENSE_HINT);
-		expect(hint([qrHello])).toBeNull();
+		const hint = (entries: CodeEntry[]) => render(ValidationList, { entries }).container;
+		expect(within(hint([qrHello, qrDense])).getByText(DENSE_HINT).textContent).toBe(DENSE_HINT);
+		expect(within(hint([qrHello])).queryByText(DENSE_HINT)).toBeNull();
 	});
 });
 
@@ -176,58 +196,55 @@ describe('ValidationList GS1 rows', () => {
 	const list = (text: string, lax: boolean) =>
 		render(ValidationList, { entries: parseCodeList(text, 'gs1128', '', lax) }).container;
 
-	it('classes a lax render lenient and shows the scan hint for GS1 entries', () => {
+	it('shows a lax render as rendered anyway, and the scan hint for GS1 entries', () => {
 		const c = list(`${S}\n(01)09501101530004`, true);
-		const items = [...c.querySelectorAll('.validation-list li')];
-		expect(
-			items.map((li) =>
-				[...li.classList].filter((c) => ['valid', 'invalid', 'lenient'].includes(c))
-			)
-		).toEqual([['valid'], ['lenient']]);
-		expect(items[1].querySelector('.raw')!.textContent).toBe('(01)09501101530004');
-		expect(items[1].querySelector('.verdict')!.textContent).toBe(
-			' ⚠ rendered anyway · (01) GTIN: Bad checksum · 134 modules wide · 16 characters → ]C1 0109501101530004'
+		const VALID_S = ' ✓ · 255 modules wide · 31 characters → ]C1 01095011015300031726123110LOT42';
+		const LENIENT =
+			' ⚠ rendered anyway · (01) GTIN: Bad checksum · 134 modules wide · 16 characters → ]C1 0109501101530004';
+		expect(items(c)).toHaveLength(2);
+		expect(exactText(items(c)[0], VALID_S)).toBe(VALID_S);
+		expect(exactText(items(c)[1], '(01)09501101530004')).toBe('(01)09501101530004');
+		expect(exactText(items(c)[1], LENIENT)).toBe(LENIENT);
+		expect(within(c).getByText(SCAN_HINT).textContent).toBe(SCAN_HINT);
+		const strict = list('(01)09501101530004', false);
+		expect(exactText(items(strict)[0], ' ✗ (01) GTIN: Bad checksum')).toBe(
+			' ✗ (01) GTIN: Bad checksum'
 		);
-		expect(c.querySelector('.scan-hint')?.textContent).toBe(SCAN_HINT);
-		expect(list('(01)09501101530004', false).querySelectorAll('li.invalid').length).toBe(1);
 	});
 
 	it('shows no scan hint without a GS1 entry, invalid GS1 rows included', () => {
 		expect(
-			render(ValidationList, { entries: [qrHello] }).container.querySelector('.scan-hint')
+			within(render(ValidationList, { entries: [qrHello] }).container).queryByText(SCAN_HINT)
 		).toBeNull();
-		expect(list('(01)09501101530003(10', false).querySelector('.scan-hint')).toBeNull();
+		expect(within(list('(01)09501101530003(10', false)).queryByText(SCAN_HINT)).toBeNull();
 	});
 
 	it('shows a GS character as the mark in the raw text, and the textual notation as typed', () => {
 		const c = list(`10LOT42${GS}0109501101530003\n10LOT42<GS>0109501101530003`, false);
-		expect([...c.querySelectorAll('.raw')].map((el) => el.textContent)).toEqual([
-			'10LOT42␝0109501101530003',
-			'10LOT42<GS>0109501101530003'
-		]);
+		const [first, second] = items(c);
+		expect(items(c)).toHaveLength(2);
+		expect(exactText(first, '10LOT42␝0109501101530003')).toBe('10LOT42␝0109501101530003');
+		expect(exactText(second, '10LOT42<GS>0109501101530003')).toBe('10LOT42<GS>0109501101530003');
 	});
 
 	it('puts a labelled breakdown under each GS1 entry and none under other rows', () => {
 		const c = list(`${S}\n(01)09501101530004\nbad`, true);
-		const items = [...c.querySelectorAll('.validation-list li')];
-		expect([...c.querySelectorAll('summary')].map((el) => el.getAttribute('aria-label'))).toEqual([
+		expect(
+			within(c)
+				.getAllByLabelText(BREAKDOWN)
+				.map((s) => s.getAttribute('aria-label'))
+		).toEqual([
 			'Code 1 breakdown: 3 Application Identifiers',
 			'Code 2 breakdown: 1 Application Identifier'
 		]);
-		expect(items[2].querySelector('details')).toBeNull();
-		const rows = [...items[0].querySelectorAll('tbody tr')].map((tr) =>
-			[...tr.querySelectorAll('th, td')].map((td) => td.textContent)
-		);
-		expect(rows).toContainEqual(['(17)', 'USE BY or EXPIRY', '2026-12-31']);
+		expect(within(items(c)[2]).queryByLabelText(BREAKDOWN)).toBeNull();
+		expect(bodyRows(items(c)[0])).toContainEqual(['(17)', 'USE BY or EXPIRY', '2026-12-31']);
 	});
 
 	it('breaks down the scanned 14-digit GTIN for a 13-digit DataBar value', () => {
-		const c = render(ValidationList, {
+		const { container } = render(ValidationList, {
 			entries: parseCodeList('(01)0950110153000', 'databaromni')
-		}).container;
-		const first = [...c.querySelector('tbody tr')!.querySelectorAll('th, td')].map(
-			(td) => td.textContent
-		);
-		expect(first).toEqual(['(01)', 'GTIN', '09501101530003']);
+		});
+		expect(bodyRows(container)[0]).toEqual(['(01)', 'GTIN', '09501101530003']);
 	});
 });
