@@ -7,7 +7,7 @@ _Series_ section is the canonical list of what remains), `docs/superpowers/plans
 on), and the memory file `scandible-gs1-series.md` in the Claude memory directory (the user's
 decisions for the series, in one place).
 
-**Status:** **Open** — 10 items as of 2026-11-04 (T1 and T2 closed on 2026-11-03; T4, Q2, F1 and F3 on 2026-11-04), written the hour after PR #4 (spec 1, the GS1
+**Status:** **Open** — 8 of 14 items open as of 2026-11-04 (T1 and T2 closed on 2026-11-03; T4, Q2, F1 and F3 on 2026-11-04), written the hour after PR #4 (spec 1, the GS1
 carriers) was squash-merged to `main` as `9cedd6d`. **Tier 1 blocks the fresh session itself**: the
 local checkout is behind `origin/main` and a merged worktree is still registered. Tier 2 is the
 series work in the recommended order. Tier 3 needs a person with a scanner and cannot be done by

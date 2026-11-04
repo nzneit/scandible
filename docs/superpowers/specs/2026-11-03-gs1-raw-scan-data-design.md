@@ -3,7 +3,7 @@
 **Date:** 2026-11-03
 **Status:** Design agreed in conversation on 2026-11-03 and revised the same day after a four-lens
 review on Sonnet subagents (codebase fit, GS1 and decoding correctness, UX and copy, internal
-coherence) and one Sonnet re-review, judged by the author; approved by the user on 2026-11-03.
+coherence) and one Sonnet re-review, judged by the author; approved by the user on 2026-11-03. Corrected on 2026-11-04 after the final review: the licence file's copyright lines, the table's size, the bare 13-digit edge case, the narrow-screen CSS and the open-while-edited claim.
 Spec 2 of the four-spec GS1 series (see _Series_).
 **Builds on:** spec 1, [`2026-11-03-gs1-carriers-design.md`](2026-11-03-gs1-carriers-design.md),
 merged as `9cedd6d`; its measurements note is cited as _measurements §n_. Facts measured for this
@@ -177,8 +177,7 @@ Upgrading means changing `RELEASE` and `SHA256`, re-running the script and commi
 ```
 
 One record per dictionary entry, 224 in all, ranges kept as written (M3). `title` is absent on
-(8110) and (8112). `.prettierignore` lists the file, since it is generated. Compact, it is 28.6 KB,
-3.2 KB gzipped (M4); Vite bundles it compact into both pages, since the play page builds entries
+(8110) and (8112). `.prettierignore` lists the file, since it is generated. Compact, it is 31.5 KB, 3.1 KB gzipped (M4); Vite bundles it compact into both pages, since the play page builds entries
 too. The lookup module casts the imported JSON to its record type; JSON imports type `cset` as a
 plain string, and the parity tests pin every value the cast narrows.
 
@@ -237,7 +236,7 @@ script (_Verification_, row 2).
 ### Licence
 
 `LICENSES/gs1-syntax-dictionary-Apache-2.0.txt` holds the `LICENSE` file of the dictionary
-repository at the release tag, preceded by one line naming the source and release. The README
+repository at the release tag, preceded by one line naming the source and release and by the dictionary's three copyright lines, copied from its header. The README
 credits GS1. The app's own licence stays MIT.
 
 ## Reading input — `src/lib/gs1.ts`, `src/lib/codes.ts`, `src/lib/types.ts`
@@ -349,8 +348,7 @@ The splitter does not check a variable field's maximum length or character set; 
 - **`01` and a 13-digit GTIN as raw input**, such as `010950110153000`, is refused with
   `(01) takes 14 characters; only 13 follow`, by design: the splitter treats (01) as a fixed 14-character field with no exception per carrier,
   and a scanner always sends 14. Bracketed, the five GTIN-only DataBar formats still accept 13
-  digits; the other six refuse them anyway (`AI 01: Too short`). A bare 13-digit string, without
-  the `01`, gets the bare-GTIN message below.
+  digits; the other six refuse them anyway (`AI 01: Too short`). A bare 13-digit string, without the `01`, gets the bare-GTIN message below only when its first digits spell no AI; otherwise it reads as the AI they spell, such as `4006381333931` as (400) or `0036000291452` as an (00) with too few characters.
 - **A bare GTIN**, such as `09501101530003`, is refused with
   `No GS1 AI starts at "09501101…"; GS1 data starts with an AI, such as 01 before a GTIN`.
 - **Mixed forms.** Raw data with brackets later, such as `0109501101530003(10)LOT42`, is refused
@@ -462,9 +460,7 @@ name, which keeps the visible text: with `label` `Code 3 breakdown`, the summary
   keep their place in the table and hide only their text, with a clip-based `visually-hidden`
   class the component defines; the header row has no padding or border, so it takes no visible
   space. An untitled AI's name cell shows `—`.
-- **Narrow screens.** The table is `width: 100%` and every cell wraps (`overflow-wrap: anywhere`),
-  so at 360 px wide the list never scrolls sideways. Titles, at most 25 characters (M7), wrap at
-  their spaces; long values wrap anywhere.
+- **Narrow screens.** The table is `width: 100%`. The AI cell does not wrap, titles wrap at their spaces (at most 25 characters, M7), and the value cell and the stop row wrap anywhere (`overflow-wrap: anywhere`). `.gs1-breakdown` is `position: relative`, so the hidden header text stays inside the list's scroller. The verdict lines in the list and the row editor also wrap anywhere, since the scan data after → has no spaces. So at 360 px wide neither the list nor the editor scrolls sideways.
 - **Closed by default.** The open state lives in the element only. It is neither saved nor shared.
 - **Colour.** `.gs1-breakdown { color: CanvasText }` in the component's scoped CSS. The validation
   list colours each whole `li` green, red or amber, and the breakdown must not inherit that; the
@@ -481,7 +477,7 @@ Placement:
 - **Row editor.** After `.row-controls`, inside `li.row`, when the row's entry has `gs1`, with
   `label` `Code N breakdown`. It sits outside the verdict span, so the payload's description stays
   one line, and it comes after the row's controls in tab order. Rows are keyed by object, so a
-  breakdown stays open while its payload is edited.
+  breakdown stays open while its payload is edited, as long as the code stays drawable; an edit that makes it invalid removes the breakdown, which returns closed.
 - **Play page.** None.
 
 ## Verdict and hints — `src/lib/verdict.ts`, `ValidationList.svelte`, `RowEditor.svelte`, `src/routes/+page.svelte`
@@ -719,7 +715,7 @@ author only.
   541 AIs. BWIPP's `gs1syntax` holds the same 541 AIs, none missing on either side, with
   identical fields. (8110) and (8112) have no title. 15 entries have no flags column, 20 titles
   contain `#`, and 17 titles hold non-ASCII characters (`m²`, `m³`).
-- **M4. Table size.** The conversion written as compact JSON is 28 559 bytes, 3 225 gzipped.
+- **M4. Table size.** The conversion written as compact JSON is 31 533 bytes, 3 123 gzipped.
 - **M5. Structure.** No AI is a prefix of another; AIs are two, three or four digits. The AIs
   flagged `*` are exactly those whose first two digits are among the 22 predefined-length
   prefixes; four of those prefixes, `04`, `14`, `18` and `19`, have no AI assigned. Every `*` AI
