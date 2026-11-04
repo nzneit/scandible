@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, within } from '@testing-library/svelte';
+import { render, screen, within } from '@testing-library/svelte';
 import ValidationList from './ValidationList.svelte';
 import type { CodeEntry, SymbolFacts } from '$lib/types';
 import type { FormatId } from '$lib/formats';
@@ -50,11 +50,9 @@ describe('ValidationList', () => {
 	});
 
 	it('renders no items for an empty list', () => {
-		const { container } = render(ValidationList, { entries: [] });
+		render(ValidationList, { entries: [] });
 		expect(
-			within(within(container).getByRole('list', { name: 'Validation results' })).queryAllByRole(
-				'listitem'
-			)
+			within(screen.getByRole('list', { name: 'Validation results' })).queryAllByRole('listitem')
 		).toHaveLength(0);
 	});
 
@@ -229,11 +227,7 @@ describe('ValidationList GS1 rows', () => {
 
 	it('puts a labelled breakdown under each GS1 entry and none under other rows', () => {
 		const c = list(`${S}\n(01)09501101530004\nbad`, true);
-		expect(
-			within(c)
-				.getAllByLabelText(BREAKDOWN)
-				.map((s) => s.getAttribute('aria-label'))
-		).toEqual([
+		expect(screen.getAllByLabelText(BREAKDOWN).map((s) => s.getAttribute('aria-label'))).toEqual([
 			'Code 1 breakdown: 3 Application Identifiers',
 			'Code 2 breakdown: 1 Application Identifier'
 		]);
