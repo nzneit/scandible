@@ -18,6 +18,14 @@ vi.mock('bwip-js/browser', async (importOriginal) => {
 	};
 });
 
+// This file alone gets 20 s per test instead of Vitest's 5 s default. Several of its tests run
+// bwip-js on payloads near each symbol's capacity, and BWIPP is about seven times slower under
+// jsdom than in Node or a browser: the raw azteccode call on x × 3500 at ≥23% error correction
+// takes 219 ms in Vitest's Node environment and 1,569 ms under jsdom (measured 2026-11-04). On
+// GitHub's runners that row took 4.2 s, then passed the 5 s default and failed CI. The fixtures
+// are measured values and must not be shortened to fit the timeout.
+vi.setConfig({ testTimeout: 20_000 });
+
 function row(id: FormatId): BwipDescriptor {
 	const d = FORMAT_BY_ID.get(id);
 	if (d?.engine !== 'bwipjs') throw new Error(`${id} is not a bwip-js row`);
