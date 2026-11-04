@@ -20,7 +20,30 @@ npm run stage-check  # compare the play stage with main in headless Firefox
 - **SvelteKit** and **Svelte 5** (static-adapter SPA, TypeScript)
 - **JsBarcode** for the 21 linear formats (inline SVG)
 - **bwip-js** 4.11.4 for the 2D and GS1 formats (inline SVG)
+- **Tailwind CSS** 4.3.4 and **daisyUI** 5.7.50 for styling, with one light theme, Instrument, in
+  `src/styles.css`
 - **Vitest** and **@testing-library/svelte** (jsdom) for the unit tests
+
+## Styling
+
+Tailwind CSS and daisyUI style the app. `src/styles.css` holds the one theme, **Instrument**, and
+the few overrides of daisyUI's defaults.
+
+- Write Tailwind and daisyUI classes only in `.svelte` files. Tailwind scans no other files, so a
+  class written in a `.ts` file is never generated.
+- Take every color from the theme tokens: `text-success`, `bg-base-200`, `btn-primary` and so on
+  in classes, `var(--color-…)` in CSS. `src/colors.test.ts` fails on a raw color in a component.
+- The barcode stage, the finish screen and the share QR stay literal black on white, whatever the
+  theme. Put no daisyUI or Tailwind class on `ScrollColumn`, `StepStage` or the DOM that
+  `scroller.ts` and `stepper.ts` build.
+- Run `npm run stage-check` after any change that could touch the play page. It builds `main` and
+  the current tree and compares the stage in headless Firefox (`firefox` on your `PATH`): pixel for
+  pixel in Step mode, by barcode size in Scroll mode. It exits 0 on a pass, 1 on a mismatch and 2
+  when it could not verify; an unverified run is not a pass. To compare with another commit, name
+  it: `npm run stage-check -- <commit>`.
+- `npm run build` runs `scripts/check-css.ts` afterwards. The build fails if Tailwind's `hidden`
+  utility returns (the play overlay fades with a class of that name), if a theme other than
+  Instrument ships, or if a theme token is missing.
 
 ## Writing tests
 
