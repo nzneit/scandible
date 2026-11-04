@@ -14,7 +14,8 @@ quick start, see the [README](../README.md).
 7. [Scanning 2D symbols](#scanning-2d-symbols)
 8. [GS1](#gs1)
 9. [Sharing a test deck](#sharing-a-test-deck)
-10. [Scanner settings and troubleshooting](#scanner-settings-and-troubleshooting)
+10. [Browser support](#browser-support)
+11. [Scanner settings and troubleshooting](#scanner-settings-and-troubleshooting)
 
 ## Entering codes
 
@@ -346,6 +347,11 @@ the row renders invalid GS1 data:
 ```
 #r1=upc_012345678905&r2=qr-H_…&r3=gs1128-lax_…
 ```
+
+## Browser support
+
+scandible needs Chrome or Edge 111, Safari 16.4, or Firefox 128, or a later version. In older
+browsers the pages can lose their colors or layout.
 
 ## Scanner settings and troubleshooting
 

@@ -1,4 +1,6 @@
 <script lang="ts">
+	import Field from './Field.svelte';
+	import Note from './Note.svelte';
 	import { buildQrSvg, qrStatus, QR_CAPACITY_BYTES, type QrEcc, type QrStatus } from '$lib/qr';
 
 	const COPY_OK = 'Link copied.';
@@ -42,34 +44,39 @@
 	}
 </script>
 
-<div class="share-row">
-	<button type="button" class="copy-link" onclick={share}>Share link</button>
-	<input type="text" class="share-url" readonly aria-label="Share link" value={liveUrl} />
-	<span class="copy-status" role="status" aria-label="Copy status">{copyStatus}</span>
+<div class="share-row flex flex-wrap items-center gap-2">
+	<button type="button" class="copy-link btn btn-sm" onclick={share}>Share link</button>
+	<input
+		type="text"
+		class="share-url input input-sm min-w-0 flex-1 font-mono"
+		readonly
+		aria-label="Share link"
+		value={liveUrl}
+	/>
+	<span class="copy-status basis-full" role="status" aria-label="Copy status">{copyStatus}</span>
 </div>
-<label class="share-ecc-field"
-	>Share QR error correction
-	<select class="share-ecc-input" bind:value={shareEcc}>
+<Field label="Share QR error correction" class="share-ecc-field">
+	<select class="share-ecc-input select select-sm w-auto" bind:value={shareEcc}>
 		<option value="L">L (most capacity)</option>
 		<option value="M">M (default)</option>
 		<option value="Q">Q</option>
 		<option value="H">H</option>
 	</select>
-</label>
-<div class="qr-code" role="img" hidden={!qrSvg} aria-label="QR code for the share link">
+</Field>
+<div
+	class="qr-code border border-base-300"
+	role="img"
+	hidden={!qrSvg}
+	aria-label="QR code for the share link"
+>
 	<!-- eslint-disable-next-line svelte/no-at-html-tags -- qrSvg comes only from uqr's renderSVG, which never reflects its input into markup (security-reviewed) -->
 	{@html qrSvg}
 </div>
-<p class="qr-status" role="status" aria-label="QR code status">{statusMessage(status)}</p>
+<Note tone="warning" class="qr-status mt-1" role="status" aria-label="QR code status"
+	>{statusMessage(status)}</Note
+>
 
 <style>
-	.share-url {
-		flex: 1;
-		font-family: monospace;
-	}
-	.copy-status {
-		margin-left: 8px;
-	}
 	.qr-code {
 		background: #fff;
 		padding: 12px;
@@ -79,9 +86,5 @@
 		width: 100%;
 		height: auto;
 		display: block;
-	}
-	.qr-status {
-		color: #a04b00;
-		margin: 4px 0 0;
 	}
 </style>

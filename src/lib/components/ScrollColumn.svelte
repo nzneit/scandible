@@ -11,6 +11,7 @@
 	import { onMount } from 'svelte';
 	import { createScroller, type Scroller } from '$lib/scroller';
 	import type { Settings, CodeEntry } from '$lib/types';
+	import './barcode-caps.css';
 
 	let {
 		entries,
@@ -74,18 +75,5 @@
 		display: flex;
 		justify-content: center;
 		padding: 40vh 0; /* generous: isolates one barcode in the scan zone */
-	}
-	.scroll-column :global(.barcode-item svg) {
-		max-width: min(90vw, 640px);
-		height: auto;
-	}
-	.scroll-column :global(.barcode-item--2d svg) {
-		max-width: min(90vw, 640px);
-		max-height: 60vh;
-		width: auto;
-		height: auto;
-	}
-	.scroll-column :global(.barcode-item--pdf417 svg) {
-		max-width: min(95vw, 960px); /* PDF417 is wide: 18 data columns = 375 X-modules */
 	}
 </style>

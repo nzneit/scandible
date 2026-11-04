@@ -12,6 +12,7 @@ npm run lint     # Prettier check + ESLint
 npm run build    # production build to dist/
 npm run preview  # serve the production build locally
 npm run gs1-ais  # regenerate src/lib/gs1-ais.json from the pinned GS1 Syntax Dictionary
+npm run stage-check  # compare the play stage with main in headless Firefox
 ```
 
 ## Stack
@@ -19,7 +20,37 @@ npm run gs1-ais  # regenerate src/lib/gs1-ais.json from the pinned GS1 Syntax Di
 - **SvelteKit** and **Svelte 5** (static-adapter SPA, TypeScript)
 - **JsBarcode** for the 21 linear formats (inline SVG)
 - **bwip-js** 4.11.4 for the 2D and GS1 formats (inline SVG)
+- **Tailwind CSS** 4.3.4 and **daisyUI** 5.7.50 for styling, with one light theme, Instrument, in
+  `src/styles.css`
 - **Vitest** and **@testing-library/svelte** (jsdom) for the unit tests
+
+## Styling
+
+Tailwind CSS and daisyUI style the app. `src/styles.css` holds the one theme, **Instrument**, and
+the global overrides of daisyUI's defaults. The overlay's focus ring and the disabled **Start**
+button are overridden in their own pages, and the stage's barcode size caps are in
+`src/lib/components/barcode-caps.css`.
+
+- Write Tailwind and daisyUI classes only in `.svelte` files. Tailwind scans no other files, so a
+  class written in a `.ts` file is not generated unless the same word happens to appear in a
+  `.svelte` file.
+- Take every color from the theme tokens: `text-success`, `bg-base-200`, `btn-primary` and so on
+  in classes, `var(--color-…)` in CSS. `src/colors.test.ts` fails on a hex, `rgb()` or `hsl()`
+  color in a `.svelte` file. It does not see named colors or Tailwind palette classes such as
+  `text-red-600`, so review for those.
+- The barcode stage, the finish screen and the share QR keep a literal white background (`#fff`)
+  whatever the theme, and the engines draw literal black. The finish screen's text and buttons do
+  follow the theme. Put no daisyUI or Tailwind class on `ScrollColumn`, `StepStage` or the DOM that
+  `scroller.ts` and `stepper.ts` build.
+- Run `npm run stage-check` after any change that could touch the play page. It builds `main` and
+  the current tree and compares the stage in headless Firefox (`firefox` on your `PATH`): pixel for
+  pixel in Step mode at 1280×900 and 390×844, by barcode size in Scroll mode at 1280×900. It exits
+  0 on a pass, 1 on a mismatch and 2 when it could not verify; an unverified run is not a pass. To
+  compare with another branch, tag or commit, name it: `npm run stage-check -- <ref>`.
+- `npm run build` runs `scripts/check-css.ts` afterwards. The build fails if Tailwind's `hidden`
+  utility returns (the play overlay fades with a class of that name), if a theme other than
+  Instrument ships, or if a theme token is missing. So `hidden` does nothing as a Tailwind class:
+  use the `hidden` attribute or a variant such as `max-sm:hidden`.
 
 ## Writing tests
 

@@ -1,0 +1,15 @@
+/* The barcode svg size caps for both stages. ScrollColumn.svelte and StepStage.svelte import this
+   file. It is plain CSS outside Tailwind's layers, so no layered rule can override it. */
+:is(.scroll-column, .step-stage-host) .barcode-item svg {
+	max-width: min(90vw, 640px);
+	height: auto;
+}
+:is(.scroll-column, .step-stage-host) .barcode-item--2d svg {
+	max-width: min(90vw, 640px);
+	max-height: 60vh;
+	width: auto;
+	height: auto;
+}
+:is(.scroll-column, .step-stage-host) .barcode-item--pdf417 svg {
+	max-width: min(95vw, 960px); /* PDF417 is wide: 18 data columns = 375 X-modules */
+}

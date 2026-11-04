@@ -13,14 +13,7 @@
 		type Row,
 		type TextConversion
 	} from '$lib/rows';
-	import {
-		FORMAT_BY_ID,
-		FORMAT_GROUPS,
-		canonicalEcc,
-		canonicalLax,
-		isGs1,
-		type FormatId
-	} from '$lib/formats';
+	import { FORMAT_BY_ID, canonicalEcc, canonicalLax, isGs1, type FormatId } from '$lib/formats';
 	import { GS1_HINT, LAX_NOTE } from '$lib/verdict';
 	import { readCodesFile } from '$lib/fileInput';
 	import { decodeShareUrl, encodeRowsShareUrl, encodeShareUrl } from '$lib/shareUrl';
@@ -31,11 +24,15 @@
 		type Settings,
 		type CodeEntry
 	} from '$lib/types';
-	import { formatSeconds, parseSeconds } from '$lib/seconds';
 	import { duplicateNeighbours } from '$lib/duplicates';
 	import ValidationList from '$lib/components/ValidationList.svelte';
 	import RowEditor from '$lib/components/RowEditor.svelte';
 	import ShareLink from '$lib/components/ShareLink.svelte';
+	import Field from '$lib/components/Field.svelte';
+	import FormatSelect from '$lib/components/FormatSelect.svelte';
+	import EccSelect from '$lib/components/EccSelect.svelte';
+	import Note from '$lib/components/Note.svelte';
+	import SecondsSlider from '$lib/components/SecondsSlider.svelte';
 
 	const decoded = decodeShareUrl(page.url);
 	const initial: Settings = { ...DEFAULT_SETTINGS, ...decoded.settings };
@@ -95,16 +92,6 @@
 		editor === 'rows' ? encodeRowsShareUrl(rows, settings) : encodeShareUrl(rawCodes, settings)
 	);
 
-	function onDwellSeconds(e: Event & { currentTarget: HTMLInputElement }): void {
-		const ms = parseSeconds(e.currentTarget.value, DWELL_RANGE);
-		if (ms !== null) dwellMs = ms;
-		e.currentTarget.value = (dwellMs / 1000).toFixed(2);
-	}
-	function onGapSeconds(e: Event & { currentTarget: HTMLInputElement }): void {
-		const ms = parseSeconds(e.currentTarget.value, GAP_RANGE);
-		if (ms !== null) gapMs = ms;
-		e.currentTarget.value = (gapMs / 1000).toFixed(2);
-	}
 	const dupPairs = $derived(
 		duplicateNeighbours(
 			entries.filter((e) => e.valid),
@@ -236,28 +223,34 @@
 	}
 </script>
 
-<div class="setup">
-	<h1>scandible</h1>
-	<label class="field"
-		>Editor
-		<select class="editor-input" bind:this={editorSelect} value={editor} onchange={onEditorChange}>
+<div class="setup bg-base-100">
+	<h1 class="text-2xl font-bold tracking-tight">scandible</h1>
+	<Field label="Editor">
+		<select
+			class="editor-input select select-sm w-auto"
+			bind:this={editorSelect}
+			value={editor}
+			onchange={onEditorChange}
+		>
 			<option value="text">Plain text</option>
 			<option value="rows">Per row</option>
 		</select>
-	</label>
+	</Field>
 	{#if editor === 'text'}
-		<p class="editor-hint">{EDITOR_HINT}</p>
+		<Note class="editor-hint">{EDITOR_HINT}</Note>
 	{/if}
 	{#if pending}
-		<div class="switch-note" role="alert">
+		<div class="switch-note alert alert-warning alert-soft flex flex-wrap gap-2" role="alert">
 			<p>{describeLoss(pending.loses, pending)}</p>
-			<button type="button" class="switch-anyway" onclick={switchAnyway}>Switch anyway</button>
-			<button type="button" class="switch-cancel" onclick={cancelSwitch}>Cancel</button>
+			<button type="button" class="switch-anyway btn btn-sm" onclick={switchAnyway}
+				>Switch anyway</button
+			>
+			<button type="button" class="switch-cancel btn btn-sm" onclick={cancelSwitch}>Cancel</button>
 		</div>
 	{/if}
 	{#if editor === 'text'}
 		<textarea
-			class="code-input"
+			class="code-input textarea w-full font-mono"
 			aria-label="Codes"
 			rows="8"
 			{placeholder}
@@ -268,153 +261,97 @@
 	{/if}
 	<input
 		type="file"
-		class="file-input"
+		class="file-input file-input-sm w-auto self-start"
 		accept=".txt,.csv"
 		aria-label="Load codes from a file"
 		onchange={onFileChange}
 	/>
-	<p class="file-error" hidden={!fileError}>{fileError}</p>
+	<Note class="file-error" tone="error" hidden={!fileError}>{fileError}</Note>
 	<div class="settings-row">
-		<label class="field"
-			>{editor === 'rows' ? 'Format for new rows' : 'Format'}
-			<select class="format-input" bind:value={() => format, (v) => selectFormat(v)}>
-				{#each FORMAT_GROUPS as { group, formats } (group)}
-					<optgroup label={group}>
-						{#each formats as f (f.id)}
-							<option value={f.id}>{f.label}</option>
-						{/each}
-					</optgroup>
-				{/each}
-			</select>
-		</label>
+		<Field label={editor === 'rows' ? 'Format for new rows' : 'Format'}>
+			<FormatSelect class="format-input" bind:value={() => format, (v) => selectFormat(v)} />
+		</Field>
 		{#if editor === 'text' && isGs1(descriptor)}
-			<p class="gs1-hint">{GS1_HINT}</p>
+			<Note class="gs1-hint">{GS1_HINT}</Note>
 		{/if}
 		{#if editor === 'text' && descriptor?.ecc}
 			{@const opt = descriptor.ecc}
-			<label class="field ecc-field"
-				>Error correction
-				<select
-					class="ecc-input"
-					bind:value={() => ecc || opt.defaultValue, (v) => (ecc = v === opt.defaultValue ? '' : v)}
-				>
-					{#each opt.choices as c (c.value)}
-						<option value={c.value}>{c.note ? `${c.label} (${c.note})` : c.label}</option>
-					{/each}
-				</select>
-			</label>
+			<Field label="Error correction" class="ecc-field">
+				<EccSelect class="ecc-input" option={opt} bind:value={ecc} />
+			</Field>
 		{/if}
 		{#if editor === 'text' && isGs1(descriptor)}
-			<label class="field lax-field"
-				>Render GS1 data that fails validation
+			<Field label="Render GS1 data that fails validation" class="lax-field">
 				<input
 					type="checkbox"
-					class="lax-input"
+					class="lax-input checkbox checkbox-sm"
 					bind:checked={lax}
 					aria-describedby="{uid}-lax-note"
 				/>
-			</label>
-			<p class="lax-note" id="{uid}-lax-note">{LAX_NOTE}</p>
+			</Field>
+			<Note class="lax-note" id="{uid}-lax-note">{LAX_NOTE}</Note>
 		{/if}
-		<label class="field"
-			>Playback
-			<select class="mode-input" bind:value={mode}>
+		<Field label="Playback">
+			<select class="mode-input select select-sm w-auto" bind:value={mode}>
 				<option value="scroll">Scroll</option>
 				<option value="step">Step</option>
 			</select>
-		</label>
+		</Field>
 		{#if mode === 'step'}
-			<label class="field"
-				>Dwell
-				<input
-					type="range"
-					class="dwell-input"
-					aria-label="Dwell"
-					min={DWELL_RANGE.min}
-					max={DWELL_RANGE.max}
-					step={DWELL_RANGE.step}
-					aria-valuetext={formatSeconds(dwellMs)}
+			<Field label="Dwell">
+				<SecondsSlider
 					bind:value={dwellMs}
+					range={DWELL_RANGE}
+					label="Dwell"
+					rangeAriaLabel="Dwell"
+					rangeClass="dwell-input"
+					secondsClass="dwell-seconds"
 				/>
-				<span class="seconds">
-					<input
-						type="number"
-						class="dwell-seconds"
-						inputmode="decimal"
-						min={DWELL_RANGE.min / 1000}
-						max={DWELL_RANGE.max / 1000}
-						step="0.01"
-						aria-label="Dwell in seconds"
-						value={(dwellMs / 1000).toFixed(2)}
-						onchange={onDwellSeconds}
-					/>
-					s
-				</span>
-			</label>
+			</Field>
 			{#if dwellMs < 330}
-				<p class="flash-note">
+				<Note class="flash-note" tone="warning">
 					Dwells under 0.33 s flash the screen more than three times a second. Do not use them near
 					anyone sensitive to flashing lights.
-				</p>
+				</Note>
 			{/if}
-			<label class="field"
-				>Gap
-				<input
-					type="range"
-					class="gap-input"
-					aria-label="Gap"
-					min={GAP_RANGE.min}
-					max={GAP_RANGE.max}
-					step={GAP_RANGE.step}
-					aria-valuetext={formatSeconds(gapMs)}
+			<Field label="Gap">
+				<SecondsSlider
 					bind:value={gapMs}
+					range={GAP_RANGE}
+					label="Gap"
+					rangeAriaLabel="Gap"
+					rangeClass="gap-input"
+					secondsClass="gap-seconds"
 				/>
-				<span class="seconds">
-					<input
-						type="number"
-						class="gap-seconds"
-						inputmode="decimal"
-						min={GAP_RANGE.min / 1000}
-						max={GAP_RANGE.max / 1000}
-						step="0.01"
-						aria-label="Gap in seconds"
-						value={(gapMs / 1000).toFixed(2)}
-						onchange={onGapSeconds}
-					/>
-					s
-				</span>
-			</label>
+			</Field>
 			{#if gapMs < 1000 && dupPairs.length > 0}
-				<p class="dup-hint">{dupHint}</p>
+				<Note class="dup-hint" tone="warning">{dupHint}</Note>
 			{/if}
 		{:else}
-			<label class="field"
-				>Speed
+			<Field label="Speed">
 				<input
 					type="range"
-					class="speed-input"
+					class="speed-input range range-sm w-32"
 					min="10"
 					max="5000"
 					step="5"
 					bind:value={speedPxPerSec}
 				/>
-			</label>
+			</Field>
 		{/if}
-		<label class="field"
-			>Loop
-			<input type="checkbox" class="loop-input" bind:checked={loop} />
-		</label>
-		<label class="field"
-			>Random rotation
+		<Field label="Loop">
+			<input type="checkbox" class="loop-input toggle toggle-sm" bind:checked={loop} />
+		</Field>
+		<Field label="Random rotation">
 			<input
 				type="checkbox"
-				class="rotate-input"
+				class="rotate-input toggle toggle-sm"
 				aria-label="Random rotation"
 				bind:checked={rotate}
 			/>
 			<input
 				type="range"
-				class="rotate-max-input"
+				class="rotate-max-input range range-sm w-32"
 				aria-label="Maximum rotation"
 				min="1"
 				max="30"
@@ -422,13 +359,17 @@
 				bind:value={rotateMaxDeg}
 				disabled={!rotate}
 			/>
-		</label>
-		<label class="field"
-			>Random skew
-			<input type="checkbox" class="skew-input" aria-label="Random skew" bind:checked={skew} />
+		</Field>
+		<Field label="Random skew">
+			<input
+				type="checkbox"
+				class="skew-input toggle toggle-sm"
+				aria-label="Random skew"
+				bind:checked={skew}
+			/>
 			<input
 				type="range"
-				class="skew-max-input"
+				class="skew-max-input range range-sm w-32"
 				aria-label="Maximum skew"
 				min="1"
 				max="30"
@@ -436,13 +377,15 @@
 				bind:value={skewMaxDeg}
 				disabled={!skew}
 			/>
-		</label>
+		</Field>
 	</div>
 	{#if editor === 'text'}
 		<ValidationList {entries} />
 	{/if}
 	<ShareLink hash={shareHash} />
-	<button type="button" class="start" disabled={!canStart} onclick={start}>Start</button>
+	<button type="button" class="start btn btn-primary btn-lg" disabled={!canStart} onclick={start}
+		>Start</button
+	>
 </div>
 
 <style>
@@ -454,32 +397,17 @@
 		flex-direction: column;
 		gap: 12px;
 	}
-	.code-input {
-		width: 100%;
-		font-family: monospace;
-	}
 	/* Each setting on its own line: label text on top, input(s) below, spaced apart. */
 	.settings-row {
 		display: flex;
 		flex-direction: column;
 		gap: 16px;
 	}
-	.field {
-		display: flex;
-		flex-direction: column;
-		align-items: flex-start;
-		gap: 4px;
-	}
-	.seconds {
-		display: flex;
-		align-items: center;
-		gap: 4px;
-	}
-	.start {
-		padding: 12px;
-		font-size: 1.1rem;
-	}
+	/* daisyUI dims a disabled btn to 1.39:1. Start keeps its primary look at half opacity, as
+	   before, so it stays recognizable while it waits for a valid code. */
 	.start:disabled {
+		background-color: var(--color-primary);
+		color: var(--color-primary-content);
 		opacity: 0.5;
 	}
 </style>

@@ -1,14 +1,10 @@
 <script lang="ts">
 	import { tick } from 'svelte';
 	import Gs1Breakdown from './Gs1Breakdown.svelte';
-	import {
-		FORMAT_BY_ID,
-		FORMAT_GROUPS,
-		canonicalEcc,
-		canonicalLax,
-		isGs1,
-		type FormatId
-	} from '$lib/formats';
+	import Note from './Note.svelte';
+	import FormatSelect from './FormatSelect.svelte';
+	import EccSelect from './EccSelect.svelte';
+	import { FORMAT_BY_ID, canonicalEcc, canonicalLax, isGs1, type FormatId } from '$lib/formats';
 	import { rowEntry, type Row } from '$lib/rows';
 	import { DENSE_HINT, GS1_HINT, LAX_NOTE, SCAN_HINT, verdictText } from '$lib/verdict';
 
@@ -65,11 +61,11 @@
 	{#each rows as row, i (row)}
 		{@const entry = entries[i]}
 		{@const opt = FORMAT_BY_ID.get(row.format)?.ecc}
-		<li class="row">
+		<li class="row border-b border-base-300 pb-3">
 			<div class="row-main">
-				<span class="row-number">{i + 1}</span>
+				<span class="row-number text-base-content/70">{i + 1}</span>
 				<textarea
-					class="row-payload"
+					class="row-payload textarea min-h-0 font-mono"
 					rows="2"
 					aria-label="Code {i + 1}"
 					aria-describedby="{uid}-verdict-{i}"
@@ -81,9 +77,12 @@
 					class:valid={entry?.valid === true && entry.lint === undefined}
 					class:lenient={entry?.lint !== undefined}
 					class:invalid={entry?.valid === false}
+					class:text-success={entry?.valid === true && entry.lint === undefined}
+					class:text-warning={entry?.lint !== undefined}
+					class:text-error={entry?.valid === false}
 					id="{uid}-verdict-{i}">{entry ? verdictText(entry) : ' skipped (empty)'}</span
 				>
-				<select
+				<FormatSelect
 					class="row-format"
 					aria-label="Format of code {i + 1}"
 					bind:value={
@@ -94,33 +93,20 @@
 							row.format = next;
 						}
 					}
-				>
-					{#each FORMAT_GROUPS as { group, formats } (group)}
-						<optgroup label={group}>
-							{#each formats as f (f.id)}
-								<option value={f.id}>{f.label}</option>
-							{/each}
-						</optgroup>
-					{/each}
-				</select>
+				/>
 				{#if opt}
-					<select
+					<EccSelect
 						class="row-ecc"
 						aria-label="Error correction of code {i + 1}"
-						bind:value={
-							() => row.ecc || opt.defaultValue, (v) => (row.ecc = v === opt.defaultValue ? '' : v)
-						}
-					>
-						{#each opt.choices as c (c.value)}
-							<option value={c.value}>{c.note ? `${c.label} (${c.note})` : c.label}</option>
-						{/each}
-					</select>
+						option={opt}
+						bind:value={row.ecc}
+					/>
 				{/if}
 				{#if isGs1(FORMAT_BY_ID.get(row.format))}
 					<label class="row-lax"
 						><input
 							type="checkbox"
-							class="row-lax-input"
+							class="row-lax-input checkbox checkbox-sm"
 							aria-label="Render code {i + 1} if invalid"
 							bind:checked={row.lax}
 						/> Render if invalid</label
@@ -128,21 +114,21 @@
 				{/if}
 				<button
 					type="button"
-					class="row-up"
+					class="row-up btn btn-sm min-h-9"
 					aria-label="Move up, code {i + 1}"
 					disabled={i === 0}
 					onclick={() => move(i, -1)}>Move up</button
 				>
 				<button
 					type="button"
-					class="row-down"
+					class="row-down btn btn-sm min-h-9"
 					aria-label="Move down, code {i + 1}"
 					disabled={i === rows.length - 1}
 					onclick={() => move(i, 1)}>Move down</button
 				>
 				<button
 					type="button"
-					class="row-delete"
+					class="row-delete btn btn-ghost btn-sm min-h-9 text-error"
 					aria-label="Delete code {i + 1}"
 					onclick={() => remove(i)}>Delete</button
 				>
@@ -153,17 +139,17 @@
 		</li>
 	{/each}
 </ol>
-<button type="button" class="row-add" bind:this={addEl} onclick={add}>Add code</button>
-<p class="row-hint">{ROW_HINT}</p>
+<button type="button" class="row-add btn btn-sm" bind:this={addEl} onclick={add}>Add code</button>
+<Note class="row-hint">{ROW_HINT}</Note>
 {#if rows.some((r) => isGs1(FORMAT_BY_ID.get(r.format))) || isGs1(FORMAT_BY_ID.get(newRowFormat))}
-	<p class="gs1-hint">{GS1_HINT}</p>
-	<p class="lax-note">{LAX_NOTE}</p>
+	<Note class="gs1-hint">{GS1_HINT}</Note>
+	<Note class="lax-note">{LAX_NOTE}</Note>
 {/if}
 {#if entries.some((e) => e?.gs1)}
-	<p class="scan-hint">{SCAN_HINT}</p>
+	<Note class="scan-hint">{SCAN_HINT}</Note>
 {/if}
 {#if entries.some((e) => e?.facts?.dense)}
-	<p class="dense-hint">{DENSE_HINT}</p>
+	<Note class="dense-hint">{DENSE_HINT}</Note>
 {/if}
 
 <style>
@@ -189,7 +175,6 @@
 	.row-payload {
 		flex: 1;
 		min-width: 0;
-		font-family: monospace;
 	}
 	/* Grow the payload with its content where the browser supports it. */
 	@supports (field-sizing: content) {
@@ -204,24 +189,11 @@
 		gap: 6px;
 		align-items: center;
 	}
-	/* A touch target. */
-	.row-controls button {
-		min-height: 36px;
-	}
 	/* Sets Delete apart from the Move buttons, at the end of its line. */
 	.row-delete {
 		margin-left: auto;
 	}
 	.row-verdict {
 		overflow-wrap: anywhere;
-	}
-	.row-verdict.valid {
-		color: #007700;
-	}
-	.row-verdict.invalid {
-		color: #c00;
-	}
-	.row-verdict.lenient {
-		color: #9a6700;
 	}
 </style>
