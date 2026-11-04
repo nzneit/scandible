@@ -2,13 +2,17 @@ import { describe, it, expect } from 'vitest';
 import { FORMAT_BY_ID, isGs1, type FormatId } from './formats';
 import {
 	GS,
+	GS1_AIMS,
 	GS_MARK,
 	PREDEFINED_LENGTH_PREFIXES,
 	dataCharacters,
+	breakdown,
 	displayData,
 	gtinCheckDigit,
 	parseElementString,
-	scanData
+	readGs1Input,
+	scanData,
+	splitScanData
 } from './gs1';
 
 const carrier = (id: FormatId) => {
@@ -104,5 +108,151 @@ describe('displayData and dataCharacters', () => {
 		expect(dataCharacters(data)).toBe(23);
 		expect(dataCharacters('10A\u001d10B')).toBe(6);
 		expect(dataCharacters('10Aé')).toBe(4);
+	});
+});
+
+describe('readGs1Input', () => {
+	const ok = (value: string, fromScan?: { aim?: string }) =>
+		fromScan ? { ok: true, value, fromScan } : { ok: true, value };
+	const no = (message: string) => ({ ok: false, message });
+	const NON_GS1 =
+		'is not a GS1 symbology identifier; GS1 scan data starts with ]C1, ]e0, ]d2, ]Q3 or ]J1, or with its first AI';
+
+	it.each(['<GS>', '<gs>', '␝', '\\x1d', '\\u001d'])(
+		'passes bracketed text untouched with %j',
+		(n) => {
+			expect(readGs1Input(`(01)09501101530003(10)A${n}B`)).toStrictEqual(
+				ok(`(01)09501101530003(10)A${n}B`)
+			);
+		}
+	);
+
+	it('passes a bare ( untouched', () => {
+		expect(readGs1Input('(')).toStrictEqual(ok('('));
+	});
+
+	it('shows a control character in an identifier refusal as ␝', () => {
+		expect(readGs1Input(`]C${GS}0109501101530003`)).toStrictEqual(no(`]C␝ ${NON_GS1}`));
+	});
+
+	it.each([GS, '␝', '<GS>', '<gs>', '\\x1d', '\\X1D', '\\u001d', '\\U001D'])(
+		'reads the separator notation %j',
+		(n) => {
+			expect(readGs1Input(`10LOT42${n}17261231`)).toStrictEqual(ok('(10)LOT42(17)261231', {}));
+		}
+	);
+
+	it.each([...GS1_AIMS.keys()])('reads the identifier %s', (aim) => {
+		expect(readGs1Input(`${aim}0109501101530003`)).toStrictEqual(ok('(01)09501101530003', { aim }));
+	});
+
+	it('refuses identifiers of the wrong case', () => {
+		const msg = (id: string, use: string) =>
+			no(`${id} is not a GS1 symbology identifier; identifiers are case-sensitive, use ${use}`);
+		expect(readGs1Input(']c10109501101530003')).toStrictEqual(msg(']c1', ']C1'));
+		expect(readGs1Input(']E00109501101530003')).toStrictEqual(msg(']E0', ']e0'));
+		expect(readGs1Input(']q30109501101530003')).toStrictEqual(msg(']q3', ']Q3'));
+	});
+
+	it('refuses non-GS1 identifiers', () => {
+		expect(readGs1Input(']d1ABC')).toStrictEqual(no(`]d1 ${NON_GS1}`));
+		expect(readGs1Input(']C')).toStrictEqual(no(`]C ${NON_GS1}`));
+		expect(readGs1Input(']')).toStrictEqual(no(`] ${NON_GS1}`));
+	});
+
+	it('skips separators where no value is open', () => {
+		expect(readGs1Input(`${GS}0109501101530003`)).toStrictEqual(ok('(01)09501101530003', {}));
+		expect(readGs1Input(`10A${GS}${GS}17261231`)).toStrictEqual(ok('(10)A(17)261231', {}));
+		expect(readGs1Input(`0109501101530003${GS}10A`)).toStrictEqual(
+			ok('(01)09501101530003(10)A', {})
+		);
+		expect(readGs1Input(`10A${GS}`)).toStrictEqual(ok('(10)A', {}));
+	});
+
+	it.each([
+		[
+			'0109501101530003(10)LOT42',
+			'Brackets and scan data cannot be mixed; put every AI in brackets or none (stopped at "(10)LOT4…" after (01))'
+		],
+		[
+			']C1(01)09501101530003',
+			'Brackets and scan data cannot be mixed; put every AI in brackets or none (stopped at "(01)0950…")'
+		],
+		[
+			'09501101530003',
+			'No GS1 AI starts at "09501101…"; GS1 data starts with an AI, such as 01 before a GTIN'
+		],
+		['01095011015300039Z45', 'No GS1 AI starts at "9Z45" after (01)'],
+		[`01095011015300039Z${GS}10A`, 'No GS1 AI starts at "9Z␝10A" after (01)'],
+		['010950110153', '(01) takes 14 characters; only 10 follow'],
+		['010950110153000', '(01) takes 14 characters; only 13 follow'],
+		['011', '(01) takes 14 characters; only 1 follows'],
+		['01', '(01) takes 14 characters; none follow'],
+		[`01${GS}10A`, '(01) takes 14 characters; none follow'],
+		[`10${GS}17261231`, '(10) has no value'],
+		['10', '(10) has no value'],
+		['10A(B)C', '(10) contains a parenthesis; parentheses inside a value are not supported'],
+		['10A)B', '(10) contains a parenthesis; parentheses inside a value are not supported'],
+		[']C1', 'No AIs in the scan data'],
+		['<GS>', 'No AIs in the scan data'],
+		[']C1<GS>', 'No AIs in the scan data']
+	])('refuses %j', (input, message) => {
+		expect(readGs1Input(input)).toStrictEqual(no(message));
+	});
+});
+
+describe('splitScanData', () => {
+	it('splits predefined and variable AIs', () => {
+		expect(splitScanData('01095011015300031726123110LOT42')).toStrictEqual({
+			elements: [
+				{ ai: '01', value: '09501101530003' },
+				{ ai: '17', value: '261231' },
+				{ ai: '10', value: 'LOT42' }
+			]
+		});
+	});
+
+	it('returns the elements read before a stop', () => {
+		expect(splitScanData(`010950110153000310LOT42${GS}9Z`)).toStrictEqual({
+			elements: [
+				{ ai: '01', value: '09501101530003' },
+				{ ai: '10', value: 'LOT42' }
+			],
+			stop: 'No GS1 AI starts at "9Z" after (10)'
+		});
+	});
+});
+
+describe('breakdown', () => {
+	const T = new Date(2026, 10, 3);
+
+	it('builds a line per element', () => {
+		expect(breakdown(`010950110153000310LOT42${GS}17261231`, T)).toStrictEqual({
+			lines: [
+				{ ai: '01', title: 'GTIN', text: '09501101530003' },
+				{ ai: '10', title: 'BATCH/LOT', text: 'LOT42' },
+				{ ai: '17', title: 'USE BY or EXPIRY', text: '2026-12-31' }
+			]
+		});
+	});
+
+	it('omits the title of an AI without one', () => {
+		expect(breakdown('8110106141416543213500110000310123196000', T)).toStrictEqual({
+			lines: [{ ai: '8110', text: '106141416543213500110000310123196000' }]
+		});
+	});
+
+	it('returns the lines read before a stop', () => {
+		expect(breakdown('01095011015300039Z', T)).toStrictEqual({
+			lines: [{ ai: '01', title: 'GTIN', text: '09501101530003' }],
+			stop: 'No GS1 AI starts at "9Z" after (01)'
+		});
+	});
+
+	it('does not split a bracketed fallback', () => {
+		expect(breakdown('(01)0950110153000(', T)).toStrictEqual({
+			lines: [],
+			stop: 'The bracketed string could not be split into AIs'
+		});
 	});
 });

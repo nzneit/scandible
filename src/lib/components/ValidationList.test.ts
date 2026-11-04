@@ -1,10 +1,11 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render } from '@testing-library/svelte';
 import ValidationList from './ValidationList.svelte';
 import type { CodeEntry, SymbolFacts } from '$lib/types';
 import type { FormatId } from '$lib/formats';
 import { parseCodeList } from '$lib/codes';
 import { SCAN_HINT } from '$lib/verdict';
+import { GS } from '$lib/gs1';
 
 const entry = (raw: string, valid: boolean): CodeEntry => ({
 	raw,
@@ -169,6 +170,8 @@ describe('ValidationList 2D rows', () => {
 });
 
 describe('ValidationList GS1 rows', () => {
+	beforeEach(() => vi.setSystemTime(new Date(2026, 10, 3, 12)));
+	afterEach(() => vi.useRealTimers());
 	const S = '(01)09501101530003(17)261231(10)LOT42';
 	const list = (text: string, lax: boolean) =>
 		render(ValidationList, { entries: parseCodeList(text, 'gs1128', '', lax) }).container;
@@ -181,8 +184,9 @@ describe('ValidationList GS1 rows', () => {
 				[...li.classList].filter((c) => ['valid', 'invalid', 'lenient'].includes(c))
 			)
 		).toEqual([['valid'], ['lenient']]);
-		expect(items[1].textContent).toBe(
-			'(01)09501101530004 ⚠ rendered anyway · AI 01: Bad checksum · 134 modules wide · 16 characters → ]C1 0109501101530004'
+		expect(items[1].querySelector('.raw')!.textContent).toBe('(01)09501101530004');
+		expect(items[1].querySelector('.verdict')!.textContent).toBe(
+			' ⚠ rendered anyway · AI 01: Bad checksum · 134 modules wide · 16 characters → ]C1 0109501101530004'
 		);
 		expect(c.querySelector('.scan-hint')?.textContent).toBe(SCAN_HINT);
 		expect(list('(01)09501101530004', false).querySelectorAll('li.invalid').length).toBe(1);
@@ -192,6 +196,38 @@ describe('ValidationList GS1 rows', () => {
 		expect(
 			render(ValidationList, { entries: [qrHello] }).container.querySelector('.scan-hint')
 		).toBeNull();
-		expect(list('0109501101530003', false).querySelector('.scan-hint')).toBeNull();
+		expect(list('(01)09501101530003(10', false).querySelector('.scan-hint')).toBeNull();
+	});
+
+	it('shows a GS character as the mark in the raw text, and the textual notation as typed', () => {
+		const c = list(`10LOT42${GS}0109501101530003\n10LOT42<GS>0109501101530003`, false);
+		expect([...c.querySelectorAll('.raw')].map((el) => el.textContent)).toEqual([
+			'10LOT42␝0109501101530003',
+			'10LOT42<GS>0109501101530003'
+		]);
+	});
+
+	it('puts a labelled breakdown under each GS1 entry and none under other rows', () => {
+		const c = list(`${S}\n(01)09501101530004\nbad`, true);
+		const items = [...c.querySelectorAll('.validation-list li')];
+		expect([...c.querySelectorAll('summary')].map((el) => el.getAttribute('aria-label'))).toEqual([
+			'Code 1 breakdown: 3 AIs',
+			'Code 2 breakdown: 1 AI'
+		]);
+		expect(items[2].querySelector('details')).toBeNull();
+		const rows = [...items[0].querySelectorAll('tbody tr')].map((tr) =>
+			[...tr.querySelectorAll('th, td')].map((td) => td.textContent)
+		);
+		expect(rows).toContainEqual(['(17)', 'USE BY or EXPIRY', '2026-12-31']);
+	});
+
+	it('breaks down the scanned 14-digit GTIN for a 13-digit DataBar value', () => {
+		const c = render(ValidationList, {
+			entries: parseCodeList('(01)0950110153000', 'databaromni')
+		}).container;
+		const first = [...c.querySelector('tbody tr')!.querySelectorAll('th, td')].map(
+			(td) => td.textContent
+		);
+		expect(first).toEqual(['(01)', 'GTIN', '09501101530003']);
 	});
 });

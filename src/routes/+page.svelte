@@ -71,7 +71,7 @@
 	const canStart: boolean = $derived(entries.some((e) => e.valid));
 	const placeholder: string = $derived(
 		isGs1(descriptor)
-			? 'Paste GS1 element strings — one per line'
+			? 'Paste GS1 element strings or scan data — one per line'
 			: descriptor?.numeric
 				? 'Paste codes — one per line, or comma-separated'
 				: 'Paste codes — one per line'

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { tick } from 'svelte';
+	import Gs1Breakdown from './Gs1Breakdown.svelte';
 	import {
 		FORMAT_BY_ID,
 		FORMAT_GROUPS,
@@ -18,6 +19,7 @@
 
 	let { rows = $bindable(), newRowFormat }: RowEditorProps = $props();
 	const uid = $props.id();
+	const entries = $derived(rows.map((row) => rowEntry(row)));
 
 	const ROW_HINT =
 		'Each row is one code. Enter adds a line to the code. To enter many codes at once, use Plain text or upload a file.';
@@ -61,7 +63,7 @@
 
 <ol class="row-editor" role="list" bind:this={listEl}>
 	{#each rows as row, i (row)}
-		{@const entry = rowEntry(row)}
+		{@const entry = entries[i]}
 		{@const opt = FORMAT_BY_ID.get(row.format)?.ecc}
 		<li class="row">
 			<div class="row-main">
@@ -145,6 +147,9 @@
 					onclick={() => remove(i)}>Delete</button
 				>
 			</div>
+			{#if entry?.gs1}
+				<Gs1Breakdown data={entry.gs1.data} label="Code {i + 1} breakdown" />
+			{/if}
 		</li>
 	{/each}
 </ol>
@@ -154,10 +159,10 @@
 	<p class="gs1-hint">{GS1_HINT}</p>
 	<p class="lax-note">{LAX_NOTE}</p>
 {/if}
-{#if rows.some((r) => rowEntry(r)?.gs1)}
+{#if entries.some((e) => e?.gs1)}
 	<p class="scan-hint">{SCAN_HINT}</p>
 {/if}
-{#if rows.some((r) => rowEntry(r)?.facts?.dense)}
+{#if entries.some((e) => e?.facts?.dense)}
 	<p class="dense-hint">{DENSE_HINT}</p>
 {/if}
 
@@ -206,6 +211,9 @@
 	/* Sets Delete apart from the Move buttons, at the end of its line. */
 	.row-delete {
 		margin-left: auto;
+	}
+	.row-verdict {
+		overflow-wrap: anywhere;
 	}
 	.row-verdict.valid {
 		color: #007700;

@@ -7,7 +7,7 @@ _Series_ section is the canonical list of what remains), `docs/superpowers/plans
 on), and the memory file `scandible-gs1-series.md` in the Claude memory directory (the user's
 decisions for the series, in one place).
 
-**Status:** **Open** — 14 items as of 2026-11-03 (T1 and T2 closed the same day), written the hour after PR #4 (spec 1, the GS1
+**Status:** **Open** — 8 of 14 items open as of 2026-11-04 (T1 and T2 closed on 2026-11-03; T4, Q2, F1 and F3 on 2026-11-04), written the hour after PR #4 (spec 1, the GS1
 carriers) was squash-merged to `main` as `9cedd6d`. **Tier 1 blocks the fresh session itself**: the
 local checkout is behind `origin/main` and a merged worktree is still registered. Tier 2 is the
 series work in the recommended order. Tier 3 needs a person with a scanner and cannot be done by
@@ -56,14 +56,14 @@ to pick any item below and act on it without re-reading the previous session.
 | T2  | Commit this handoff and keep it current                         | 1    | `docs/superpowers/handoffs/`                             | ✅      |
 | T3  | Brainstorm and spec the North American coupon next              | 2    | new `docs/superpowers/specs/<date>-gs1-coupon-design.md` | —       |
 | Q1  | Coupon: field breakdown only, or a field-by-field composer too? | 2    | the coupon spec's _Decisions_                            | —       |
-| Q2  | Uniform override-suffix rule for every carrier                  | 2    | the coupon spec; `src/lib/verdict.ts` `override`         | —       |
-| T4  | Spec raw scan data input and the per-AI breakdown               | 2    | new spec; needs an AI table                              | —       |
+| Q2  | Uniform override-suffix rule for every carrier                  | 2    | the coupon spec; `src/lib/verdict.ts` `override`         | ✅      |
+| T4  | Spec raw scan data input and the per-AI breakdown               | 2    | new spec; needs an AI table                              | ✅      |
 | T5  | Spec GS1 Digital Link                                           | 2    | new spec; `gs1dlqrcode`, `gs1dldatamatrix`               | —       |
 | V1  | GS1 carriers: 22 hardware and browser rows                      | 3    | plan `2026-11-03-gs1-carriers.md` verification record    | —       |
 | V2  | Earlier series: 58 rows still unverified                        | 3    | the three earlier plans' verification records            | —       |
-| F1  | `RowEditor` calls `rowEntry` three times per row per render     | 4    | `src/lib/components/RowEditor.svelte`                    | —       |
+| F1  | `RowEditor` calls `rowEntry` three times per row per render     | 4    | `src/lib/components/RowEditor.svelte`                    | ✅      |
 | F2  | `ECC_OPTIONS` carries ten empty entries                         | 4    | `src/lib/engines/bwipjs.ts`                              | —       |
-| F3  | `verdict.ts` looks the descriptor up in four helpers            | 4    | `src/lib/verdict.ts`                                     | —       |
+| F3  | `verdict.ts` looks the descriptor up in four helpers            | 4    | `src/lib/verdict.ts`                                     | ✅      |
 | F4  | The `deck` test helper is copied into three test files          | 4    | `src/lib/rows.test.ts` and two siblings                  | —       |
 | F5  | `Gs1Carrier` will need an input `kind` before Digital Link      | 4    | `src/lib/formats.ts`, decided in T5                      | —       |
 
@@ -199,9 +199,7 @@ to pick any item below and act on it without re-reading the previous session.
 - **Acceptance:** the coupon spec states the rule; `verdict.test.ts` pins it for every carrier;
   `grep -n "gtinCheck === 'own'" src/lib/verdict.ts` prints nothing if the uniform rule won.
 - **Relates to:** T3.
-- **Status:** ☐ open. Decided 2026-11-03 in the spec 2 brainstorm: the uniform rule, extended to
-  "too long" and plain "invalid" refusals. The raw scan data spec states it; it closes when that
-  spec's implementation lands.
+- **Status:** ☑ done 2026-11-04 on feat/gs1-raw-scan-data (spec 2's implementation)
 
 ### T4 — Spec raw scan data input and the per-AI breakdown
 
@@ -223,9 +221,7 @@ to pick any item below and act on it without re-reading the previous session.
 - **Acceptance:** a spec file approved by the user; it names the table's source, licence and
   regeneration command.
 - **Relates to:** T3 (the coupon breakdown wants the same table), F5.
-- **Status:** ☐ open. Spec written 2026-11-03 as
-  `docs/superpowers/specs/2026-11-03-gs1-raw-scan-data-design.md`, revised after a four-lens Sonnet
-  review; awaits the user's approval.
+- **Status:** ☑ done 2026-11-04 on feat/gs1-raw-scan-data (spec 2's implementation)
 
 ### T5 — Spec GS1 Digital Link
 
@@ -306,7 +302,7 @@ to pick any item below and act on it without re-reading the previous session.
   `entries.some((e) => e?.facts?.dense)` for the hints.
 - **Acceptance:** `grep -c "rowEntry(" src/lib/components/RowEditor.svelte` prints `1`;
   `npx vitest run src/lib/components/RowEditor.svelte.test.ts src/routes/page.test.ts` green.
-- **Status:** ☐ open
+- **Status:** ☑ done 2026-11-04 on feat/gs1-raw-scan-data (spec 2's implementation)
 
 ### F2 — `ECC_OPTIONS` carries ten empty entries
 
@@ -334,7 +330,7 @@ to pick any item below and act on it without re-reading the previous session.
   and use it in the four helpers.
 - **Acceptance:** `grep -c "FORMAT_BY_ID.get" src/lib/verdict.ts` prints `1`;
   `npx vitest run src/lib/verdict.test.ts` green.
-- **Status:** ☐ open
+- **Status:** ☑ done 2026-11-04 on feat/gs1-raw-scan-data (spec 2's implementation)
 
 ### F4 — The `deck` test helper is copied into three test files
 
@@ -383,10 +379,11 @@ encoder.
 
 _(Append one row per resolved item: ID · decision taken · file(s) patched · resolver · date.)_
 
-| ID  | Decision taken                                                                                                                                                                                                                                                                                                                                                                 | File(s) patched                               | Resolver      | Date       |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------- | ------------- | ---------- |
-| T1  | Pulled `main` to `9cedd6d`; removed the clean `feat-gs1-carriers` worktree after confirming its tree equals the squash commit; deleted `feat/gs1-carriers` with `-D`                                                                                                                                                                                                           | git only                                      | agent session | 2026-11-03 |
-| T2  | Committed this handoff directly on `main`, as specs and plans land                                                                                                                                                                                                                                                                                                             | this file                                     | agent session | 2026-11-03 |
-| T3  | Series order kept: raw scan data is spec 2, Digital Link 3, the coupon 4; Q1 waits for spec 4                                                                                                                                                                                                                                                                                  | this file                                     | user          | 2026-11-03 |
-| T4  | Purpose: regenerate. Notations: raw GS, `␝`, `<GS>`, `\x1d`, `\u001d`. AIM identifier optional, a mismatch noted, not refused. AI table generated from the GS1 Syntax Dictionary 2026-01-27 with a bwip-js parity test. Breakdown: names plus light decoding, in a closed disclosure per code. Approach: a read step before the engine sharing one splitter with the breakdown | spec `2026-11-03-gs1-raw-scan-data-design.md` | user          | 2026-11-03 |
-| Q2  | Uniform override suffix on every refused GS1 code under the render-anyway setting, including too long and plain invalid                                                                                                                                                                                                                                                        | spec `2026-11-03-gs1-raw-scan-data-design.md` | user          | 2026-11-03 |
+| ID             | Decision taken                                                                                                                                                                                                                                                                                                                                                                 | File(s) patched                               | Resolver      | Date       |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------- | ------------- | ---------- |
+| T1             | Pulled `main` to `9cedd6d`; removed the clean `feat-gs1-carriers` worktree after confirming its tree equals the squash commit; deleted `feat/gs1-carriers` with `-D`                                                                                                                                                                                                           | git only                                      | agent session | 2026-11-03 |
+| T2             | Committed this handoff directly on `main`, as specs and plans land                                                                                                                                                                                                                                                                                                             | this file                                     | agent session | 2026-11-03 |
+| T3             | Series order kept: raw scan data is spec 2, Digital Link 3, the coupon 4; Q1 waits for spec 4                                                                                                                                                                                                                                                                                  | this file                                     | user          | 2026-11-03 |
+| T4             | Purpose: regenerate. Notations: raw GS, `␝`, `<GS>`, `\x1d`, `\u001d`. AIM identifier optional, a mismatch noted, not refused. AI table generated from the GS1 Syntax Dictionary 2026-01-27 with a bwip-js parity test. Breakdown: names plus light decoding, in a closed disclosure per code. Approach: a read step before the engine sharing one splitter with the breakdown | spec `2026-11-03-gs1-raw-scan-data-design.md` | user          | 2026-11-03 |
+| Q2             | Uniform override suffix on every refused GS1 code under the render-anyway setting, including too long and plain invalid                                                                                                                                                                                                                                                        | spec `2026-11-03-gs1-raw-scan-data-design.md` | user          | 2026-11-03 |
+| T4, Q2, F1, F3 | Implemented with spec 2                                                                                                                                                                                                                                                                                                                                                        | plan 2026-11-03-gs1-raw-scan-data.md          | implementer   | 2026-11-04 |

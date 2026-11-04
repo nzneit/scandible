@@ -3,6 +3,7 @@ import { engine as jsbarcodeEngine } from './engines/jsbarcode';
 import type { CheckResult } from './engines/types';
 import { FORMAT_BY_ID, isEccChoice, isGs1, type FormatDescriptor, type FormatId } from './formats';
 import type { CodeEntry, SymbolOptions } from './types';
+import { readGs1Input } from './gs1';
 
 export interface ListOptions {
 	format: FormatId;
@@ -46,7 +47,9 @@ export function checkCode(
 
 /** The per-row seam. `token` is one trimmed, non-empty, UNCLEANED token. Sets raw = token;
  *  value = descriptor.normalize?.(token) ?? (numeric ? strip all whitespace : token);
- *  options = resolveOptions(...); then checkCode. */
+ *  options = resolveOptions(...); then checkCode. GS1 formats then pass through `readGs1Input`:
+ *  raw scan data is re-bracketed into `value` and marked `fromScan`; a read-step refusal returns
+ *  an invalid entry with its message. */
 export function buildEntry(
 	token: string,
 	format: FormatId,
@@ -57,6 +60,19 @@ export function buildEntry(
 	const numeric = d?.numeric ?? true;
 	const value = d?.normalize?.(token) ?? (numeric ? token.replace(/\s+/g, '') : token);
 	const options = d ? resolveOptions(d, list, override) : {};
+	if (d && isGs1(d)) {
+		const read = readGs1Input(value);
+		if (!read.ok)
+			return { raw: token, value, format, options, valid: false, message: read.message };
+		const entry: CodeEntry = {
+			raw: token,
+			value: read.value,
+			format,
+			options,
+			...checkCode(read.value, format, options)
+		};
+		return read.fromScan ? { ...entry, fromScan: read.fromScan } : entry;
+	}
 	// The CheckResult spreads in whole: `valid`, plus `encoded` and `facts` when valid or
 	// `reason` when not, so a field the engine leaves out stays absent on the entry.
 	return { raw: token, value, format, options, ...checkCode(value, format, options) };

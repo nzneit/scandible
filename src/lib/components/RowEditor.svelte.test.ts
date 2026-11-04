@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
 import { render, fireEvent } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import RowEditor from './RowEditor.svelte';
@@ -260,5 +260,32 @@ describe('RowEditor', () => {
 		mount(deck(`gs1128_${S}`, 'qr-L_' + X2000), 'upc');
 		expect(c.querySelector('.scan-hint')!.textContent).toBe(SCAN_HINT);
 		expect(pClasses()).toEqual(['row-hint', 'gs1-hint', 'lax-note', 'scan-hint', 'dense-hint']);
+	});
+});
+
+describe('RowEditor GS1 breakdown', () => {
+	const S = '(01)09501101530003(17)261231(10)LOT42';
+	beforeEach(() => vi.setSystemTime(new Date(2026, 10, 3, 12)));
+	afterEach(() => vi.useRealTimers());
+
+	it('puts a labelled breakdown after the controls of each GS1 row only', () => {
+		mount(deck(`gs1128_${S}`, 'upc_036000291452', 'gs1qr_]C1010950110153000310LOT42<GS>17261231'));
+		expect(all('details.gs1-breakdown').length).toBe(2);
+		expect(at(1, 'summary')!.getAttribute('aria-label')).toBe('Code 1 breakdown: 3 AIs');
+		expect(at(3, 'summary')!.getAttribute('aria-label')).toBe('Code 3 breakdown: 3 AIs');
+		expect(at(2, 'details')).toBeNull();
+		expect(at(1, '.row-verdict')!.querySelector('details')).toBeNull();
+		expect(at(1, '.row-controls')!.nextElementSibling).toBe(at(1, 'details'));
+	});
+
+	it('keeps the same details element, still open, while the payload is edited', async () => {
+		mount(deck(`gs1128_${S}`));
+		const d = at(1, 'details') as unknown as HTMLDetailsElement;
+		d.open = true;
+		await fireEvent.input(at(1, '.row-payload')!, { target: { value: '(01)09501101530003' } });
+		await tick();
+		expect(at(1, 'details')).toBe(d);
+		expect(d.open).toBe(true);
+		expect(d.querySelector('summary')!.textContent).toBe('1 AI');
 	});
 });

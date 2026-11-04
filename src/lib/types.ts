@@ -26,7 +26,8 @@ export interface CodeEntry {
 	reason?: 'too-long'; // present when invalid because the payload exceeds symbol capacity
 	gs1?: Gs1Data; // GS1 only, present when valid: the AIM identifier and the data the symbol carries
 	lint?: string; // GS1 only: the BWIPP lint text when the row renders anyway under lax
-	message?: string; // GS1 only, present when invalid with a BWIPP text
+	fromScan?: { aim?: string }; // GS1 only: the token was read as raw scan data; aim is the identifier it began with
+	message?: string; // GS1 only, present when invalid with a BWIPP text or a read-step refusal
 }
 
 export type PlaybackMode = 'scroll' | 'step';
