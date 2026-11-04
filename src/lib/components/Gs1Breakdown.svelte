@@ -15,7 +15,7 @@
 
 <details class="gs1-breakdown text-base-content">
 	<summary class="link" aria-label={label ? `${label}: ${summary}` : undefined}>{summary}</summary>
-	<table class="table table-xs">
+	<table class="table table-sm">
 		<thead>
 			<tr>
 				<th><span class="visually-hidden">Application Identifier</span></th>

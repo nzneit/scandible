@@ -501,8 +501,10 @@ level select `select select-sm w-auto` in `Field`; the QR box stays literal whit
 
 ### `Gs1Breakdown.svelte`
 
-The `<summary>` with the `link` class; the table `table table-xs`; `color: CanvasText` becomes
-`text-base-content`.
+The `<summary>` with the `link` class; the table `table table-sm`; `color: CanvasText` becomes
+`text-base-content`. The owner chose `table-sm` (12 px) over `table-xs` (11 px) on 2026-11-04,
+after the final review measured the breakdown's rows at 11 px; the breakdown shows the Application
+Identifier values a tester reads.
 
 ### Play page — `src/routes/play/+page.svelte`
 
