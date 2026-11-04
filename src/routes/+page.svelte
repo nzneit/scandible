@@ -13,14 +13,7 @@
 		type Row,
 		type TextConversion
 	} from '$lib/rows';
-	import {
-		FORMAT_BY_ID,
-		FORMAT_GROUPS,
-		canonicalEcc,
-		canonicalLax,
-		isGs1,
-		type FormatId
-	} from '$lib/formats';
+	import { FORMAT_BY_ID, canonicalEcc, canonicalLax, isGs1, type FormatId } from '$lib/formats';
 	import { GS1_HINT, LAX_NOTE } from '$lib/verdict';
 	import { readCodesFile } from '$lib/fileInput';
 	import { decodeShareUrl, encodeRowsShareUrl, encodeShareUrl } from '$lib/shareUrl';
@@ -36,6 +29,8 @@
 	import RowEditor from '$lib/components/RowEditor.svelte';
 	import ShareLink from '$lib/components/ShareLink.svelte';
 	import Field from '$lib/components/Field.svelte';
+	import FormatSelect from '$lib/components/FormatSelect.svelte';
+	import EccSelect from '$lib/components/EccSelect.svelte';
 	import Note from '$lib/components/Note.svelte';
 	import SecondsSlider from '$lib/components/SecondsSlider.svelte';
 
@@ -267,15 +262,7 @@
 	<Note class="file-error" tone="error" hidden={!fileError}>{fileError}</Note>
 	<div class="settings-row">
 		<Field label={editor === 'rows' ? 'Format for new rows' : 'Format'}>
-			<select class="format-input" bind:value={() => format, (v) => selectFormat(v)}>
-				{#each FORMAT_GROUPS as { group, formats } (group)}
-					<optgroup label={group}>
-						{#each formats as f (f.id)}
-							<option value={f.id}>{f.label}</option>
-						{/each}
-					</optgroup>
-				{/each}
-			</select>
+			<FormatSelect class="format-input" bind:value={() => format, (v) => selectFormat(v)} />
 		</Field>
 		{#if editor === 'text' && isGs1(descriptor)}
 			<Note class="gs1-hint">{GS1_HINT}</Note>
@@ -283,14 +270,7 @@
 		{#if editor === 'text' && descriptor?.ecc}
 			{@const opt = descriptor.ecc}
 			<Field label="Error correction" class="ecc-field">
-				<select
-					class="ecc-input"
-					bind:value={() => ecc || opt.defaultValue, (v) => (ecc = v === opt.defaultValue ? '' : v)}
-				>
-					{#each opt.choices as c (c.value)}
-						<option value={c.value}>{c.note ? `${c.label} (${c.note})` : c.label}</option>
-					{/each}
-				</select>
+				<EccSelect class="ecc-input" option={opt} bind:value={ecc} />
 			</Field>
 		{/if}
 		{#if editor === 'text' && isGs1(descriptor)}

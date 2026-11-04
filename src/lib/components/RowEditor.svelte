@@ -2,14 +2,9 @@
 	import { tick } from 'svelte';
 	import Gs1Breakdown from './Gs1Breakdown.svelte';
 	import Note from './Note.svelte';
-	import {
-		FORMAT_BY_ID,
-		FORMAT_GROUPS,
-		canonicalEcc,
-		canonicalLax,
-		isGs1,
-		type FormatId
-	} from '$lib/formats';
+	import FormatSelect from './FormatSelect.svelte';
+	import EccSelect from './EccSelect.svelte';
+	import { FORMAT_BY_ID, canonicalEcc, canonicalLax, isGs1, type FormatId } from '$lib/formats';
 	import { rowEntry, type Row } from '$lib/rows';
 	import { DENSE_HINT, GS1_HINT, LAX_NOTE, SCAN_HINT, verdictText } from '$lib/verdict';
 
@@ -84,7 +79,7 @@
 					class:invalid={entry?.valid === false}
 					id="{uid}-verdict-{i}">{entry ? verdictText(entry) : ' skipped (empty)'}</span
 				>
-				<select
+				<FormatSelect
 					class="row-format"
 					aria-label="Format of code {i + 1}"
 					bind:value={
@@ -95,27 +90,14 @@
 							row.format = next;
 						}
 					}
-				>
-					{#each FORMAT_GROUPS as { group, formats } (group)}
-						<optgroup label={group}>
-							{#each formats as f (f.id)}
-								<option value={f.id}>{f.label}</option>
-							{/each}
-						</optgroup>
-					{/each}
-				</select>
+				/>
 				{#if opt}
-					<select
+					<EccSelect
 						class="row-ecc"
 						aria-label="Error correction of code {i + 1}"
-						bind:value={
-							() => row.ecc || opt.defaultValue, (v) => (row.ecc = v === opt.defaultValue ? '' : v)
-						}
-					>
-						{#each opt.choices as c (c.value)}
-							<option value={c.value}>{c.note ? `${c.label} (${c.note})` : c.label}</option>
-						{/each}
-					</select>
+						option={opt}
+						bind:value={row.ecc}
+					/>
 				{/if}
 				{#if isGs1(FORMAT_BY_ID.get(row.format))}
 					<label class="row-lax"
