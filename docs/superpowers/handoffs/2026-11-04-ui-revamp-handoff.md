@@ -2,20 +2,22 @@
 
 **Companion to:** the memory file `scandible-ui-revamp-series.md` in the Claude memory directory
 (every decision the user made for this series, with dates; it is canonical for _why_), spec 1
-`docs/superpowers/specs/2026-11-04-ui-foundation-design.md` on branch `feat/ui-foundation`
-(canonical for _what_ spec 1 builds), the merged migration spec
+`docs/superpowers/specs/2026-11-04-ui-foundation-design.md` (on `main` since `fde5de1`; canonical
+for _what_ spec 1 built), PR #10 on GitHub (its body holds spec 1's verification record, class
+audit and three before-and-after screenshots), spec 1's local record in
+`.superpowers/records/2026-11-04-ui-foundation/` (git-ignored, this machine only), the merged migration spec
 `docs/superpowers/specs/2026-11-04-accessible-test-queries-design.md` and its plan
 `docs/superpowers/plans/2026-11-04-accessible-test-queries.md` (on `main`), PR #9 on GitHub (its
 body holds the full checker output and the _Deliberate losses_ list), `CONTRIBUTING.md` _Writing
 tests_ (the test rules every new test follows), and `docs/superpowers/handoffs/2026-11-03-gs1-series-handoff.md`
 (the GS1 series and the unverified hardware rows of earlier series; not repeated here).
 
-**Status:** **Open** — 6 of 14 items open as of 2026-11-04 (second session). Closed: T1, T2, T3,
-T4, T5, T6, Q1, F2. T7: spec 1 is executed on `feat/ui-foundation` (all 15 tasks, final review
-and one fix wave, HEAD `a636708`); its PR waits for the user to ask. F1 and F3 are scheduled for
-after spec 1 merges. Tier 3 (specs 2 and 3) and Q2
-are untouched. The handoff was first written right after PR #9 (the
-accessible test queries migration) was squash-merged to `main` as `384b359`.
+**Status:** **Open** — 8 of 20 items open as of 2026-11-04 (start of the third session). Closed:
+T1 to T7, T11, T12, Q1, Q2, F2. Spec 1 (T7) is merged as `fde5de1` (PR #10) and deployed. Session 3
+works on branch `feat/setup-redesign`: T8 (spec 2) is being brainstormed, while one Sonnet agent
+prepares F1 and F3 as a `test:` branch to merge before spec 2's code starts. Then T9 (spec 3). T10
+(two human checks), Q3, F4 and F5 can run any time. SvelteKit 3 waits until after the series (Q2). The handoff was first written right after PR #9 (the accessible test queries migration) was
+squash-merged to `main` as `384b359`, and updated after PR #10 merged.
 
 **Why this exists.** The UI revamp is a three-spec series (foundation → setup page redesign → play
 screen). A Testing Library migration was inserted ahead of spec 1, at the user's request, so the
@@ -23,6 +25,12 @@ tests stop pinning class names and DOM shape. That migration is merged. Spec 1's
 revised to build on it, but its plan predates it and must be rewritten. The session that did this
 is ending; the next one should be able to pick any item below and act on it without re-reading
 that session.
+
+**Update after spec 1 merged (2026-11-04).** Spec 1 is on `main`: Tailwind CSS 4.3.4, daisyUI
+5.7.50, the Instrument theme, five shared units, the restyle of both pages, and two fail-closed
+checkers (`check-css` after every build, `npm run stage-check` by hand). The next session starts
+the redesign proper at spec 2. T10 to T12, Q3, F4 and F5 are new; T8 and T9 now carry what spec
+1's reviews and visual review left for them.
 
 **How to use this doc.**
 
@@ -33,8 +41,9 @@ that session.
 4. Verify against **Acceptance** (self-checkable).
 5. Tick the item's `Status` box and add a row to the **Decision log**.
 
-> **Line numbers are anchors as of `384b359` (`main`) and `c932561` (`feat/ui-foundation`),
-> 2026-11-04, and drift once edits land.** Anchor by the symbol or heading named; treat line
+> **Line numbers in T1 to T7 and Q1 to F3 are anchors as of `384b359` (`main`) and `c932561`
+> (`feat/ui-foundation`); those in T8 to T12, Q3, F4 and F5 are as of `fde5de1` (`main`),
+> 2026-11-04. They drift once edits land.** Anchor by the symbol or heading named; treat line
 > numbers as hints.
 
 **Session facts the fresh session needs.**
@@ -70,6 +79,36 @@ that session.
   reachable after the merge with `git fetch origin pull/9/head`. Nothing now checks absence/presence
   pairing automatically: reviewers check it by hand (`CONTRIBUTING.md`, _Writing tests_).
 
+**Session facts after spec 1 merged (`fde5de1`).**
+
+- Baseline at `fde5de1`: 40 test files, 860 tests; `svelte-check` 0 errors, 0 warnings; lint clean;
+  `npm run build` passes and `check-css` prints `3 CSS files, 66368 bytes raw, 11426 bytes
+gzipped`; Vite's chunk warning is 579.37 kB (accepted, F2). `npm run stage-check` compares the
+  play stage with `main` in headless Firefox: 8 PASS expected; exit 0 is a pass, 1 a mismatch, 2
+  unverified (never a pass).
+- Rules for new markup are in `CONTRIBUTING.md` _Styling_: classes only in `.svelte` files, colors
+  only from theme tokens, Tailwind's bare `hidden` does nothing, `stage-check` after any play-page
+  change. The theme and the global overrides are in `src/styles.css`. Spec 1's shared units are in
+  `src/lib/components/`: `Field`, `Note`, `SecondsSlider`, `FormatSelect`, `EccSelect`, and the
+  stage caps `barcode-caps.css`.
+- Spec 1's record is in `.superpowers/records/2026-11-04-ui-foundation/` (git-ignored, local): the
+  SDD ledger (`progress.md`, every ruling and deferred minor), the four final-review reports
+  (`final-review-A.md` to `-D.md`), the fix wave's brief and report, `task-15-report.md`, the class
+  audit and the PR body. The 28 visual-review shots are in `.superpowers/visual-review/main/` and
+  `.superpowers/visual-review/branch/` (local).
+- Headless Firefox: `--window-size=W,H --screenshot` sizes the viewport, and a width alone
+  (`--window-size=390`) gives a full-page shot. Without `--screenshot`, Firefox ignores
+  `--window-size` and uses 1366×768; set `MOZ_HEADLESS_WIDTH` and `MOZ_HEADLESS_HEIGHT` and add
+  `--kiosk`, as `stage-check` does. The agent's shell may be zsh, where unquoted variables do not
+  word-split and `PIPESTATUS` is empty.
+- `gh` 2.100.0 attaches images: `gh pr edit <n> --attach ./shot.png` (also `create` and `comment`)
+  uploads the file and rewrites `![alt](./shot.png)` in the body. The user wants PR screenshots
+  selective: PR #10 shows three before-and-after pairs, not 28.
+- Owner decisions from spec 1 that later specs inherit: the GS1 breakdown is `table-sm` (12 px);
+  Safari validation was a won't-do for spec 1.
+- Spec 1's tiers: plan 1 Opus; implementers Opus for Tasks 1, 2, 3, 6, 12, 15 and the fix wave,
+  Sonnet for the rest; Sonnet per-task reviewers; final review in 4 Opus chunks; 0 Fable.
+
 ---
 
 ## Summary
@@ -85,11 +124,17 @@ that session.
 | T7  | User reviews the plan; execute subagent-driven; PR when asked            | 2    | `feat/ui-foundation`                                         | ✅      |
 | T8  | Brainstorm and spec spec 2, the setup page redesign (B2)                 | 3    | new `docs/superpowers/specs/<date>-setup-redesign-design.md` | —       |
 | T9  | Brainstorm and spec spec 3, the play screen for any size                 | 3    | new `docs/superpowers/specs/<date>-play-screen-design.md`    | —       |
+| T10 | Run spec 1's two open human checks (focus rings, overlay fade)           | 2    | a person, on the live site                                   | —       |
+| T11 | Retire the merged `feat/ui-foundation` branch                            | 1    | `/home/nn/Projects/scandible` (git)                          | ✅      |
+| T12 | Land this handoff update                                                 | 1    | this file, on a `docs/` branch                               | ✅      |
 | Q1  | `Gs1Breakdown.test.ts` alone is 3.00× slower (per-file budget 2.5×)      | 4    | decision log only                                            | —       |
 | Q2  | When to take SvelteKit 3.0                                               | 4    | a separate upgrade spec or PR                                | —       |
+| Q3  | Should the color guard also catch palette classes and other color forms? | 4    | `src/colors.test.ts`, in spec 2's plan                       | —       |
 | F1  | Two Svelte `state_referenced_locally` warnings in the RowEditor test run | 4    | `src/lib/components/RowEditor.svelte.test.ts`                | —       |
 | F2  | Vite warns that one chunk is 573 kB                                      | 4    | `vite.config.ts` or the bwip-js import                       | —       |
 | F3  | Small test-file debt left by the migration                               | 4    | three test files                                             | —       |
+| F4  | GitHub Actions: Node 20 actions and the Ubuntu 26 runner move            | 4    | `.github/workflows/deploy.yml`                               | —       |
+| F5  | Small debt carried over from spec 1's reviews                            | 4    | the files named per sub-point                                | —       |
 
 ---
 
@@ -145,6 +190,49 @@ that session.
 - **Acceptance:** `git log -1 --format=%s -- docs/superpowers/handoffs/2026-11-04-ui-revamp-handoff.md`
   prints the commit subject; `npm run lint` is clean.
 - **Status:** ☑ closed — 2026-11-04; committed on `feat/ui-foundation` (the user's choice), so it reaches `main` with spec 1's PR.
+
+### T11 — Retire the merged `feat/ui-foundation` branch
+
+- **Where:** local branch `feat/ui-foundation` at `ae91793` and `origin/feat/ui-foundation`.
+  `main` is at `fde5de1`, the squash merge of PR #10; `git diff --stat feat/ui-foundation main`
+  prints nothing (the trees are identical; verified 2026-11-04). Only the main worktree is
+  registered.
+- **Problem:** a merged branch kept locally invites building spec 2 on it.
+- **If unaddressed:** spec 2 branches from the wrong base, or carries spec 1's 28 commits beside
+  their squash.
+- **Decision owed:** delete `origin/feat/ui-foundation` too? The practice so far is to keep merged
+  branches on the remote (T1). (Recommend: delete the local branch only.)
+- **Recommended resolution:**
+  ```bash
+  git checkout main
+  git pull --ff-only
+  git diff --stat feat/ui-foundation HEAD   # must print nothing
+  git branch -D feat/ui-foundation
+  ```
+- **Acceptance:** `git branch --list feat/ui-foundation` prints nothing; `main` is at or after
+  `fde5de1`.
+- **Status:** ☑ closed — 2026-11-04 (session 3); trees identical, local branch deleted, remote kept.
+
+### T12 — Land this handoff update
+
+- **Where:** this file, edited in `main`'s working tree after `fde5de1` and not committed
+  (2026-11-04).
+- **Problem:** the update sits uncommitted on `main`, and the repo's practice is no direct commits
+  to `main`.
+- **If unaddressed:** the next branch picks it up by accident, or a `git checkout -- .` loses it.
+- **Decision owed:** a docs-only PR (recommended: the user squash-merges, so mixing it into the
+  F1 and F3 `test:` PR would fold it into a `test:` commit), or a docs commit on that branch.
+- **Recommended resolution:**
+  ```bash
+  git switch -c docs/ui-revamp-handoff-after-spec-1
+  git add docs/superpowers/handoffs/2026-11-04-ui-revamp-handoff.md
+  git -c user.name="nzneit" -c user.email="nathanzneitman@gmail.com" commit -m "docs: update the UI revamp handoff after spec 1 merged"
+  ```
+  Push and open the PR only when the user asks; no AI attribution.
+- **Acceptance:** `git status --short` on `main` prints nothing; the commit touches only this file;
+  `git log -1 --format=%B` has no `Co-Authored-By` or `Generated with` line.
+- **Status:** ☑ closed — 2026-11-04 (session 3); committed on `feat/setup-redesign` (the user's
+  choice, as for T2), so it reaches `main` with spec 2's PR.
 
 ---
 
@@ -317,10 +405,35 @@ that session.
 - **Acceptance:** spec 1's Done means 1–5 are each shown with evidence in the PR body;
   `git diff --name-only --diff-filter=M main -- '*.test.ts'` prints nothing; `npm run build`
   (with `check-css`) and `npm run stage-check` pass.
-- **Status:** ◐ executed, PR not opened — 2026-11-04; all 15 tasks done subagent-driven, final
-  review in 4 Opus chunks plus one fix wave (`5bc18dd..a636708`), verification record A1–A10 and
-  V1–V5 PASS, H1–H5 open for a person. PR body and screenshots are ready; push and open the PR
-  only when the user asks.
+- **Status:** ☑ closed — 2026-11-04; PR #10 squash-merged as `fde5de1` and deployed (run
+  41928013081). All 15 tasks done subagent-driven; the final review (4 Opus chunks) found 0
+  Critical and 4 Important, all fixed in one wave (`5bc18dd..a636708`) and re-reviewed. A1 to A10
+  and V1 to V5 PASS. H1: Chrome fine at a glance on Android; Safari a won't-do (the user's call).
+  H4: fine at a glance on an Android phone. H5: deploy succeeded and the live page renders. H2 and
+  H3 move to T10.
+
+### T10 — Run spec 1's two open human checks (focus rings, overlay fade)
+
+- **Where:** PR #10 body, _Verification_ rows H2 and H3 and _Human checks (open)_; the live site
+  https://nzneit.github.io/scandible/. The overlay's focus override is
+  `.overlay :global(:focus-visible)` in `src/routes/play/+page.svelte`.
+- **Problem:** static screenshots cannot show focus or a fade, so both checks are still
+  unverified.
+- **If unaddressed:** an invisible focus ring on the dark overlay (daisyUI's default ring is
+  2.66:1 there; spec 1 recolors it to `neutral-content`) or an overlay that snaps away goes
+  unnoticed until spec 3 rebuilds the overlay.
+- **Decision owed:** none — a person runs them, on a desktop browser with a keyboard.
+- **Recommended resolution:**
+  - H2: on the live setup page, press Tab through every control; then open a deck in Step mode
+    (for example `https://nzneit.github.io/scandible/play#codes=036000291452&fmt=upc&mode=step`),
+    move the mouse to show the overlay and Tab through its controls. Every focused control shows a
+    visible ring.
+  - H3: on the play page, show the overlay and keep the mouse still. After about 3 s it fades out
+    (an opacity transition) rather than vanishing at once.
+- **Acceptance:** a Decision log row for each check that names the browser, or a FAILED note with
+  what was seen.
+- **Relates to:** T9
+- **Status:** ☐ open
 
 ---
 
@@ -345,6 +458,22 @@ that session.
   - `role="alert"` or `role="status"` for the file error;
   - consider naming the share field "Share link address".
 
+- **Carry-ins from spec 1** (PR #10 _Screenshots_; `.superpowers/records/2026-11-04-ui-foundation/`
+  `task-15-report.md` and `final-review-C.md`), all accepted by spec 1 and spec 2's to revisit:
+  - the file input is a bordered daisyUI `file-input-sm`, 261×32 px, where `main` showed about
+    173 px of a native control;
+  - at 390 px a long GS1 payload wraps to two lines in the per-row editor (14 px mono, was 12 px);
+  - `ShareLink`'s `.copy-status` is an always-rendered live region with `basis-full`, so the empty
+    status adds an 8 px row gap at rest. The Share panel replaces this row; keep the live region
+    and never hide it with `display: none`;
+  - disabled Move up and Move down are about 1.5:1 (spec 1 exempted disabled controls), and the
+    setup page's range tracks about 1.2 to 1.3:1;
+  - at desktop widths the page is one column about 590 px wide with wide empty margins, which B2's
+    two panes answer;
+  - the row controls wrap at 390 px exactly as on `main` (measured), and the QR row's
+    error-correction select pushes the move buttons down at every width;
+  - new markup follows `CONTRIBUTING.md` _Styling_; decide Q3 (the color guard's scope) in spec 2's
+    plan, and fold F5 c (RowEditor's repeated verdict conditions) into the row editor redesign.
 - **Problem:** not started. Two of the migration's losses are spec 2's to settle:
   - Visible labels (`<label for>` or `aria-labelledby`) let tests assert the label text again with
     `getByLabelText`, which restores loss 5 in T4.
@@ -352,8 +481,8 @@ that session.
     `role="group"` and a name (for example "Controls of code 1") would let a test assert
     `not.toContainElement` again and restore loss 3.
 - **If unaddressed:** n/a (future work).
-- **Decision owed:** start after spec 1 merges (recommended, since spec 2 builds on spec 1's
-  components), or brainstorm in parallel?
+- **Decision owed:** settled. Spec 1 has merged (`fde5de1`), and Q2 puts SvelteKit 3 after the
+  series, so spec 2 starts now on the current toolchain (session 3).
 - **Recommended resolution:** after spec 1 merges, run the `brainstorming` skill (architectural
   path). Reuse the B2 mockup decision, and offer the visual companion when a layout question comes
   up. Run a multi-lens review before asking for approval.
@@ -370,6 +499,16 @@ that session.
     marked fallback `faded()` in `src/routes/play/page.test.ts`; spec 3 can remove that fallback.
   - the finish screen's semantics: should it become a dialog?
   - roles or names for the barcode items, if wanted. The stage tests read classes on purpose.
+- **Carry-ins from spec 1** (PR #10 _Screenshots_, overlay and finish; `task-15-report.md`):
+  - the overlay's range tracks and thumbs follow `currentColor` and are faint on the dark
+    `bg-neutral/85` fill, where `main`'s were blue on grey;
+  - the overlay grew from about 837×44 to 915×52 px at 1280 px (`btn-sm`, 32 px tall buttons);
+    touch targets are spec 3's;
+  - the gap from a seconds field to its "s" is 4 px (was 6 px), and Firefox shows the number spin
+    buttons in the seconds fields under daisyUI's `appearance: none`;
+  - the finish text is `text-2xl` with `mb-6`, which restores `main`'s 40 px gap above Restart;
+  - T10's focus-ring and fade results feed the overlay redesign; run `npm run stage-check` after
+    every play-page change.
 - **Problem:** not started. The overlay-wrapper loss (T4 check 4) is spec 3's to revisit.
 - **If unaddressed:** n/a (future work).
 - **Decision owed:** order (after spec 2, as the series says) and whether the finish screen becomes
@@ -403,7 +542,10 @@ that session.
   merges and before spec 2, in its own PR, so spec 2's tests are written once against 3.0.)
 - **Recommended resolution:** a separate spec or bounded PR when the user chooses.
 - **Acceptance:** a Decision log row with the chosen slot.
-- **Status:** ☐ open
+- **Status:** ☑ closed — 2026-11-04 (session 3); after the UI series. SvelteKit 3.1.1 (the latest
+  on that day) needs Vite 8, `@sveltejs/vite-plugin-svelte` 7 and TypeScript 6, so vitest and
+  `@tailwindcss/vite` move too: a toolchain change of its own. The setup-page tests touch SvelteKit
+  only through three `vi.mock` lines, so spec 2 gains little from taking it first.
 
 ### F1 — Two Svelte `state_referenced_locally` warnings in the RowEditor test run
 
@@ -421,7 +563,8 @@ that session.
   read the flagged lines, and read the state through a closure or `$derived` as the Svelte message
   suggests, without changing any assertion or event.
 - **Acceptance:** that command prints nothing; the file still passes 18 of 18 tests.
-- **Status:** ☐ open — scheduled for after spec 1 merges (decided 2026-11-04)
+- **Status:** ☐ open — unblocked: spec 1 merged as `fde5de1` (the user chose "after spec 1
+  merges" on 2026-11-04). Rechecked at `fde5de1`: still two warnings (one at :229), 18 of 18 pass.
 
 ### F2 — Vite warns that one chunk is 573 kB
 
@@ -462,7 +605,90 @@ that session.
 - **Acceptance:** the three files pass; `npm run lint` is clean; for b, deleting the deck's codes
   makes the test fail.
 - **Relates to:** F1
-- **Status:** ☐ open — scheduled for after spec 1 merges (decided 2026-11-04)
+- **Status:** ☐ open — unblocked: spec 1 merged as `fde5de1`; bundle with F1 in one `test:` PR.
+
+### Q3 — Should the color guard also catch palette classes and other color forms?
+
+- **Where:** `src/colors.test.ts` (the `COLOR` and `ARBITRARY_COLOR` patterns and `scanColors`);
+  `CONTRIBUTING.md` _Styling_, which now says the test sees only hex, `rgb()` and `hsl()`; final
+  review chunk A, Minor M3, in `.superpowers/records/2026-11-04-ui-foundation/final-review-A.md`.
+- **Problem:** the guard flags hex, `rgb()`/`rgba()` and `hsl()`/`hsla()` literals and
+  arbitrary-value classes. Named colors (`white`), `oklch()`, `oklab()`, `lab()`, `lch()`, `hwb()`,
+  `color()`, and Tailwind's default palette classes (`text-red-600`, `bg-zinc-100`) pass it.
+  Tailwind 4 still ships its palette beside daisyUI, so those classes build. None exist today.
+- **If unaddressed:** spec 2 writes a lot of new markup. A palette class can slip in, look right
+  in the light theme, and break the token-only rule that dark mode will rely on.
+- **Decision owed:** (a) widen `src/colors.test.ts`; (b) remove Tailwind's palette in
+  `src/styles.css` (`@theme { --color-*: initial; }`); or (c) leave it to review, as now.
+- **Recommended resolution:** (a), in spec 2's plan and test-first: flag a palette class,
+  `(?:text|bg|border|ring|outline|fill|stroke|from|via|to|accent|caret|decoration|divide|placeholder|shadow)-(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d{2,3}`
+  as a whole class (daisyUI's `bg-neutral/85` and `text-neutral-content` do not match: they have
+  no shade number), plus `-black` and `-white` classes, and widen the function alternation to
+  `oklch|oklab|lab|lch|hwb|color`. (b) is less code, but first check that daisyUI's tokens survive
+  it: `check-css` fails the build if one goes missing.
+- **Acceptance:** for (a), fixture rows with `class="text-red-600"` and
+  `<style>.x { color: oklch(50% 0.1 30) }</style>` are each flagged, and the real-file test still
+  passes; for (b) or (c), a Decision log row.
+- **Relates to:** T8
+- **Status:** ☐ open
+
+### F4 — GitHub Actions: Node 20 actions and the Ubuntu 26 runner move
+
+- **Where:** `.github/workflows/deploy.yml`: `actions/checkout@v4` (:21), `actions/setup-node@v4`
+  (:22), `actions/configure-pages@v5` (:30), `actions/upload-pages-artifact@v3` (:31, which runs
+  `actions/upload-artifact@v4`), `actions/deploy-pages@v4` (:43), and `runs-on: ubuntu-latest`
+  (:19, :37). PR #10's deploy run 41928013081 printed: "Node.js 20 is deprecated. The following
+  actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4,
+  actions/configure-pages@v5, actions/setup-node@v4, actions/upload-artifact@v4", and "The
+  ubuntu-latest label will migrate to Ubuntu 26 beginning October 19, 2026".
+- **Problem:** every deploy warns, and the forced Node 24 run or a later runner change can break
+  an action.
+- **If unaddressed:** one day a merge to `main` fails to deploy, and the site stays on the old
+  build.
+- **Decision owed:** none — mechanical. (Pinning `ubuntu-24.04` instead of following
+  `ubuntu-latest` is a small choice; recommend following `ubuntu-latest`, since the build is plain
+  Node.)
+- **Recommended resolution:** for each action, read its latest major
+  (`gh api repos/actions/checkout/releases/latest --jq .tag_name`, and the same for `setup-node`,
+  `configure-pages`, `upload-pages-artifact` and `deploy-pages`), confirm in its release notes that
+  it runs on Node 24, and bump the `@vN` refs in one `ci:` PR. The workflow runs only on `main`,
+  so it is verified after the merge.
+- **Acceptance:** the first deploy run on `main` after the merge succeeds, and `gh run view <id>`
+  lists no Node 20 annotation.
+- **Status:** ☐ open
+
+### F5 — Small debt carried over from spec 1's reviews
+
+- **Where and what** (the `minor (deferred)` lines of
+  `.superpowers/records/2026-11-04-ui-foundation/progress.md` and the `final-review-*.md` reports
+  beside it):
+  - a. `scripts/stage-check.ts`: a SIGTERM that arrives while `spawnSync` runs a build step is
+    handled only at the next `await` (the run still ends with exit 2 after cleanup); a
+    `git worktree add` that fails midway leaves a prunable registration; `deckUrl` adds and then
+    deletes `mode`; `/scandiblex` counts as under the base for the 404 rule.
+  - b. `src/colors.test.ts`: all-hex markup anchors (`href="#fade"`, `#add`) and hex-like
+    selectors in a `<style>` block (`#abc`, `[href="#abc"]`) would be flagged. These are false
+    positives that fail safe, and none exist today.
+  - c. `src/lib/components/RowEditor.svelte`: the verdict conditions are written out once per
+    state (around :77-82); a `{@const}` per state would be tidier.
+  - d. `src/lib/components/barcode-caps.css:1-2`: the comment says "no layered rule can override
+    it", but a layered `!important` still could.
+  - e. the build ships 11 unused `.steps .step` rules (about 1.5 kB), because `step` is the app's
+    own word and Tailwind scans it. `@source not inline('step');` beside the `hidden` line in
+    `src/styles.css` removes them (tested on 2026-11-04, then reverted).
+  - f. `src/check-css.test.ts`: parser extras are untested: escapes outside strings, the
+    `[data-theme]` operators `~=`, `^=` and `*=`, and attribute-name case.
+  - g. `docs/superpowers/plans/2026-11-04-ui-foundation.md` (about :1462) still says `table-xs`,
+    while the spec records the owner's `table-sm`. The plan is the historical argument; leave it or
+    add a note.
+- **Problem:** none changes behavior; each is polish or a false positive that fails safe.
+- **If unaddressed:** little; e costs about 1.5 kB on every load.
+- **Decision owed:** none — mechanical. Pick per sub-point, or fold each into the spec that next
+  touches its file (c into spec 2's row editor, b with Q3).
+- **Recommended resolution:** as listed per sub-point; e is one line and a rebuild.
+- **Acceptance:** per sub-point; for e, after `npm run build`, no CSS file under `dist/` contains
+  `.steps` and `npm test` still passes; for c, `npm test` passes with no test change.
+- **Status:** ☐ open
 
 ---
 
@@ -475,22 +701,34 @@ resolution_). F1 and F3 change existing test files, which spec 1's PR must not d
 before spec 1's branch is cut, or after it merges, never inside it. Specs 2 and 3 (T8, T9) depend
 on spec 1's shared components, and T8 is where two of the migration's losses can be restored.
 
+**After spec 1 (`fde5de1`).** Clear T11 and T12 first. F1 and F3 are one `test:` PR, now
+unblocked; land it before spec 2's branch is cut, so spec 2 starts from a quiet test run. Q2 then
+decides whether SvelteKit 3.0 lands before spec 2 (recommended). T8 brings its carry-in list, Q3
+and F5 c into the brainstorm. T10 is a short person check that can run any time; T9's overlay work
+uses its results. F4 is independent.
+
 ## Decision log
 
 _(Append one row per resolved item: ID · decision taken · file(s) patched · resolver · date.)_
 
-| ID     | Decision taken                                                                                                                                                                                                                                         | File(s) patched                                                         | Resolver                              | Date       |
-| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------- | ------------------------------------- | ---------- |
-| T1     | Pulled `main` to `384b359`; deleted local `test/accessible-queries` (empty diff against `main`); kept the remote branch, as before                                                                                                                     | git only                                                                | user (recommended default), session 2 | 2026-11-04 |
-| T2     | Commit the handoff on `feat/ui-foundation`, not on `main`                                                                                                                                                                                              | this file                                                               | user                                  | 2026-11-04 |
-| T3     | Spec 1's migration revision `c932561` (now `ae089c2`) approved as written                                                                                                                                                                              | none                                                                    | user                                  | 2026-11-04 |
-| T4     | The five losses become author-made visual-review checks; screenshot list gains the three verdicts and an open GS1 breakdown; spec status set to approved                                                                                               | `docs/superpowers/specs/2026-11-04-ui-foundation-design.md` (`d563df1`) | user                                  | 2026-11-04 |
-| T5     | Rebased `feat/ui-foundation` onto `main` `384b359`; hash map under _Session facts_                                                                                                                                                                     | git only                                                                | session 2                             | 2026-11-04 |
-| Q1     | `Gs1Breakdown.test.ts` at 3.00× (budget 2.5× per file; 0.05 s excess; total 1.46×) accepted                                                                                                                                                            | none                                                                    | user                                  | 2026-11-04 |
-| F1, F3 | Land in one `test:` PR after spec 1 merges, not before                                                                                                                                                                                                 | none yet                                                                | user                                  | 2026-11-04 |
-| T6     | Plan rewritten by 1 Opus agent as `88ec9ed`; checked: one commit, repo author, no attribution, only the plan file, Prettier, no stale anchors, clean tree                                                                                              | `docs/superpowers/plans/2026-11-04-ui-foundation.md`                    | session 2                             | 2026-11-04 |
-| T6 Qs  | All three plan readings accepted; spec amended to match: the seconds field is `w-[4.5rem]` (`4.5em` cut the value off) and takes `text-base-content` (white on white in the overlay)                                                                   | spec and plan (`a2454b9`)                                               | user                                  | 2026-11-04 |
-| F2     | The 573 kB chunk (bwip-js ~447 kB, JsBarcode ~68 kB, GS1 table ~32 kB; ~579 kB after spec 1) accepted; the PR lists it                                                                                                                                 | none                                                                    | user                                  | 2026-11-04 |
-| T7     | Subagent-driven: Opus implementers for Tasks 1, 2, 3, 6, 12, 15, Sonnet for the rest; Sonnet per-task reviewers; final review in 4 Opus chunks before Task 15; no Fable judge                                                                          | none                                                                    | user                                  | 2026-11-04 |
-| T7 run | Executed: 15 tasks; 4 Opus final-review chunks found 0 Critical, 4 Important (checkers fail open on Node 24.0/24.1; stage-check Scroll ran at 1366×768; colors guard missed at-rule blocks; switch-note layout), all fixed in one wave and re-reviewed | branch `beaa24e..a636708`                                               | session 2                             | 2026-11-04 |
-| T7 GS1 | The GS1 breakdown uses daisyUI `table-sm` (12 px), not `table-xs` (11 px); the spec records it                                                                                                                                                         | spec, `Gs1Breakdown.svelte` (`a636708`)                                 | user                                  | 2026-11-04 |
+| ID          | Decision taken                                                                                                                                                                                                                                         | File(s) patched                                                         | Resolver                              | Date       |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------- | ------------------------------------- | ---------- |
+| T1          | Pulled `main` to `384b359`; deleted local `test/accessible-queries` (empty diff against `main`); kept the remote branch, as before                                                                                                                     | git only                                                                | user (recommended default), session 2 | 2026-11-04 |
+| T2          | Commit the handoff on `feat/ui-foundation`, not on `main`                                                                                                                                                                                              | this file                                                               | user                                  | 2026-11-04 |
+| T3          | Spec 1's migration revision `c932561` (now `ae089c2`) approved as written                                                                                                                                                                              | none                                                                    | user                                  | 2026-11-04 |
+| T4          | The five losses become author-made visual-review checks; screenshot list gains the three verdicts and an open GS1 breakdown; spec status set to approved                                                                                               | `docs/superpowers/specs/2026-11-04-ui-foundation-design.md` (`d563df1`) | user                                  | 2026-11-04 |
+| T5          | Rebased `feat/ui-foundation` onto `main` `384b359`; hash map under _Session facts_                                                                                                                                                                     | git only                                                                | session 2                             | 2026-11-04 |
+| Q1          | `Gs1Breakdown.test.ts` at 3.00× (budget 2.5× per file; 0.05 s excess; total 1.46×) accepted                                                                                                                                                            | none                                                                    | user                                  | 2026-11-04 |
+| F1, F3      | Land in one `test:` PR after spec 1 merges, not before                                                                                                                                                                                                 | none yet                                                                | user                                  | 2026-11-04 |
+| T6          | Plan rewritten by 1 Opus agent as `88ec9ed`; checked: one commit, repo author, no attribution, only the plan file, Prettier, no stale anchors, clean tree                                                                                              | `docs/superpowers/plans/2026-11-04-ui-foundation.md`                    | session 2                             | 2026-11-04 |
+| T6 Qs       | All three plan readings accepted; spec amended to match: the seconds field is `w-[4.5rem]` (`4.5em` cut the value off) and takes `text-base-content` (white on white in the overlay)                                                                   | spec and plan (`a2454b9`)                                               | user                                  | 2026-11-04 |
+| F2          | The 573 kB chunk (bwip-js ~447 kB, JsBarcode ~68 kB, GS1 table ~32 kB; ~579 kB after spec 1) accepted; the PR lists it                                                                                                                                 | none                                                                    | user                                  | 2026-11-04 |
+| T7          | Subagent-driven: Opus implementers for Tasks 1, 2, 3, 6, 12, 15, Sonnet for the rest; Sonnet per-task reviewers; final review in 4 Opus chunks before Task 15; no Fable judge                                                                          | none                                                                    | user                                  | 2026-11-04 |
+| T7 run      | Executed: 15 tasks; 4 Opus final-review chunks found 0 Critical, 4 Important (checkers fail open on Node 24.0/24.1; stage-check Scroll ran at 1366×768; colors guard missed at-rule blocks; switch-note layout), all fixed in one wave and re-reviewed | branch `beaa24e..a636708`                                               | session 2                             | 2026-11-04 |
+| T7 GS1      | The GS1 breakdown uses daisyUI `table-sm` (12 px), not `table-xs` (11 px); the spec records it                                                                                                                                                         | spec, `Gs1Breakdown.svelte` (`a636708`)                                 | user                                  | 2026-11-04 |
+| T7 merged   | PR #10 squash-merged as `fde5de1`; Pages deploy run 41928013081 succeeded; the live site serves the Instrument theme                                                                                                                                   | git only                                                                | user                                  | 2026-11-04 |
+| T7 H checks | Chrome on Android fine at a glance (H1 Chrome part, H4); Safari validation a won't-do for spec 1 (H1 Safari part, waived, not passed); H5 deploy verified; H2 and H3 move to T10                                                                       | none                                                                    | user                                  | 2026-11-04 |
+| T11         | Deleted local `feat/ui-foundation` (tree identical to `main`); kept the remote branch                                                                                                                                                                  | git only                                                                | session 3 (recommended default)       | 2026-11-04 |
+| Q2          | SvelteKit 3 after the UI series, in its own upgrade PR                                                                                                                                                                                                 | none                                                                    | user                                  | 2026-11-04 |
+| F1, F3      | One Sonnet agent prepares the `test:` branch in a throwaway worktree while spec 2 is brainstormed; merged before spec 2's code starts                                                                                                                  | none yet                                                                | user                                  | 2026-11-04 |
+| T12         | This update committed on `feat/setup-redesign`, as T2 was on `feat/ui-foundation`                                                                                                                                                                      | this file                                                               | user                                  | 2026-11-04 |
