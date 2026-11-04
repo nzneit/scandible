@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { CodeEntry } from '$lib/types';
 	import Gs1Breakdown from './Gs1Breakdown.svelte';
+	import Note from './Note.svelte';
 	import { displayData } from '$lib/gs1';
 	import { DENSE_HINT, SCAN_HINT, verdictText } from '$lib/verdict';
 
@@ -20,10 +21,10 @@
 	{/each}
 </ul>
 {#if entries.some((e) => e.gs1)}
-	<p class="scan-hint">{SCAN_HINT}</p>
+	<Note class="scan-hint">{SCAN_HINT}</Note>
 {/if}
 {#if entries.some((e) => e.facts?.dense)}
-	<p class="dense-hint">{DENSE_HINT}</p>
+	<Note class="dense-hint">{DENSE_HINT}</Note>
 {/if}
 
 <style>

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Field from './Field.svelte';
+	import Note from './Note.svelte';
 	import { buildQrSvg, qrStatus, QR_CAPACITY_BYTES, type QrEcc, type QrStatus } from '$lib/qr';
 
 	const COPY_OK = 'Link copied.';
@@ -60,7 +61,9 @@
 	<!-- eslint-disable-next-line svelte/no-at-html-tags -- qrSvg comes only from uqr's renderSVG, which never reflects its input into markup (security-reviewed) -->
 	{@html qrSvg}
 </div>
-<p class="qr-status" role="status" aria-label="QR code status">{statusMessage(status)}</p>
+<Note tone="warning" class="qr-status mt-1" role="status" aria-label="QR code status"
+	>{statusMessage(status)}</Note
+>
 
 <style>
 	.share-url {
@@ -79,9 +82,5 @@
 		width: 100%;
 		height: auto;
 		display: block;
-	}
-	.qr-status {
-		color: #a04b00;
-		margin: 4px 0 0;
 	}
 </style>

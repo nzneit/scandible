@@ -55,7 +55,6 @@ const NOT_YET_RESTYLED: readonly string[] = [
 	'src/lib/components/RowEditor.svelte: .row-verdict.valid: #007700',
 	'src/lib/components/RowEditor.svelte: .row-verdict.invalid: #c00',
 	'src/lib/components/RowEditor.svelte: .row-verdict.lenient: #9a6700',
-	'src/lib/components/ShareLink.svelte: .qr-status: #a04b00',
 	'src/lib/components/ValidationList.svelte: .validation-list .valid: #007700',
 	'src/lib/components/ValidationList.svelte: .validation-list .invalid: #c00',
 	'src/lib/components/ValidationList.svelte: .validation-list .lenient: #9a6700',

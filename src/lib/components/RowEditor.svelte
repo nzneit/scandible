@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { tick } from 'svelte';
 	import Gs1Breakdown from './Gs1Breakdown.svelte';
+	import Note from './Note.svelte';
 	import {
 		FORMAT_BY_ID,
 		FORMAT_GROUPS,
@@ -154,16 +155,16 @@
 	{/each}
 </ol>
 <button type="button" class="row-add" bind:this={addEl} onclick={add}>Add code</button>
-<p class="row-hint">{ROW_HINT}</p>
+<Note class="row-hint">{ROW_HINT}</Note>
 {#if rows.some((r) => isGs1(FORMAT_BY_ID.get(r.format))) || isGs1(FORMAT_BY_ID.get(newRowFormat))}
-	<p class="gs1-hint">{GS1_HINT}</p>
-	<p class="lax-note">{LAX_NOTE}</p>
+	<Note class="gs1-hint">{GS1_HINT}</Note>
+	<Note class="lax-note">{LAX_NOTE}</Note>
 {/if}
 {#if entries.some((e) => e?.gs1)}
-	<p class="scan-hint">{SCAN_HINT}</p>
+	<Note class="scan-hint">{SCAN_HINT}</Note>
 {/if}
 {#if entries.some((e) => e?.facts?.dense)}
-	<p class="dense-hint">{DENSE_HINT}</p>
+	<Note class="dense-hint">{DENSE_HINT}</Note>
 {/if}
 
 <style>

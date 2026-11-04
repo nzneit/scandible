@@ -37,6 +37,7 @@
 	import RowEditor from '$lib/components/RowEditor.svelte';
 	import ShareLink from '$lib/components/ShareLink.svelte';
 	import Field from '$lib/components/Field.svelte';
+	import Note from '$lib/components/Note.svelte';
 
 	const decoded = decodeShareUrl(page.url);
 	const initial: Settings = { ...DEFAULT_SETTINGS, ...decoded.settings };
@@ -246,7 +247,7 @@
 		</select>
 	</Field>
 	{#if editor === 'text'}
-		<p class="editor-hint">{EDITOR_HINT}</p>
+		<Note class="editor-hint">{EDITOR_HINT}</Note>
 	{/if}
 	{#if pending}
 		<div class="switch-note" role="alert">
@@ -273,7 +274,7 @@
 		aria-label="Load codes from a file"
 		onchange={onFileChange}
 	/>
-	<p class="file-error" hidden={!fileError}>{fileError}</p>
+	<Note class="file-error" tone="error" hidden={!fileError}>{fileError}</Note>
 	<div class="settings-row">
 		<Field label={editor === 'rows' ? 'Format for new rows' : 'Format'}>
 			<select class="format-input" bind:value={() => format, (v) => selectFormat(v)}>
@@ -287,7 +288,7 @@
 			</select>
 		</Field>
 		{#if editor === 'text' && isGs1(descriptor)}
-			<p class="gs1-hint">{GS1_HINT}</p>
+			<Note class="gs1-hint">{GS1_HINT}</Note>
 		{/if}
 		{#if editor === 'text' && descriptor?.ecc}
 			{@const opt = descriptor.ecc}
@@ -311,7 +312,7 @@
 					aria-describedby="{uid}-lax-note"
 				/>
 			</Field>
-			<p class="lax-note" id="{uid}-lax-note">{LAX_NOTE}</p>
+			<Note class="lax-note" id="{uid}-lax-note">{LAX_NOTE}</Note>
 		{/if}
 		<Field label="Playback">
 			<select class="mode-input" bind:value={mode}>
@@ -347,10 +348,10 @@
 				</span>
 			</Field>
 			{#if dwellMs < 330}
-				<p class="flash-note">
+				<Note class="flash-note" tone="warning">
 					Dwells under 0.33 s flash the screen more than three times a second. Do not use them near
 					anyone sensitive to flashing lights.
-				</p>
+				</Note>
 			{/if}
 			<Field label="Gap">
 				<input
@@ -379,7 +380,7 @@
 				</span>
 			</Field>
 			{#if gapMs < 1000 && dupPairs.length > 0}
-				<p class="dup-hint">{dupHint}</p>
+				<Note class="dup-hint" tone="warning">{dupHint}</Note>
 			{/if}
 		{:else}
 			<Field label="Speed">
