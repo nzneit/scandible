@@ -17,6 +17,8 @@ const OTHER = 'src/lib/components/Other.svelte';
 const STYLE = /<style[^>]*>([\s\S]*?)<\/style>/g;
 const SCRIPT = /<script[^>]*>([\s\S]*?)<\/script>/g;
 const HTML_COMMENT = /<!--[\s\S]*?-->/g;
+/** A CSS comment, or a string (group 1), kept whole so that a `/*` inside it starts no comment. */
+const CSS_COMMENT = /("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')|\/\*[\s\S]*?\*\//g;
 /** A color literal: hex (not an entity's `&#…` or a Svelte `{#…}` block), rgb(a) or hsl(a). */
 const COLOR =
 	/(?<![\w&{])#(?:[0-9a-f]{8}|[0-9a-f]{6}|[0-9a-f]{3,4})\b|\b(?:rgba?|hsla?)\([^)]*\)/gi;
@@ -30,16 +32,27 @@ const isStageWhite = (path: string, selector: string, literal: string) =>
 		(path === SHARE && selector === '.qr-code'));
 
 /** Every color literal in one .svelte file. `text` is `<path>: <where>: <literal>`, where `where` is
- *  the rule's selector (from cssRules), `markup` or `script`; `allowed` only for the stage allowances. */
+ *  the rule's selector (from cssRules), `style` (outside every style rule, as in `@keyframes`),
+ *  `markup` or `script`; `allowed` only for the stage allowances. */
 function scanColors(path: string, source: string): { text: string; allowed: boolean }[] {
 	const found: { text: string; allowed: boolean }[] = [];
 	const add = (where: string, literal: string, allowed = false) =>
 		found.push({ text: `${path}: ${where}: ${literal}`, allowed });
 	for (const [, css] of source.matchAll(STYLE)) {
+		const inRules: string[] = [];
 		for (const rule of cssRules(css)) {
 			for (const [literal] of rule.declarations.matchAll(COLOR)) {
+				inRules.push(literal);
 				add(rule.selector, literal, isStageWhite(path, rule.selector, literal));
 			}
+		}
+		// cssRules skips @keyframes, @property and the other non-grouping at-rules: every literal
+		// of the block beyond those the rules hold (a multiset difference) is reported as `style`.
+		const uncommented = css.replace(CSS_COMMENT, (_, string: string | undefined) => string ?? '');
+		for (const [literal] of uncommented.matchAll(COLOR)) {
+			const i = inRules.indexOf(literal);
+			if (i === -1) add('style', literal);
+			else inRules.splice(i, 1);
 		}
 	}
 	for (const [, script] of source.matchAll(SCRIPT)) {
@@ -81,7 +94,19 @@ describe('scanColors', () => {
 			'<p style="color: #333">x</p><p class="bg-[#123456]">y</p>',
 			[OTHER + ': markup: #333', OTHER + ': markup: #123456']
 		],
-		[OTHER, "<script>const c = 'text-[rgb(1,2,3)]';</script>", [OTHER + ': script: rgb(1,2,3)']]
+		[OTHER, "<script>const c = 'text-[rgb(1,2,3)]';</script>", [OTHER + ': script: rgb(1,2,3)']],
+		[OTHER, '<style>@keyframes k { from { color: #c00 } }</style>', [OTHER + ': style: #c00']],
+		[
+			OTHER,
+			"<style>@property --x { syntax: '<color>'; inherits: false; initial-value: rgb(0 0 0) }</style>",
+			[OTHER + ': style: rgb(0 0 0)']
+		],
+		[PLAY, '<style>.play { background: #fff; } .finish-screen { background: #fff; }</style>', []],
+		[
+			PLAY,
+			'<style>.play { background: #fff; } @keyframes k { to { background: #fff } }</style>',
+			[PLAY + ': style: #fff']
+		]
 	])('%s with %s reports %j', (path, source, expected) => {
 		expect(violations(path, source)).toEqual(expected);
 	});
@@ -100,7 +125,7 @@ describe('the real components', () => {
 		]);
 	});
 
-	it('finds no raw color but the ones not yet restyled', () => {
+	it('finds no raw color outside the three allowed white backgrounds', () => {
 		const found = SOURCES.flatMap(([path, source]) => violations(path, source)).sort();
 		expect(found).toEqual([]);
 	});
