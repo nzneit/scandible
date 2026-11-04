@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
-import { render, fireEvent } from '@testing-library/svelte';
+import { render, fireEvent, within } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import RowEditor from './RowEditor.svelte';
 import { DENSE_HINT, GS1_HINT, LAX_NOTE, SCAN_HINT } from '$lib/verdict';
@@ -22,6 +22,7 @@ const deck = (...records: string[]): Row[] =>
 const ROW_HINT =
 	'Each row is one code. Enter adds a line to the code. To enter many codes at once, use Plain text or upload a file.';
 const X2000 = 'x'.repeat(2000);
+const BREAKDOWN = /^Code \d+ breakdown: /; // Questions 3: the labelled summary, whose text varies
 let c: HTMLElement;
 /** Mount over deep-state rows, as the page binds them; the spec's default rows unless given. */
 const mount = (
@@ -31,44 +32,60 @@ const mount = (
 	const rows = $state(initial);
 	c = render(RowEditor, { props: { rows, newRowFormat } }).container;
 };
-const all = (sel: string) => [...c.querySelectorAll<HTMLInputElement>(sel)];
-const at = (k: number, sel: string) =>
-	c.querySelectorAll('li.row')[k - 1]?.querySelector<HTMLInputElement>(sel) ?? null;
-const values = (sel: string) => all(sel).map((el) => el.value);
-const labels = (sel: string) => all(sel).map((el) => el.getAttribute('aria-label'));
-const texts = (sel: string) => all(sel).map((el) => el.textContent);
-const click = (k: number, sel: string) => fireEvent.click(at(k, sel)!);
-const change = (k: number, sel: string, value: string) =>
-	fireEvent.change(at(k, sel)!, { target: { value } });
-/** After a tick, focus is on row k's control, or on the editor's own `sel` when k is 0. */
-const focusIs = async (k: number, sel: string) => {
+/** Queries in the latest render: a test may mount more than once (R1). */
+const ui = () => within(c);
+/** The raw textContent of the element in `scope` whose trimmed text is `text`. */
+const exactText = (scope: HTMLElement, text: string) =>
+	within(scope).getByText(text.trim()).textContent; // R3
+const rowItems = () => within(ui().getByRole('list', { name: 'Codes' })).getAllByRole('listitem');
+/** Row k, counting from 1, as the old `at(k, …)` took it. */
+const row = (k: number) => rowItems()[k - 1];
+/** Each row's payload, in row order, read from its `Code k` textbox. */
+const payloads = () =>
+	rowItems().map(
+		(_, i) => (ui().getByRole('textbox', { name: `Code ${i + 1}` }) as HTMLTextAreaElement).value
+	);
+const click = (el: HTMLElement) => fireEvent.click(el);
+const change = (el: HTMLElement, value: string) => fireEvent.change(el, { target: { value } });
+/** After a tick, the element that `get` finds has focus. It is found after the tick, because a move renames buttons. */
+const focusIs = async (get: () => HTMLElement) => {
 	await tick();
-	expect(document.activeElement).toBe(k === 0 ? c.querySelector(sel) : at(k, sel));
+	expect(get()).toHaveFocus();
 };
 
 describe('RowEditor', () => {
 	it('numbers the rows from 1, and shows the row hint with rows and without', () => {
 		mount();
-		expect(texts('.row-number')).toEqual(['1', '2', '3']);
-		expect(c.querySelector('.row-hint')!.textContent).toBe(ROW_HINT);
+		expect(rowItems().map((item, i) => exactText(item, String(i + 1)))).toEqual(['1', '2', '3']);
+		expect(exactText(c, ROW_HINT)).toBe(ROW_HINT);
 		mount([]);
-		expect(c.querySelector('.row-hint')!.textContent).toBe(ROW_HINT);
+		expect(exactText(c, ROW_HINT)).toBe(ROW_HINT);
 	});
 
 	it('labels each payload and format control with its code number', () => {
 		mount();
-		expect(values('.row-payload')).toEqual(['036000291452', 'hello world', '']);
-		expect(labels('.row-payload')).toEqual(['Code 1', 'Code 2', 'Code 3']);
-		expect(values('.row-format')).toEqual(['upc', 'qr', 'qr']);
-		expect(labels('.row-format')).toEqual([
+		expect(payloads()).toEqual(['036000291452', 'hello world', '']);
+		expect(
+			rowItems().map((item) => within(item).getByRole('textbox').getAttribute('aria-label'))
+		).toEqual(['Code 1', 'Code 2', 'Code 3']);
+		// Rows 2 and 3 also hold a level select, so each row's format select is found by its name.
+		const formats = rowItems().map((item, i) =>
+			within(item).getByRole('combobox', { name: `Format of code ${i + 1}` })
+		);
+		expect(formats.map((select) => (select as HTMLSelectElement).value)).toEqual([
+			'upc',
+			'qr',
+			'qr'
+		]);
+		expect(formats.map((select) => select.getAttribute('aria-label'))).toEqual([
 			'Format of code 1',
 			'Format of code 2',
 			'Format of code 3'
 		]);
 		expect(
-			all('.row-format').map((el) => [
-				el.querySelectorAll('optgroup').length,
-				el.querySelectorAll('option').length
+			formats.map((select) => [
+				within(select).getAllByRole('group').length,
+				within(select).getAllByRole('option').length
 			])
 		).toEqual([
 			[8, 36],
@@ -79,136 +96,149 @@ describe('RowEditor', () => {
 
 	it('describes each payload by the verdict in its own row', () => {
 		mount();
-		for (const k of [1, 2, 3]) {
-			expect(
-				document.getElementById(at(k, '.row-payload')!.getAttribute('aria-describedby')!)
-			).toBe(at(k, '.row-verdict'));
-		}
+		expect(ui().getByRole('textbox', { name: 'Code 1' })).toHaveAccessibleDescription('✓');
+		expect(ui().getByRole('textbox', { name: 'Code 2' })).toHaveAccessibleDescription(
+			'✓ · 25×25 modules · 11 bytes'
+		);
+		expect(ui().getByRole('textbox', { name: 'Code 3' })).toHaveAccessibleDescription(
+			'skipped (empty)'
+		);
 	});
 
 	it('shows a level select only for formats with levels', () => {
 		mount();
-		expect(at(1, '.row-ecc')).toBeNull();
-		expect(at(2, '.row-ecc')!.value).toBe('H');
-		expect(at(3, '.row-ecc')!.value).toBe('M');
-		expect(labels('.row-ecc')).toEqual([
-			'Error correction of code 2',
-			'Error correction of code 3'
-		]);
+		expect(within(row(1)).getAllByRole('combobox')).toHaveLength(1);
+		expect(ui().getByRole('combobox', { name: 'Error correction of code 2' })).toHaveValue('H');
+		expect(ui().getByRole('combobox', { name: 'Error correction of code 3' })).toHaveValue('M');
+		expect(
+			within(row(2)).getByRole('combobox', { name: 'Error correction of code 2' })
+		).toBeInTheDocument();
+		expect(
+			within(row(3)).getByRole('combobox', { name: 'Error correction of code 3' })
+		).toBeInTheDocument();
+		expect(ui().getAllByRole('combobox')).toHaveLength(5); // 3 format selects and these 2 only
 	});
 
 	it('adds a row at newRowFormat and focuses its payload', async () => {
 		mount();
-		await fireEvent.click(c.querySelector('.row-add')!);
-		expect(c.querySelectorAll('li.row').length).toBe(4);
-		expect(at(4, '.row-payload')!.value).toBe('');
-		expect(at(4, '.row-format')!.value).toBe('datamatrix');
-		await focusIs(4, '.row-payload');
+		await fireEvent.click(ui().getByRole('button', { name: 'Add code' }));
+		expect(rowItems()).toHaveLength(4);
+		expect(ui().getByRole('textbox', { name: 'Code 4' })).toHaveValue('');
+		expect(ui().getByRole('combobox', { name: 'Format of code 4' })).toHaveValue('datamatrix');
+		await focusIs(() => ui().getByRole('textbox', { name: 'Code 4' }));
 	});
 
 	it('opens a row added under a format with levels at its default level', async () => {
 		mount(undefined, 'qr');
-		await fireEvent.click(c.querySelector('.row-add')!);
-		expect(at(4, '.row-format')!.value).toBe('qr');
-		expect(at(4, '.row-ecc')!.value).toBe('M');
+		await fireEvent.click(ui().getByRole('button', { name: 'Add code' }));
+		expect(ui().getByRole('combobox', { name: 'Format of code 4' })).toHaveValue('qr');
+		expect(ui().getByRole('combobox', { name: 'Error correction of code 4' })).toHaveValue('M');
 	});
 
 	it("deletes a row, focusing the next row's payload, or Add code after the last", async () => {
 		mount();
-		await click(2, '.row-delete');
-		expect(values('.row-payload')).toEqual(['036000291452', '']);
-		await focusIs(2, '.row-payload');
-		await click(2, '.row-delete');
-		await focusIs(0, '.row-add');
+		await click(ui().getByRole('button', { name: 'Delete code 2' }));
+		expect(payloads()).toEqual(['036000291452', '']);
+		await focusIs(() => ui().getByRole('textbox', { name: 'Code 2' }));
+		await click(ui().getByRole('button', { name: 'Delete code 2' }));
+		await focusIs(() => ui().getByRole('button', { name: 'Add code' }));
 	});
 
 	it('moves a row down and back, keeping focus in the moved row', async () => {
 		mount();
-		expect(at(1, '.row-up')!.disabled).toBe(true);
-		expect(at(3, '.row-down')!.disabled).toBe(true);
-		await click(1, '.row-down');
-		expect(values('.row-payload')).toEqual(['hello world', '036000291452', '']);
-		expect(texts('.row-number')).toEqual(['1', '2', '3']);
-		await focusIs(2, '.row-down');
-		await click(2, '.row-up');
-		expect(values('.row-payload')).toEqual(['036000291452', 'hello world', '']);
-		await click(2, '.row-down');
-		expect(values('.row-payload')).toEqual(['036000291452', '', 'hello world']);
-		await focusIs(3, '.row-up');
-		await click(3, '.row-up');
-		await focusIs(2, '.row-up');
+		expect(ui().getByRole('button', { name: 'Move up, code 1' })).toBeDisabled();
+		expect(ui().getByRole('button', { name: 'Move down, code 3' })).toBeDisabled();
+		await click(ui().getByRole('button', { name: 'Move down, code 1' }));
+		expect(payloads()).toEqual(['hello world', '036000291452', '']);
+		expect(rowItems().map((item, i) => exactText(item, String(i + 1)))).toEqual(['1', '2', '3']);
+		await focusIs(() => ui().getByRole('button', { name: 'Move down, code 2' }));
+		await click(ui().getByRole('button', { name: 'Move up, code 2' }));
+		expect(payloads()).toEqual(['036000291452', 'hello world', '']);
+		await click(ui().getByRole('button', { name: 'Move down, code 2' }));
+		expect(payloads()).toEqual(['036000291452', '', 'hello world']);
+		await focusIs(() => ui().getByRole('button', { name: 'Move up, code 3' }));
+		await click(ui().getByRole('button', { name: 'Move up, code 3' }));
+		await focusIs(() => ui().getByRole('button', { name: 'Move up, code 2' }));
 	});
 
 	it('moves a row into the first place, focusing its Move down', async () => {
 		mount();
-		await click(2, '.row-up');
-		expect(values('.row-payload')).toEqual(['hello world', '036000291452', '']);
-		await focusIs(1, '.row-down');
+		await click(ui().getByRole('button', { name: 'Move up, code 2' }));
+		expect(payloads()).toEqual(['hello world', '036000291452', '']);
+		await focusIs(() => ui().getByRole('button', { name: 'Move down, code 1' }));
 		expect(
-			['.row-up', '.row-down', '.row-delete'].map((sel) => at(1, sel)!.getAttribute('aria-label'))
+			within(row(1))
+				.getAllByRole('button')
+				.map((button) => button.getAttribute('aria-label'))
 		).toEqual(['Move up, code 1', 'Move down, code 1', 'Delete code 1']);
 	});
 
 	it("canonicalizes the level when a row's format changes", async () => {
 		mount();
-		await change(2, '.row-format', 'datamatrix');
-		expect(at(2, '.row-ecc')).toBeNull();
-		await change(2, '.row-format', 'qr');
-		expect(at(2, '.row-ecc')!.value).toBe('M');
+		await change(ui().getByRole('combobox', { name: 'Format of code 2' }), 'datamatrix');
+		expect(
+			within(row(2)).queryByRole('combobox', { name: 'Error correction of code 2' })
+		).toBeNull();
+		await change(ui().getByRole('combobox', { name: 'Format of code 2' }), 'qr');
+		expect(ui().getByRole('combobox', { name: 'Error correction of code 2' })).toHaveValue('M');
 	});
 
-	it("shows each row's own verdict, with its class", () => {
+	it("shows each row's own verdict", () => {
 		mount(deck('upc_036000291452', 'qr_hello world', 'qr_', 'upc_bad', 'qr-H_' + X2000));
-		expect(texts('.row-verdict')).toEqual([
+		const V = [
 			' ✓',
 			' ✓ · 21×21 modules · 11 bytes',
 			' skipped (empty)',
 			' ✗ invalid',
 			' ✗ too long for QR Code (level H)'
-		]);
-		expect(
-			all('.row-verdict').map((el) =>
-				[...el.classList].filter((name) => name === 'valid' || name === 'invalid')
-			)
-		).toEqual([['valid'], ['valid'], [], ['invalid'], ['invalid']]);
+		];
+		expect(rowItems().map((item, i) => exactText(item, V[i]))).toEqual(V);
+		for (const [i, verdict] of V.entries()) {
+			expect(ui().getByRole('textbox', { name: `Code ${i + 1}` })).toHaveAccessibleDescription(
+				verdict.trim()
+			);
+		}
 	});
 
 	it('shows the dense hint only when a row is dense', () => {
 		mount();
-		expect(c.querySelector('.dense-hint')).toBeNull();
+		expect(ui().queryByText(DENSE_HINT)).toBeNull();
 		mount(deck('upc_036000291452', 'qr-H_hello world', 'qr_', 'qr-L_' + X2000));
-		expect(c.querySelector('.dense-hint')!.textContent).toBe(DENSE_HINT);
+		expect(ui().getByText(DENSE_HINT).textContent).toBe(DENSE_HINT);
 	});
 
 	const S = '(01)09501101530003(17)261231(10)LOT42';
 	const BAD = '(01)09501101530004';
-	const pClasses = () => [...c.querySelectorAll('p')].map((p) => p.className);
 
 	it('shows Render if invalid for GS1 rows only, after the level select, bound to the row', async () => {
 		const rows = $state(deck('upc_036000291452', `gs1128_${S}`, `gs1qr-H_${S}`));
 		c = render(RowEditor, { props: { rows, newRowFormat: 'upc' } }).container;
-		expect(at(1, '.row-lax')).toBeNull();
-		expect(at(2, '.row-lax-input')!.checked).toBe(false);
-		expect(at(2, '.row-lax')!.textContent!.trim()).toBe('Render if invalid');
-		expect(labels('.row-lax-input')).toEqual([
-			'Render code 2 if invalid',
-			'Render code 3 if invalid'
-		]);
-		await fireEvent.click(at(2, '.row-lax-input')!);
+		expect(within(row(1)).queryByRole('checkbox', { name: 'Render code 1 if invalid' })).toBeNull();
+		expect(ui().getByRole('checkbox', { name: 'Render code 2 if invalid' })).not.toBeChecked();
+		expect(exactText(row(2), 'Render if invalid')!.trim()).toBe('Render if invalid');
+		expect(
+			ui()
+				.getAllByRole('checkbox')
+				.map((box) => box.getAttribute('aria-label'))
+		).toEqual(['Render code 2 if invalid', 'Render code 3 if invalid']);
+		await fireEvent.click(ui().getByRole('checkbox', { name: 'Render code 2 if invalid' }));
 		expect(rows[1].lax).toBe(true);
-		expect(at(2, '.row-lax-input')!.checked).toBe(true);
+		expect(ui().getByRole('checkbox', { name: 'Render code 2 if invalid' })).toBeChecked();
+		const third = row(3);
 		const controls = [
-			...c.querySelectorAll('li.row')[2].querySelectorAll('textarea, select, input, button')
-		].map((el) => [...el.classList].find((name) => name.startsWith('row-')));
-		expect(controls).toEqual([
-			'row-payload',
-			'row-format',
-			'row-ecc',
-			'row-lax-input',
-			'row-up',
-			'row-down',
-			'row-delete'
-		]);
+			within(third).getByRole('textbox', { name: 'Code 3' }),
+			within(third).getByRole('combobox', { name: 'Format of code 3' }),
+			within(third).getByRole('combobox', { name: 'Error correction of code 3' }),
+			within(third).getByRole('checkbox', { name: 'Render code 3 if invalid' }),
+			within(third).getByRole('button', { name: 'Move up, code 3' }),
+			within(third).getByRole('button', { name: 'Move down, code 3' }),
+			within(third).getByRole('button', { name: 'Delete code 3' })
+		];
+		for (let i = 1; i < controls.length; i++) expect(controls[i - 1]).toAppearBefore(controls[i]);
+		expect(within(third).getAllByRole('textbox')).toHaveLength(1);
+		expect(within(third).getAllByRole('combobox')).toHaveLength(2);
+		expect(within(third).getAllByRole('checkbox')).toHaveLength(1);
+		expect(within(third).getAllByRole('button')).toHaveLength(3);
 	});
 
 	it('clears the flag when a row leaves GS1, and Add code starts a row with it off', async () => {
@@ -224,42 +254,59 @@ describe('RowEditor', () => {
 				newRowFormat: 'gs1128'
 			}
 		}).container;
-		expect(at(1, '.row-lax-input')!.checked).toBe(true);
-		await change(1, '.row-format', 'upc');
-		expect(at(1, '.row-lax')).toBeNull();
+		expect(ui().getByRole('checkbox', { name: 'Render code 1 if invalid' })).toBeChecked();
+		await change(ui().getByRole('combobox', { name: 'Format of code 1' }), 'upc');
+		expect(within(row(1)).queryByRole('checkbox', { name: 'Render code 1 if invalid' })).toBeNull();
 		expect(rows[0].lax).toBe(false);
-		await change(1, '.row-format', 'gs1128');
-		expect(at(1, '.row-lax-input')!.checked).toBe(false);
-		await fireEvent.click(c.querySelector('.row-add')!);
+		await change(ui().getByRole('combobox', { name: 'Format of code 1' }), 'gs1128');
+		expect(ui().getByRole('checkbox', { name: 'Render code 1 if invalid' })).not.toBeChecked();
+		await fireEvent.click(ui().getByRole('button', { name: 'Add code' }));
 		expect(rows[1]).toEqual({ payload: '', format: 'gs1128', ecc: '', lax: false });
 	});
 
-	it('shows the amber verdict with the lenient class for a lax row that fails lint', () => {
+	it('shows the rendered-anyway verdict for a lax row that fails lint', () => {
 		mount(deck(`gs1128-lax_${BAD}`, `gs1128_${BAD}`, `gs1128_${S}`));
-		expect(texts('.row-verdict')).toEqual([
+		const V = [
 			' ⚠ rendered anyway · (01) GTIN: Bad checksum · 134 modules wide · 16 characters → ]C1 0109501101530004',
 			' ✗ (01) GTIN: Bad checksum',
 			' ✓ · 255 modules wide · 31 characters → ]C1 01095011015300031726123110LOT42'
-		]);
-		expect(
-			all('.row-verdict').map((el) =>
-				[...el.classList].filter((name) => ['valid', 'invalid', 'lenient'].includes(name))
-			)
-		).toEqual([['lenient'], ['invalid'], ['valid']]);
+		];
+		expect(rowItems().map((item, i) => exactText(item, V[i]))).toEqual(V);
+		for (const [i, verdict] of V.entries()) {
+			expect(ui().getByRole('textbox', { name: `Code ${i + 1}` })).toHaveAccessibleDescription(
+				verdict.trim()
+			);
+		}
 	});
 
 	it('shows the GS1 hint and lax note for a GS1 row or new-row format, and the scan hint for a GS1 entry', () => {
 		mount();
-		expect(pClasses()).toEqual(['row-hint']);
+		expect(
+			ui()
+				.getAllByRole('paragraph')
+				.map((p) => p.textContent)
+		).toEqual([ROW_HINT]);
 		mount(deck('upc_036000291452'), 'gs1128');
-		expect(c.querySelector('.gs1-hint')!.textContent).toBe(GS1_HINT);
-		expect(c.querySelector('.lax-note')!.textContent).toBe(LAX_NOTE);
-		expect(pClasses()).toEqual(['row-hint', 'gs1-hint', 'lax-note']);
+		expect(ui().getByText(GS1_HINT).textContent).toBe(GS1_HINT);
+		expect(ui().getByText(LAX_NOTE).textContent).toBe(LAX_NOTE);
+		expect(
+			ui()
+				.getAllByRole('paragraph')
+				.map((p) => p.textContent)
+		).toEqual([ROW_HINT, GS1_HINT, LAX_NOTE]);
 		mount(deck('gs1128_'), 'upc');
-		expect(pClasses()).toEqual(['row-hint', 'gs1-hint', 'lax-note']);
+		expect(
+			ui()
+				.getAllByRole('paragraph')
+				.map((p) => p.textContent)
+		).toEqual([ROW_HINT, GS1_HINT, LAX_NOTE]);
 		mount(deck(`gs1128_${S}`, 'qr-L_' + X2000), 'upc');
-		expect(c.querySelector('.scan-hint')!.textContent).toBe(SCAN_HINT);
-		expect(pClasses()).toEqual(['row-hint', 'gs1-hint', 'lax-note', 'scan-hint', 'dense-hint']);
+		expect(ui().getByText(SCAN_HINT).textContent).toBe(SCAN_HINT);
+		expect(
+			ui()
+				.getAllByRole('paragraph')
+				.map((p) => p.textContent)
+		).toEqual([ROW_HINT, GS1_HINT, LAX_NOTE, SCAN_HINT, DENSE_HINT]);
 	});
 });
 
@@ -270,26 +317,33 @@ describe('RowEditor GS1 breakdown', () => {
 
 	it('puts a labelled breakdown after the controls of each GS1 row only', () => {
 		mount(deck(`gs1128_${S}`, 'upc_036000291452', 'gs1qr_]C1010950110153000310LOT42<GS>17261231'));
-		expect(all('details.gs1-breakdown').length).toBe(2);
-		expect(at(1, 'summary')!.getAttribute('aria-label')).toBe(
-			'Code 1 breakdown: 3 Application Identifiers'
+		expect(ui().getAllByLabelText(BREAKDOWN)).toHaveLength(2);
+		expect(
+			within(row(1)).getByLabelText('Code 1 breakdown: 3 Application Identifiers')
+		).toBeInTheDocument();
+		expect(
+			within(row(3)).getByLabelText('Code 3 breakdown: 3 Application Identifiers')
+		).toBeInTheDocument();
+		expect(within(row(2)).queryByLabelText(BREAKDOWN)).toBeNull();
+		const verdict = within(row(1)).getByText(
+			'✓ · 255 modules wide · 31 characters → ]C1 01095011015300031726123110LOT42'
 		);
-		expect(at(3, 'summary')!.getAttribute('aria-label')).toBe(
-			'Code 3 breakdown: 3 Application Identifiers'
+		expect(within(verdict).queryByLabelText(BREAKDOWN)).toBeNull();
+		expect(within(row(1)).getByRole('button', { name: 'Delete code 1' })).toAppearBefore(
+			within(row(1)).getByLabelText('Code 1 breakdown: 3 Application Identifiers')
 		);
-		expect(at(2, 'details')).toBeNull();
-		expect(at(1, '.row-verdict')!.querySelector('details')).toBeNull();
-		expect(at(1, '.row-controls')!.nextElementSibling).toBe(at(1, 'details'));
 	});
 
 	it('keeps the same details element, still open, while the payload is edited', async () => {
 		mount(deck(`gs1128_${S}`));
-		const d = at(1, 'details') as unknown as HTMLDetailsElement;
-		d.open = true;
-		await fireEvent.input(at(1, '.row-payload')!, { target: { value: '(01)09501101530003' } });
+		const summary = ui().getByLabelText('Code 1 breakdown: 3 Application Identifiers');
+		await fireEvent.click(summary);
+		await fireEvent.input(ui().getByRole('textbox', { name: 'Code 1' }), {
+			target: { value: '(01)09501101530003' }
+		});
 		await tick();
-		expect(at(1, 'details')).toBe(d);
-		expect(d.open).toBe(true);
-		expect(d.querySelector('summary')!.textContent).toBe('1 Application Identifier');
+		expect(ui().getByLabelText('Code 1 breakdown: 1 Application Identifier')).toBe(summary);
+		expect(ui().getByRole('cell', { name: 'GTIN' })).toBeVisible();
+		expect(summary.textContent).toBe('1 Application Identifier');
 	});
 });
