@@ -103,8 +103,8 @@ describe('Gs1Breakdown', () => {
 		'8110106141416543213500110000310123196000'
 	])('never shows a bare "AI" for %j', (data) => {
 		show({ data, label: 'Code 1 breakdown', today: T });
-		expect(screen.getByRole('group')).not.toHaveTextContent(/\bAIs?\b/);
-		expect(screen.getByLabelText(BREAKDOWN)).not.toHaveAccessibleName(/\bAIs?\b/);
+		expect(screen.getByRole('group')).not.toHaveTextContent(/\bAIs?(?![A-Za-z])/);
+		expect(screen.getByLabelText(BREAKDOWN)).not.toHaveAccessibleName(/\bAIs?(?![A-Za-z])/);
 	});
 
 	it('shows a dash for an untitled AI', () => {
