@@ -163,27 +163,27 @@
 			/>
 		{/if}
 		{#if settings.mode === 'step'}
-			<p class="readout" aria-hidden="true">
+			<p class="readout bg-base-100/85 text-base-content" aria-hidden="true">
 				{position.index + 1} / {position.count} · dwell {formatSeconds(dwell)} · gap {formatSeconds(
 					gap
 				)}{playing ? '' : ' · paused'}
 			</p>
 		{/if}
 		<div
-			class="overlay"
+			class="overlay bg-neutral/85 text-neutral-content"
 			role="group"
 			aria-label="Playback controls"
 			class:hidden={!overlayVisible}
 			bind:this={overlayEl}
 			onfocusout={showOverlay}
 		>
-			<button type="button" class="ctl-playpause" onclick={toggle}
+			<button type="button" class="ctl-playpause btn btn-sm" onclick={toggle}
 				>{playing ? 'Pause' : 'Play'}</button
 			>
 			{#if settings.mode === 'step'}
-				<button type="button" class="ctl-prev" onclick={() => step?.prev()}>Prev</button>
+				<button type="button" class="ctl-prev btn btn-sm" onclick={() => step?.prev()}>Prev</button>
 				<span class="ctl-counter">{position.index + 1} / {position.count}</span>
-				<button type="button" class="ctl-next" onclick={() => step?.next()}>Next</button>
+				<button type="button" class="ctl-next btn btn-sm" onclick={() => step?.next()}>Next</button>
 				<div class="ctl-group">
 					<span>Dwell</span>
 					<SecondsSlider
@@ -213,7 +213,7 @@
 			{:else}
 				<input
 					type="range"
-					class="ctl-speed"
+					class="ctl-speed range range-xs w-[110px]"
 					aria-label="Speed"
 					min="10"
 					max="5000"
@@ -222,19 +222,22 @@
 					oninput={() => scroll?.setSpeed(speed)}
 				/>
 			{/if}
-			<button type="button" class="ctl-restart" onclick={restart}>Restart</button>
-			<button type="button" class="ctl-back" onclick={back}>Back</button>
+			<button type="button" class="ctl-restart btn btn-sm" onclick={restart}>Restart</button>
+			<button type="button" class="ctl-back btn btn-sm" onclick={back}>Back</button>
 		</div>
 		<!-- Mounted for the page's life, so the summary is announced as a change to an existing live
 		     region: a status region inserted already holding its text is announced inconsistently. -->
 		<p class="finish-status" role="status">{finishText ?? ''}</p>
 		{#if finishText !== null}
-			<div class="finish-screen" role="group" aria-label="Run finished">
+			<div class="finish-screen text-2xl" role="group" aria-label="Run finished">
 				<p class="finish-text">{finishText}</p>
-				<button type="button" class="finish-restart" bind:this={finishRestartEl} onclick={restart}
-					>Restart</button
+				<button
+					type="button"
+					class="finish-restart btn btn-primary"
+					bind:this={finishRestartEl}
+					onclick={restart}>Restart</button
 				>
-				<button type="button" class="finish-back" onclick={back}>Back</button>
+				<button type="button" class="finish-back btn" onclick={back}>Back</button>
 			</div>
 		{/if}
 	</div>
@@ -255,8 +258,6 @@
 		display: flex;
 		gap: 12px;
 		align-items: center;
-		background: rgba(0, 0, 0, 0.7);
-		color: #fff;
 		padding: 10px 16px;
 		border-radius: 8px;
 		transition: opacity 0.3s;
@@ -269,6 +270,11 @@
 	.overlay.hidden {
 		opacity: 0;
 		pointer-events: none;
+	}
+	/* daisyUI's focus outline is base-content, 2.66:1 on the overlay; neutral-content is 6.38:1.
+	   The seconds fields belong to SecondsSlider, a child component, hence :global. */
+	.overlay :global(:focus-visible) {
+		outline-color: var(--color-neutral-content);
 	}
 	.ctl-group {
 		display: flex;
@@ -283,8 +289,6 @@
 		padding: 2px 8px;
 		font-size: 13px;
 		line-height: 1.4;
-		color: #333;
-		background: rgba(255, 255, 255, 0.85);
 		border-radius: 4px;
 		pointer-events: none;
 	}
@@ -305,6 +309,5 @@
 		justify-content: center;
 		gap: 16px;
 		background: #fff;
-		font-size: 1.5rem;
 	}
 </style>

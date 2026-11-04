@@ -50,14 +50,6 @@ function scanColors(path: string, source: string): { text: string; allowed: bool
 	return found;
 }
 
-/** Raw colors the restyle has not removed yet. A task that removes one deletes its line first. */
-const NOT_YET_RESTYLED: readonly string[] = [
-	'src/routes/play/+page.svelte: .overlay: rgba(0, 0, 0, 0.7)',
-	'src/routes/play/+page.svelte: .overlay: #fff',
-	'src/routes/play/+page.svelte: .readout: #333',
-	'src/routes/play/+page.svelte: .readout: rgba(255, 255, 255, 0.85)'
-];
-
 /** Every .svelte file under src/, as [path, source], the path written `src/…` with forward
  *  slashes; sorted by path. */
 const SOURCES = readdirSync(fileURLToPath(here('.')), { recursive: true, encoding: 'utf8' })
@@ -110,6 +102,6 @@ describe('the real components', () => {
 
 	it('finds no raw color but the ones not yet restyled', () => {
 		const found = SOURCES.flatMap(([path, source]) => violations(path, source)).sort();
-		expect(found).toEqual([...NOT_YET_RESTYLED].sort());
+		expect(found).toEqual([]);
 	});
 });

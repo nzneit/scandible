@@ -243,4 +243,10 @@ describe('overrides the tables rely on', () => {
 			)
 		);
 	});
+
+	it('the play page recolors focus rings on the overlay', () => {
+		expect(flat(read('./routes/play/+page.svelte'))).toContain(
+			flat('.overlay :global(:focus-visible) { outline-color: var(--color-neutral-content); }')
+		);
+	});
 });
