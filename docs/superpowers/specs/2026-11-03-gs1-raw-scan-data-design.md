@@ -3,8 +3,8 @@
 **Date:** 2026-11-03
 **Status:** Design agreed in conversation on 2026-11-03 and revised the same day after a four-lens
 review on Sonnet subagents (codebase fit, GS1 and decoding correctness, UX and copy, internal
-coherence) and one Sonnet re-review, judged by the author; awaits the user's approval of this
-file. Spec 2 of the four-spec GS1 series (see _Series_).
+coherence) and one Sonnet re-review, judged by the author; approved by the user on 2026-11-03.
+Spec 2 of the four-spec GS1 series (see _Series_).
 **Builds on:** spec 1, [`2026-11-03-gs1-carriers-design.md`](2026-11-03-gs1-carriers-design.md),
 merged as `9cedd6d`; its measurements note is cited as _measurements §n_. Facts measured for this
 spec are in _Measurements_ at the end, cited as _M1_ to _M8_.
