@@ -96,7 +96,7 @@ text.
 
 The **GS1** group holds eleven carriers: GS1-128; GS1 DataBar Omnidirectional, Truncated,
 Stacked, Stacked Omnidirectional, Limited, Expanded and Expanded Stacked; GS1 DataMatrix, GS1 QR
-Code and GS1 DotCode. They take bracketed element strings, one code per line:
+Code and GS1 DotCode. They take bracketed element strings, one code per line, or what a scanner sends (below):
 
 ```
 (01)09501101530003(17)261231(10)LOT42
@@ -118,10 +118,23 @@ the identifier and may drop or change the separator; the character count exclude
 over 48 data characters is noted, since GS1 caps the symbol there, and still plays. GS1 symbols,
 linear ones too, carry no caption: the list shows the data.
 
+They also take scanner output. Paste `]C1010950110153000310LOT42<GS>17261231` and the list reads
+it as `(01)09501101530003(10)LOT42(17)261231`. The symbology identifier (`]C1`, `]e0`, `]d2`,
+`]Q3` or `]J1`) is optional; one that names another carrier still draws in the chosen format and
+the verdict notes where the data came from, so a scan from one carrier regenerates on any other.
+Write a GS separator as the character itself, `␝`, `<GS>`, `\x1d` or `\u001d`. Every code that
+does not start with `(` is read this way, so an unbracketed code kept as a deliberate failing
+case may now draw. A keyboard-wedge scanner that drops separators makes a variable-length value
+swallow what follows; set it to send `<GS>`.
+
+Under each drawn GS1 code a closed disclosure lists its AIs with GS1's names and lightly decoded
+values: dates as `2026-12-31`, times as `14:30`, and weights, measures and amounts with their
+decimal point. Where the data cannot be split into AIs, it shows where reading stops.
+
 **Render GS1 data that fails validation**, off by default, draws a code that fails the linter
 anyway, flagged amber with the reason, so a lane's rejection path can be tested. An amber code
-still plays, and "valid" then means encodable rather than conformant. The box cannot help with
-missing brackets or a code too long for its symbol; GS1 DataBar Omnidirectional, Truncated,
+still plays, and "valid" then means encodable rather than conformant. Three kinds of failure can never be overridden: malformed
+brackets, scan data that cannot be read, and a code too long for its symbol. GS1 DataBar Omnidirectional, Truncated,
 Stacked, Stacked Omnidirectional and Limited still refuse a wrong GTIN; and GS1 DataBar Expanded
 and Expanded Stacked carry the corrected check digit of a leading GTIN, so a wrong one cannot
 reach the scanner from them. Switching to a non-GS1 format clears the box, as it clears the
@@ -179,6 +192,7 @@ npm run dev      # start the Vite dev server
 npm test         # svelte-check + Vitest suite (jsdom)
 npm run build    # production build to dist/
 npm run preview  # serve the production build locally
+npm run gs1-ais  # regenerate src/lib/gs1-ais.json from the pinned GS1 Syntax Dictionary
 ```
 
 ## Deployment
@@ -199,3 +213,5 @@ subpath, adapter-static emits the site to `dist/`, and the repo's Pages source i
 ## License
 
 [MIT](LICENSE) © Nathan Neitman
+
+The AI table in src/lib/gs1-ais.json is generated from GS1's [Barcode Syntax Dictionary](https://github.com/gs1/gs1-syntax-dictionary), release 2026-01-27, under the Apache License 2.0; see [LICENSES/gs1-syntax-dictionary-Apache-2.0.txt](LICENSES/gs1-syntax-dictionary-Apache-2.0.txt).
