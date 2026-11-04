@@ -10,9 +10,10 @@ body holds the full checker output and the _Deliberate losses_ list), `CONTRIBUT
 tests_ (the test rules every new test follows), and `docs/superpowers/handoffs/2026-11-03-gs1-series-handoff.md`
 (the GS1 series and the unverified hardware rows of earlier series; not repeated here).
 
-**Status:** **Open** — 8 of 14 items open as of 2026-11-04 (second session). Closed: T1, T2, T3,
-T4, T5, Q1. Next: T6, the plan rewrite. F1 and F3 are scheduled for after spec 1 merges. Tier 3
-(specs 2 and 3) and Q2 and F2 are untouched. The handoff was first written right after PR #9 (the
+**Status:** **Open** — 6 of 14 items open as of 2026-11-04 (second session). Closed: T1, T2, T3,
+T4, T5, T6, Q1, F2. In progress: T7, spec 1's execution (subagent-driven, from plan `88ec9ed` as
+amended in `a2454b9`). F1 and F3 are scheduled for after spec 1 merges. Tier 3 (specs 2 and 3) and Q2
+are untouched. The handoff was first written right after PR #9 (the
 accessible test queries migration) was squash-merged to `main` as `384b359`.
 
 **Why this exists.** The UI revamp is a three-spec series (foundation → setup page redesign → play
@@ -295,7 +296,7 @@ that session.
   `grep -nE 'data-tone|RowEditor.svelte.test.ts:185|ctl-.*prefix' docs/superpowers/plans/2026-11-04-ui-foundation.md`
   prints nothing.
 - **Relates to:** T3, T4, T5, T7
-- **Status:** ☐ open
+- **Status:** ☑ closed — 2026-11-04; plan `88ec9ed` (1 Opus agent), verified; its three owner questions answered in `a2454b9`.
 
 ### T7 — User reviews the plan; execute subagent-driven; PR when asked
 
@@ -315,7 +316,7 @@ that session.
 - **Acceptance:** spec 1's Done means 1–5 are each shown with evidence in the PR body;
   `git diff --name-only --diff-filter=M main -- '*.test.ts'` prints nothing; `npm run build`
   (with `check-css`) and `npm run stage-check` pass.
-- **Status:** ☐ open
+- **Status:** ◐ in progress — 2026-11-04; subagent-driven as the plan's _Execution notes_ say, no Fable judge.
 
 ---
 
@@ -429,7 +430,7 @@ that session.
   M2). First confirm which module the chunk holds: the warning names the chunk file, and its size
   can be compared with a build of `main`.
 - **Acceptance:** the build prints no chunk-size warning, or a Decision log row accepts it.
-- **Status:** ☐ open
+- **Status:** ☑ closed — 2026-11-04; accepted, listed in spec 1's PR.
 
 ### F3 — Small test-file debt left by the migration
 
@@ -474,12 +475,16 @@ on spec 1's shared components, and T8 is where two of the migration's losses can
 
 _(Append one row per resolved item: ID · decision taken · file(s) patched · resolver · date.)_
 
-| ID     | Decision taken                                                                                                                                           | File(s) patched                                                         | Resolver                              | Date       |
-| ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | ------------------------------------- | ---------- |
-| T1     | Pulled `main` to `384b359`; deleted local `test/accessible-queries` (empty diff against `main`); kept the remote branch, as before                       | git only                                                                | user (recommended default), session 2 | 2026-11-04 |
-| T2     | Commit the handoff on `feat/ui-foundation`, not on `main`                                                                                                | this file                                                               | user                                  | 2026-11-04 |
-| T3     | Spec 1's migration revision `c932561` (now `ae089c2`) approved as written                                                                                | none                                                                    | user                                  | 2026-11-04 |
-| T4     | The five losses become author-made visual-review checks; screenshot list gains the three verdicts and an open GS1 breakdown; spec status set to approved | `docs/superpowers/specs/2026-11-04-ui-foundation-design.md` (`d563df1`) | user                                  | 2026-11-04 |
-| T5     | Rebased `feat/ui-foundation` onto `main` `384b359`; hash map under _Session facts_                                                                       | git only                                                                | session 2                             | 2026-11-04 |
-| Q1     | `Gs1Breakdown.test.ts` at 3.00× (budget 2.5× per file; 0.05 s excess; total 1.46×) accepted                                                              | none                                                                    | user                                  | 2026-11-04 |
-| F1, F3 | Land in one `test:` PR after spec 1 merges, not before                                                                                                   | none yet                                                                | user                                  | 2026-11-04 |
+| ID     | Decision taken                                                                                                                                                                       | File(s) patched                                                         | Resolver                              | Date       |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------- | ------------------------------------- | ---------- |
+| T1     | Pulled `main` to `384b359`; deleted local `test/accessible-queries` (empty diff against `main`); kept the remote branch, as before                                                   | git only                                                                | user (recommended default), session 2 | 2026-11-04 |
+| T2     | Commit the handoff on `feat/ui-foundation`, not on `main`                                                                                                                            | this file                                                               | user                                  | 2026-11-04 |
+| T3     | Spec 1's migration revision `c932561` (now `ae089c2`) approved as written                                                                                                            | none                                                                    | user                                  | 2026-11-04 |
+| T4     | The five losses become author-made visual-review checks; screenshot list gains the three verdicts and an open GS1 breakdown; spec status set to approved                             | `docs/superpowers/specs/2026-11-04-ui-foundation-design.md` (`d563df1`) | user                                  | 2026-11-04 |
+| T5     | Rebased `feat/ui-foundation` onto `main` `384b359`; hash map under _Session facts_                                                                                                   | git only                                                                | session 2                             | 2026-11-04 |
+| Q1     | `Gs1Breakdown.test.ts` at 3.00× (budget 2.5× per file; 0.05 s excess; total 1.46×) accepted                                                                                          | none                                                                    | user                                  | 2026-11-04 |
+| F1, F3 | Land in one `test:` PR after spec 1 merges, not before                                                                                                                               | none yet                                                                | user                                  | 2026-11-04 |
+| T6     | Plan rewritten by 1 Opus agent as `88ec9ed`; checked: one commit, repo author, no attribution, only the plan file, Prettier, no stale anchors, clean tree                            | `docs/superpowers/plans/2026-11-04-ui-foundation.md`                    | session 2                             | 2026-11-04 |
+| T6 Qs  | All three plan readings accepted; spec amended to match: the seconds field is `w-[4.5rem]` (`4.5em` cut the value off) and takes `text-base-content` (white on white in the overlay) | spec and plan (`a2454b9`)                                               | user                                  | 2026-11-04 |
+| F2     | The 573 kB chunk (bwip-js ~447 kB, JsBarcode ~68 kB, GS1 table ~32 kB; ~579 kB after spec 1) accepted; the PR lists it                                                               | none                                                                    | user                                  | 2026-11-04 |
+| T7     | Subagent-driven: Opus implementers for Tasks 1, 2, 3, 6, 12, 15, Sonnet for the rest; Sonnet per-task reviewers; final review in 4 Opus chunks before Task 15; no Fable judge        | none                                                                    | user                                  | 2026-11-04 |
