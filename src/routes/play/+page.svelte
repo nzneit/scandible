@@ -108,7 +108,7 @@
 		if (settings.mode !== 'step') return;
 		if (event.altKey || event.ctrlKey || event.metaKey) return; // Alt+Arrow is browser Back
 		showOverlay();
-		if (event.repeat) return; // a held key steps once
+		if (event.repeat) return; // a held key moves once
 		const t = event.target;
 		const field =
 			t instanceof HTMLInputElement ||
@@ -230,7 +230,7 @@
 		<p class="finish-status" role="status">{finishText ?? ''}</p>
 		{#if finishText !== null}
 			<div class="finish-screen text-2xl" role="group" aria-label="Run finished">
-				<p class="finish-text">{finishText}</p>
+				<p class="finish-text mb-6">{finishText}</p>
 				<button
 					type="button"
 					class="finish-restart btn btn-primary"

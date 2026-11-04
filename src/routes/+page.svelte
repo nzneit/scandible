@@ -240,7 +240,7 @@
 		<Note class="editor-hint">{EDITOR_HINT}</Note>
 	{/if}
 	{#if pending}
-		<div class="switch-note alert alert-warning alert-soft" role="alert">
+		<div class="switch-note alert alert-warning alert-soft flex flex-wrap gap-2" role="alert">
 			<p>{describeLoss(pending.loses, pending)}</p>
 			<button type="button" class="switch-anyway btn btn-sm" onclick={switchAnyway}
 				>Switch anyway</button

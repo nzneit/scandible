@@ -53,7 +53,7 @@
 		aria-label="Share link"
 		value={liveUrl}
 	/>
-	<span class="copy-status" role="status" aria-label="Copy status">{copyStatus}</span>
+	<span class="copy-status basis-full" role="status" aria-label="Copy status">{copyStatus}</span>
 </div>
 <Field label="Share QR error correction" class="share-ecc-field">
 	<select class="share-ecc-input select select-sm w-auto" bind:value={shareEcc}>
