@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
 import table from './gs1-ais.json';
-import { AIS, aiAt, aiEntry, type AiPart } from './gs1Ais';
+import { AIS, aiAt, aiEntry, describeValue, type AiPart } from './gs1Ais';
 import { PREDEFINED_LENGTH_PREFIXES } from './gs1';
 import {
 	RELEASE,
@@ -264,5 +264,65 @@ describe('BWIPP parity', () => {
 		expect(aiEntry('3140')?.title).toBe('AREA (m²)');
 		expect(aiEntry('7030')?.title).toBe('PROCESSOR # 0');
 		expect(aiEntry('8110')?.title).toBeUndefined();
+	});
+});
+
+describe('describeValue', () => {
+	const T = new Date(2026, 10, 3);
+
+	it.each<[string, string, string]>([
+		['17', '261231', '2026-12-31'],
+		['17', '261200', '2026-12-31 (day 00: end of month)'],
+		['17', '260200', '2026-02-28 (day 00: end of month)'],
+		['17', '240200', '2024-02-29 (day 00: end of month)'],
+		['17', '991231', '1999-12-31'],
+		['17', '761231', '2076-12-31'],
+		['17', '771231', '1977-12-31'],
+		['17', '261331', '261331 (not a date)'],
+		['17', '240229', '2024-02-29'],
+		['17', '260229', '260229 (not a date)'],
+		['17', '26AB31', '26AB31 (not a date)'],
+		['7006', '260230', '260230 (not a date)'],
+		['7006', '261200', '261200 (not a date)'],
+		['7250', '19800101', '1980-01-01'],
+		['7250', '20261200', '20261200 (not a date)'],
+		['7250', '20000229', '2000-02-29'],
+		['7250', '21000229', '21000229 (not a date)'],
+		['7003', '2612311430', '2026-12-31 14:30'],
+		['7003', '2612312430', '2026-12-31 2430 (not a time)'],
+		['7003', '2612311460', '2026-12-31 1460 (not a time)'],
+		['8008', '26123114', '2026-12-31 14h'],
+		['8008', '2612311430', '2026-12-31 14:30'],
+		['8008', '261231143005', '2026-12-31 14:30:05'],
+		['8008', '26123124', '2026-12-31 24 (not a time)'],
+		['8008', '261231143', '261231143'],
+		['7007', '261231', '2026-12-31'],
+		['7007', '261201261231', '2026-12-01 2026-12-31'],
+		['3100', '000123', '123'],
+		['3103', '000123', '0.123'],
+		['3103', '001234', '1.234'],
+		['3103', '000050', '0.050'],
+		['3105', '000050', '0.00050'],
+		['3103', '00A123', '00A123'],
+		['3912', '97801234', '978 12.34'],
+		['7030', '276ABC', '276 ABC'],
+		['10', 'LOT42', 'LOT42'],
+		['01', '123', '123'],
+		['3944', '1234', '1234']
+	])('(%s)%s reads %s', (ai, value, expected) => {
+		expect(describeValue(ai, value, T)).toBe(expected);
+	});
+
+	it.each<[string, string]>([
+		['3912', '978' + '1'.repeat(16)],
+		['8110', '106141416543213500110000310123196000']
+	])('shows (%s)%s as written', (ai, value) => {
+		expect(describeValue(ai, value, T)).toBe(value);
+	});
+
+	it('reads two-digit years against the clock', () => {
+		const later = new Date(2090, 0, 1);
+		expect(describeValue('17', '400101', later)).toBe('2140-01-01');
+		expect(describeValue('17', '391231', later)).toBe('2139-12-31');
 	});
 });
