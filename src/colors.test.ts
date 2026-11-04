@@ -52,9 +52,6 @@ function scanColors(path: string, source: string): { text: string; allowed: bool
 
 /** Raw colors the restyle has not removed yet. A task that removes one deletes its line first. */
 const NOT_YET_RESTYLED: readonly string[] = [
-	'src/lib/components/RowEditor.svelte: .row-verdict.valid: #007700',
-	'src/lib/components/RowEditor.svelte: .row-verdict.invalid: #c00',
-	'src/lib/components/RowEditor.svelte: .row-verdict.lenient: #9a6700',
 	'src/routes/play/+page.svelte: .overlay: rgba(0, 0, 0, 0.7)',
 	'src/routes/play/+page.svelte: .overlay: #fff',
 	'src/routes/play/+page.svelte: .readout: #333',
