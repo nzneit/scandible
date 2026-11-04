@@ -47,8 +47,7 @@ export default defineConfig(
 			'src/lib/components/ScrollColumn.test.ts',
 			'src/lib/components/StepStage.test.ts',
 			// Not migrated yet: each migration task removes its own file from this list.
-			'src/routes/page.test.ts',
-			'src/routes/play/page.test.ts'
+			'src/routes/page.test.ts'
 		]
 	},
 	{
