@@ -2,6 +2,7 @@
 	import { tick } from 'svelte';
 	import Gs1Breakdown from './Gs1Breakdown.svelte';
 	import Hint from './Hint.svelte';
+	import Icon from './Icon.svelte';
 	import FormatSelect from './FormatSelect.svelte';
 	import EccSelect from './EccSelect.svelte';
 	import { FORMAT_BY_ID, canonicalEcc, canonicalLax, isGs1, type FormatId } from '$lib/formats';
@@ -57,19 +58,6 @@
 	}
 </script>
 
-{#snippet icon(d: string)}
-	<svg
-		aria-hidden="true"
-		viewBox="0 0 24 24"
-		class="size-4"
-		fill="none"
-		stroke="currentColor"
-		stroke-width="2"
-		stroke-linecap="round"
-		stroke-linejoin="round"><path {d} /></svg
-	>
-{/snippet}
-
 <ol class="row-editor" role="list" aria-label="Codes" bind:this={listEl}>
 	{#each rows as row, i (row)}
 		{@const entry = entries[i]}
@@ -94,7 +82,7 @@
 							aria-label="Move up, code {i + 1}"
 							title="Move up"
 							disabled={i === 0}
-							onclick={() => move(i, -1)}>{@render icon('M12 19V5M5 12l7-7 7 7')}</button
+							onclick={() => move(i, -1)}><Icon d="M12 19V5M5 12l7-7 7 7" /></button
 						>
 						<button
 							type="button"
@@ -102,14 +90,14 @@
 							aria-label="Move down, code {i + 1}"
 							title="Move down"
 							disabled={i === rows.length - 1}
-							onclick={() => move(i, 1)}>{@render icon('M12 5v14M5 12l7 7 7-7')}</button
+							onclick={() => move(i, 1)}><Icon d="M12 5v14M5 12l7 7 7-7" /></button
 						>
 						<button
 							type="button"
 							class="row-delete btn ms-3 btn-ghost btn-square text-error btn-sm"
 							aria-label="Delete code {i + 1}"
 							title="Delete"
-							onclick={() => remove(i)}>{@render icon('M6 6l12 12M18 6L6 18')}</button
+							onclick={() => remove(i)}><Icon d="M6 6l12 12M18 6L6 18" /></button
 						>
 					</div>
 				</div>
