@@ -7,7 +7,13 @@ layout, the finish screen's stats, and the readout with the keep-awake note). Re
 by four lenses on Sonnet subagents (codebase fit and tests; tooling probes in a throwaway worktree;
 UX and accessibility; internal coherence) and revised by the author; the owner settled the three
 questions the review raised (_Decisions_ 10 to 12). _Review_ lists what changed and what was not
-taken.
+taken. Amended after planning, at the owner's word, to match the plan's readings: the Step
+buttons' wrap point and the stats' threshold are settled on the built page (_Decisions_ 11,
+_Layout_, _Stats_); each icon's contrast is measured against its own button face, and a seconds
+field passes by its border or its face (_Accessibility_, _Verification_); the overlay keeps the
+last announced note (_Keep-awake_); the focus checks call `focus()` (_Verification_);
+`CONTRIBUTING.md`'s fallback is reworded and its _Styling_ corrected (_Documentation_); and two
+line citations are corrected (_Testing_).
 Spec 3 of the three-spec UI revamp series. The series, its decisions and spec 1's foundation are in
 `docs/superpowers/specs/2026-11-04-ui-foundation-design.md` (merged as `fde5de1`); spec 2 is
 `docs/superpowers/specs/2026-11-04-setup-redesign-design.md` (merged as `8a17280`). Facts measured
@@ -108,7 +114,11 @@ Decisions 1 to 9 were made by the owner on 2026-11-05 while the design was agree
     buttons measure 337 px (M11), more than a phone narrower than about 400 px has: 304 px free at
     360 px, 264 px at 320 px. Back and Restart take the first line, Prev, Play/Pause and Next the
     second, so the Step overlay has 4 rows there. Rejected: Back as an icon-only button below
-    400 px (it keeps its word everywhere).
+    400 px (it keeps its word everywhere). The wrap point is settled on the built page: at 400 px
+    the buttons have 344 px free against their 337 px (measured with this machine's fallback
+    font), so the plan measures at 399, 400 and 412 px and, if they do not share a line at 400 px,
+    raises the wrap point to 26rem (416 px), then 28rem (448 px). The intent holds: the buttons
+    wrap wherever they do not fit on one line.
 12. **When a run ends, focus moves to the "Run finished" heading, not to Restart.** Most
     keyboard-wedge scanners end each scan with Enter. With the short dwells used to measure a
     scanner's top rate, the last code's Enter can arrive just after the finish screen appears; on
@@ -205,7 +215,8 @@ it is as wide as its content and centred. It sits 16 px above the bottom, plus
 `env(safe-area-inset-bottom)`. The breakpoints are 25rem (400 px, `min-[25rem]:`), Tailwind's `md`
 (48rem) and `xl` (80rem); the review measured them with the real classes (M11): the Step buttons
 row is 337 px; one Step row is 1,075 px and the Dwell-and-Gap row 659 px with `w-40` ranges; one
-Scroll row is 564 px.
+Scroll row is 564 px. The Step buttons' 25rem breakpoint may rise to 26rem or 28rem on the built
+page (_Decisions_ 11).
 
 The cost of 48 px targets is height: at 390×844 the Step overlay is about 200 px tall (today about
 176 px), and about 260 px below 400 px. The visual review records the measured height and the
@@ -356,8 +367,8 @@ The page's `pointerdown` and `keydown` handlers call `keepAwake.retry()`, except
 (14 px). It fades with the overlay, and its appearance shows the overlay. Its text sits in a
 `role="status"` region named "Keep-awake status", mounted for the overlay's life. The region
 announces each distinct note text once per page load: after Pause and Play, the same text shows
-again but is not re-announced (the page keeps the last announced text and writes the region only
-when the text differs).
+again but is not re-announced (the overlay keeps the last announced text and writes the region
+only when the text differs; the page passes it the note's text).
 
 ## The finish screen — `FinishScreen.svelte` and `finishStats()`
 
@@ -413,11 +424,16 @@ when there is one, `<dd class="stat-desc">…</dd>`, so screen readers hear term
 - Both tiers are `stats` rows on every screen (`stats-horizontal`, daisyUI's default), with a
   `border border-base-300`, as in the mockup. Titles and descriptions may wrap
   (`whitespace-normal` on `stat-title` and `stat-desc`).
-- Below 400 px each `.stat` takes `px-3`, tier 1 values `text-3xl` and tier 2 values `text-xl`.
+- Below 400 px (or the threshold the measurement settles, below) each `.stat` takes `px-3`, tier 1
+  values `text-3xl` and tier 2 values `text-xl`.
   The review measured tier 2 with daisyUI's defaults at 556 px wide in a 320 px window, scrolling
   the page; with `px-3` and wrapping it fits with 2 px to spare at today's sizes (M11), so the
   smaller values below 400 px leave room for wider numbers. The visual review measures the widest
-  case (_Verification_).
+  case on both sides of the threshold (_Verification_): at 400 px the large sizes and daisyUI's
+  padding return, and tier 1 with `1234.56 s` at 36 px comes near the 368 px free (estimated while
+  planning). If any width overflows, the threshold rises from 25rem to 30rem, then 40rem; below
+  it, a small size that still overflows steps down once. A threshold that runs out of steps fails
+  the check.
 
 ### Buttons
 
@@ -485,9 +501,10 @@ rate"); the mockup's working titles were "Time" and "Display".
   invisible. Behind the finish screen nothing is reachable (`inert`), and focus moves to its
   heading. The overlay's focus ring stays `neutral-content` (6.38:1 on the fill, spec 1).
 - **Contrast (1.4.11, 1.4.3).** The slider tracks are 3.18:1 against the overlay fill in the worst
-  case (a white page behind it; 4.72:1 over black), and the icons, field borders and focus ring
-  are measured against the fill too; the stat titles and descriptions are 4.64:1 on `base-100`
-  (M11).
+  case (a white page behind it; 4.72:1 over black). The icon buttons keep daisyUI's light `btn`
+  face, so each icon is measured against its own face and each face against the fill; a seconds
+  field passes when its border or its face reaches 3:1 against the fill; the focus ring is
+  measured against the fill. The stat titles and descriptions are 4.64:1 on `base-100` (M11).
 - **Pause (2.2.2).** A Scroll run moves for more than 5 s; the Pause button is the mechanism, and
   Tab reaches it in either mode.
 - **Status messages (4.1.3).** The note and the run summary are announced through named status
@@ -569,8 +586,8 @@ not used. Each behavior change starts with a failing test.
   - the queries naming the finish screen as a group (`:18`, `:41`, `:435`, `:440`) name it as a
     region. Every other test keeps its intent and its strings.
 - **`src/colors.test.ts`**: the predicate (`:74`) loses `.finish-screen`; the `it.each` row at
-  `:149` now expects that selector's `#fff` to be reported; the allowed list (`:244-248`) and the
-  test title (`:251`) go from three to two.
+  `:149` now expects that selector's `#fff` to be reported; the allowed list (`:191-195`) and the
+  test title (`:198`) go from three to two.
 - **`src/theme.test.ts`**: the focus-ring test (`:255-258`) reads `PlayOverlay.svelte`; a new test
   pins the `.overlay .range` rule, as `.setup-page .range` is pinned (M14).
 - `src/routes/page.test.ts` and `RowEditor.svelte.test.ts` do not change (_Done means_ 5).
@@ -597,16 +614,21 @@ A check that errors, prints nothing or is skipped counts as unverified, never as
   - no overlay control past the overlay's content edge (`scrollWidth` equals `clientWidth` on the
     overlay) at 320, 360 and 390 px;
   - `scrollWidth` equals `clientWidth` on the document and on each `.stats` element in every view,
-    including the finish screens at 320 px with the widest values: a 4-digit count, a Step time
-    over 1,000 s, a 5.00 s dwell, and `12 frames took over 100 ms`;
+    including the finish screens at 320, 399, 400 and 412 px with the widest values: a 4-digit
+    count, a Step time over 1,000 s, a 5.00 s dwell, and `12 frames took over 100 ms`;
   - in the 844×390 and 320×568 finish views, the heading and both buttons can be scrolled into
     view;
-  - the slider track against the overlay fill at least 3:1, the icons and field borders against
-    the fill at least 3:1, the stat titles and descriptions against `base-100` at least 4.5:1;
+  - the slider track against the overlay fill at least 3:1; each icon against its own button
+    face, and each button face against the fill, at least 3:1; each seconds field's border or its
+    face against the fill at least 3:1; the stat titles and descriptions against `base-100` at
+    least 4.5:1; every ratio recorded;
   - the readout's computed font size is 16 px, and its height at 320 px is recorded;
-  - the faded overlay's computed opacity is 0, and 1 again after Tab;
-  - in the Step finish view, Tab and Shift+Tab never focus a control behind the finish screen
-    (`document.activeElement` after each key), and after Restart, Tab reaches the overlay again;
+  - the faded overlay's computed opacity is 0, and 1 again once a control in it takes focus
+    (`focus()`, which fires `focusin` as Tab does);
+  - in the Step finish view, no control behind the finish screen can take focus: `focus()` is
+    called on every focusable element, and only the heading, Back and Restart keep it, which bounds
+    what Tab and Shift+Tab can reach (headless Firefox cannot press keys; H2 presses them); after
+    Restart, the overlay's Back takes focus again;
   - the rightmost icon button's tooltip, forced open, lies inside the window at 320 and 360 px;
   - **recorded for the owner, not a pass condition:** the overlay's height at each width, and in
     Step paused at 844×390, 390×844 and 320×568, with a UPC-A, a QR and a PDF417 code, the gap or
@@ -636,8 +658,14 @@ A check that errors, prints nothing or is skipped counts as unverified, never as
   moves focus into the overlay, and Enter or Space then activates the focused control, in either
   mode; clicking the page first avoids it.
 - `CONTRIBUTING.md` _Writing tests_ (`:95-99`): drop the faded `hidden` class and `faded()` as
-  examples; if no test keeps a `// fallback -- visual state` marker, remove that fallback; keep
-  `stage()`.
+  examples. The visual-state fallback stays, since five other test files keep its marker; it is
+  reworded to cover state that only a real browser shows or acts on, with an
+  `eslint-disable-next-line … -- visual state: <reason>` form for node access, because the
+  tooltip's `data-tip` and the `inert` attribute sit on wrappers with no role. Its examples become
+  `stage()`, `behind()` and `tip()`.
+- `CONTRIBUTING.md` _Styling_: correct what this change makes wrong (the finish screen's white
+  background, the file that holds the overlay's focus ring, the overlay's `hidden` class), and add
+  `Icon` to the list of shared units.
 - `README.md`: any playback wording that the changes make wrong (the review found none).
 - The handoff: T9 and T10 updated, and a decision-log row.
 - The README screenshots come in a separate docs PR after this one merges.
@@ -690,8 +718,9 @@ Not taken, with the reason:
 
 ## Notes for the plan
 
-- Pin the stats' classes below 400 px by measuring the widest case, as spec 2 pinned its 63 rem
-  threshold; the overlay's breakpoints are measured (M11) and are re-checked on the built page.
+- Pin the stats' threshold and classes by measuring the widest case on both sides of 400 px, as
+  spec 2 pinned its 63 rem threshold; the overlay's breakpoints are measured (M11) and are
+  re-checked on the built page, which settles the Step buttons' wrap point (_Decisions_ 11).
 - Install the fake `navigator.wakeLock` in one helper of `play/page.test.ts`, so a test that wants
   no API removes it explicitly.
 - Render `RowEditor` before and after the switch to `Icon` and compare the three icon buttons'

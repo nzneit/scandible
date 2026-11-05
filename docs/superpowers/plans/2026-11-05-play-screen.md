@@ -39,6 +39,10 @@ built page can give has a step that measures it and says what settles it.
 The spec is open or ambiguous on these points; the plan goes ahead on the reading given. None
 blocks Task 1.
 
+**Answered by the owner on 2026-11-05:** the readings are accepted, and the spec was amended to
+match R1, R3, R4, R5 and R6 and to correct its `colors.test.ts` citations, so the plan and the spec
+now agree on all eight. R2, R7 and R8 fill gaps the spec leaves open.
+
 1. **R1. Who keeps the last announced note.** _Keep-awake_ says "the page keeps the last announced
    text", but the region is `PlayOverlay`'s (_Parts_) and _Testing_ pins "a repeated text not
    rewritten" in `PlayOverlay.test.ts`. **Plan:** `PlayOverlay` keeps it; the page passes `note`.
@@ -1073,8 +1077,7 @@ and the other four in the Step one:
 In `src/colors.test.ts`: `isStageWhite` (`:72-75`) allows `PLAY` only for `.play`; the row at
 `:149` expects `[PLAY + ': .finish-screen: #fff']`; the allowed list (`:191-195`) holds only
 `SharePanel.svelte: .qr-code: #fff` and `+page.svelte: .play: #fff`; the title at `:198` reads
-`finds no raw color outside the two allowed white backgrounds`. (The spec cites `:244-248` and
-`:251`; the file has 202 lines.)
+`finds no raw color outside the two allowed white backgrounds`.
 
 - [ ] **Step 5: Run them to verify they fail**
 
