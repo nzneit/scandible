@@ -12,8 +12,11 @@ buttons' wrap point and the stats' threshold are settled on the built page (_Dec
 _Layout_, _Stats_); each icon's contrast is measured against its own button face, and a seconds
 field passes by its border or its face (_Accessibility_, _Verification_); the overlay keeps the
 last announced note (_Keep-awake_); the focus checks call `focus()` (_Verification_);
-`CONTRIBUTING.md`'s fallback is reworded and its _Styling_ corrected (_Documentation_); and two
-line citations are corrected (_Testing_).
+`CONTRIBUTING.md`'s fallback is reworded and its _Styling_ corrected (_Documentation_); and two line
+citations are corrected (_Testing_). Amended again on 2026-11-05 during the final review (rulings
+F3, F4, F8, F14 in the run record): keep-awake treats a lock released within a second of its request
+as refused; the overlay's ranges draw no fill; the wedge-scanner advice; the finish heading's focus
+and id as built.
 Spec 3 of the three-spec UI revamp series. The series, its decisions and spec 1's foundation are in
 `docs/superpowers/specs/2026-11-04-ui-foundation-design.md` (merged as `fde5de1`); spec 2 is
 `docs/superpowers/specs/2026-11-04-setup-redesign-design.md` (merged as `8a17280`). Facts measured
@@ -334,16 +337,16 @@ export function createKeepAwake(options: {
 }): KeepAwake;
 ```
 
-| Situation                                                               | What the controller does                                                          | State                                                |
-| ----------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| Wanted, no API (an older browser, or plain HTTP outside localhost)      | nothing to ask                                                                    | `unavailable`                                        |
-| Wanted, the tab visible, no lock held or requested                      | `wakeLock.request('screen')`                                                      | unchanged until it settles; then `held` or `refused` |
-| Wanted, the tab hidden                                                  | waits for `visibilitychange`                                                      | `off`                                                |
-| `want(true)` while a lock is held or a request is pending               | nothing                                                                           | unchanged                                            |
-| No longer wanted while a request is pending                             | releases the lock as soon as the request resolves                                 | `off`                                                |
-| The browser releases the lock (the tab hidden, battery saver turned on) | asks again when the tab is visible and the lock is still wanted                   | `off` until the new request settles                  |
-| `retry()` while `refused` and still wanted                              | asks again, unless a request is pending or the last one started less than 1 s ago | `held` or `refused`                                  |
-| Not wanted, or `destroy()` (the page unmounts)                          | releases the lock; `destroy()` also removes its listeners and ignores later calls | `off`                                                |
+| Situation                                                               | What the controller does                                                                                                                            | State                                                                     |
+| ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Wanted, no API (an older browser, or plain HTTP outside localhost)      | nothing to ask                                                                                                                                      | `unavailable`                                                             |
+| Wanted, the tab visible, no lock held or requested                      | `wakeLock.request('screen')`                                                                                                                        | unchanged until it settles; then `held` or `refused`                      |
+| Wanted, the tab hidden                                                  | waits for `visibilitychange`                                                                                                                        | `off`                                                                     |
+| `want(true)` while a lock is held or a request is pending               | nothing                                                                                                                                             | unchanged                                                                 |
+| No longer wanted while a request is pending                             | releases the lock as soon as the request resolves                                                                                                   | `off`                                                                     |
+| The browser releases the lock (the tab hidden, battery saver turned on) | asks again when the tab is visible and the lock is still wanted; a release within 1 s of the request counts as refused (so it never asks in a loop) | `off` until the new request settles; `refused` after a release within 1 s |
+| `retry()` while `refused` and still wanted                              | asks again, unless a request is pending or the last one started less than 1 s ago                                                                   | `held` or `refused`                                                       |
+| Not wanted, or `destroy()` (the page unmounts)                          | releases the lock; `destroy()` also removes its listeners and ignores later calls                                                                   | `off`                                                                     |
 
 It never retries in a loop: after a refusal only a returning tab or `retry()` asks again, and
 `retry()` is throttled as above. `onState` is called only when the state changes.
@@ -375,10 +378,10 @@ only when the text differs; the page passes it the note's text).
 ### Semantics
 
 ```html
-<section class="finish-screen" aria-labelledby="finish-heading">
+<section class="finish-screen" aria-labelledby="{uid}-heading">
 	<div class="m-auto">
 		<!-- centred; grows downward when the window is short -->
-		<h1 id="finish-heading" tabindex="-1">Run finished</h1>
+		<h1 id="{uid}-heading" tabindex="-1">Run finished</h1>
 		<dl class="stats"><!-- tier 1 --></dl>
 		<dl class="stats"><!-- tier 2: Step only, rendered only when there are conditions --></dl>
 		<div><button>Back</button><button>Restart</button></div>
@@ -388,8 +391,9 @@ only when the text differs; the page passes it the note's text).
 
 - The section is a region named "Run finished"; its `<h1>` is the play page's only heading. It
   replaces today's `role="group"` named "Run finished".
-- **The heading takes focus when the screen appears** (_Decisions_ 12), in `tick().then(…)` as
-  today's Restart focus. Tab then reaches Back, then Restart.
+- **The heading takes focus when the screen appears** (_Decisions_ 12), in `FinishScreen`'s
+  `onMount`, which runs once the heading exists. Tab then reaches Back, then Restart. The heading's
+  id is built from `$props.id()` (`uid` above).
 - The stage, the readout and the overlay sit in one wrapper `<div>` with `display: contents`,
   rendered for the page's whole life, so the stage never remounts and its layout does not change
   (M11). While the finish screen shows, the wrapper is `inert`, set with a spread
@@ -524,11 +528,14 @@ rate"); the mockup's working titles were "Time" and "Display".
   ```css
   .overlay .range {
   	--range-bg: color-mix(in oklab, var(--color-neutral-content) 55%, #0000);
+  	--range-fill: 0;
   }
   ```
 
   55 % gives 3.18:1 in the worst case (M11); 60 % would give 3.47:1. Any change to
-  `--color-neutral`, the fill's alpha or this mix is re-measured.
+  `--color-neutral`, the fill's alpha or this mix is re-measured. `--range-fill: 0` drops daisyUI's
+  fill, a shadow of the thumb that the input's 48 px height (`h-12`) turns into a white slab, so
+  only the track and the thumb are drawn.
 
 - The overlay's focus-ring rule (`.overlay :global(:focus-visible)`) moves into `PlayOverlay.svelte`
   with its text unchanged.
@@ -654,9 +661,11 @@ A check that errors, prints nothing or is skipped counts as unverified, never as
     on iOS before 18.4) and what the note then says; the remedy (raise the device's screen
     timeout); the battery cost of a long Loop run;
   - the finish summary lists (`:131-135` and `:167-172`) describe the stats.
-- `docs/guide.md`, the wedge-scanner paragraph (`:371-373`): a scanner that ends a scan with Tab
-  moves focus into the overlay, and Enter or Space then activates the focused control, in either
-  mode; clicking the page first avoids it.
+- `docs/guide.md`, the wedge-scanner paragraph (`:371-373`): a scanner that ends each scan with
+  Enter presses whichever overlay control has focus (such as Play after you click it), so click the
+  page, not a control, before scanning; a scanner that ends each scan with Tab moves focus through
+  the overlay's controls, so set it to end with Enter or nothing; or connect the scanner to another
+  computer.
 - `CONTRIBUTING.md` _Writing tests_ (`:95-99`): drop the faded `hidden` class and `faded()` as
   examples. The visual-state fallback stays, since five other test files keep its marker; it is
   reworded to cover state that only a real browser shows or acts on, with an
