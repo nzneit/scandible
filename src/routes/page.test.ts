@@ -199,7 +199,7 @@ describe('setup page', () => {
 	it('loads codes from a file into the textarea', async () => {
 		render(SetupPage);
 		vi.mocked(readCodesFile).mockResolvedValueOnce('036000291452\n012345678905');
-		const fileInput = screen.getByLabelText('Load codes from a file');
+		const fileInput = screen.getByLabelText('Upload file');
 		const file = new File(['x'], 'codes.txt', { type: 'text/plain' });
 		Object.defineProperty(fileInput, 'files', { value: [file], configurable: true });
 		await fireEvent.change(fileInput);
@@ -219,13 +219,13 @@ describe('setup page', () => {
 		expect(originalCount).toBeGreaterThan(0);
 
 		vi.mocked(readCodesFile).mockRejectedValueOnce(new Error('boom'));
-		const fileInput = screen.getByLabelText('Load codes from a file');
+		const fileInput = screen.getByLabelText('Upload file');
 		const file = new File(['x'], 'codes.txt', { type: 'text/plain' });
 		Object.defineProperty(fileInput, 'files', { value: [file], configurable: true });
 		await fireEvent.change(fileInput);
 
 		await vi.waitFor(() => expect(screen.getByText('Could not read file')).toBeVisible());
-		expect(screen.getByText('Could not read file').textContent).toBe('Could not read file');
+		expect(screen.getByRole('alert').textContent).toBe('Could not read file');
 		expect(items()).toHaveLength(originalCount);
 		expect(items()[0].textContent).toBe(originalFirst);
 	});
@@ -287,6 +287,53 @@ describe('setup page', () => {
 		render(SetupPage);
 		await fireEvent.click(screen.getByRole('button', { name: 'Start' }));
 		expect(goto.mock.calls[0][0]).toContain('fmt=code39');
+	});
+
+	it('names the Codes section, its code box and its controls by their visible text', () => {
+		mockPage.url = new URL('http://localhost/#codes=x&seed=0&fmt=gs1qr');
+		render(SetupPage);
+		const codes = within(screen.getByRole('region', { name: 'Codes' }));
+		expect(codes.getByRole('heading', { level: 2, name: 'Codes' })).toBeInTheDocument();
+		expect(codes.getByRole('textbox', { name: 'Codes' })).toBeInTheDocument();
+		expect(codes.getByRole('radiogroup', { name: 'Editor' })).toBeInTheDocument();
+		expect(codes.getByLabelText('Upload file')).toHaveAttribute('accept', '.txt,.csv');
+		expect(codes.getByLabelText('Format')).toBe(codes.getByRole('combobox', { name: 'Format' }));
+		expect(codes.getByLabelText('Error correction')).toBe(
+			codes.getByRole('combobox', { name: 'Error correction' })
+		);
+		expect(codes.getByLabelText('Render GS1 data that fails validation')).toBe(
+			codes.getByRole('checkbox', { name: 'Render GS1 data that fails validation' })
+		);
+	});
+
+	it('puts each Plain text hint in a disclosure after the control it explains', () => {
+		mockPage.url = new URL('http://localhost/#codes=x&seed=0&fmt=gs1qr');
+		render(SetupPage);
+		const inOrder = [
+			screen.getByRole('radiogroup', { name: 'Editor' }),
+			screen.getByText('What Per row adds'),
+			screen.getByRole('combobox', { name: 'Format' }),
+			screen.getByText('How to write GS1 data'),
+			screen.getByRole('combobox', { name: 'Error correction' }),
+			screen.getByRole('checkbox', { name: 'Render GS1 data that fails validation' }),
+			screen.getByText('What can never be rendered anyway'),
+			screen.getByRole('textbox', { name: 'Codes' })
+		];
+		inOrder.slice(1).forEach((next, i) => expect(inOrder[i]).toAppearBefore(next));
+	});
+
+	it('clears the file error when the code box is typed in', async () => {
+		render(SetupPage);
+		vi.mocked(readCodesFile).mockRejectedValueOnce(new Error('boom'));
+		const fileInput = screen.getByLabelText('Upload file');
+		const file = new File(['x'], 'codes.txt', { type: 'text/plain' });
+		Object.defineProperty(fileInput, 'files', { value: [file], configurable: true });
+		await fireEvent.change(fileInput);
+		await vi.waitFor(() => expect(screen.getByText('Could not read file')).toBeVisible());
+		await fireEvent.input(screen.getByRole('textbox', { name: 'Codes' }), {
+			target: { value: '036000291452' }
+		});
+		expect(screen.queryByText('Could not read file')).toBeNull();
 	});
 });
 
@@ -576,7 +623,9 @@ describe('setup page: per-row editor', () => {
 				).value
 		);
 	const set = (el: HTMLElement, value: string) => fireEvent.change(el, { target: { value } });
-	const editor = (value: string) => set(ui().getByRole('combobox', { name: 'Editor' }), value);
+	const EDITOR = { text: 'Plain text', rows: 'Per row' } as const;
+	const editor = (value: keyof typeof EDITOR) =>
+		fireEvent.click(ui().getByRole('radio', { name: EDITOR[value] }));
 	const note = () => within(ui().getByRole('alert')).getByRole('paragraph').textContent;
 	const start = async () => {
 		await fireEvent.click(ui().getByRole('button', { name: 'Start' }));
@@ -587,7 +636,7 @@ describe('setup page: per-row editor', () => {
 	const upload = async (text: string | null) => {
 		if (text === null) vi.mocked(readCodesFile).mockRejectedValueOnce(new Error('boom'));
 		else vi.mocked(readCodesFile).mockResolvedValueOnce(text);
-		const fileInput = ui().getByLabelText('Load codes from a file');
+		const fileInput = ui().getByLabelText('Upload file');
 		const file = new File(['x'], 'codes.txt', { type: 'text/plain' });
 		Object.defineProperty(fileInput, 'files', { value: [file], configurable: true });
 		await fireEvent.change(fileInput);
@@ -600,14 +649,14 @@ describe('setup page: per-row editor', () => {
 
 	it('opens in Plain text by default', () => {
 		open();
-		expect(ui().getByRole('combobox', { name: 'Editor' })).toHaveValue('text');
+		expect(ui().getByRole('radio', { name: 'Plain text' })).toBeChecked();
 		expect(ui().getByRole('textbox', { name: 'Codes' })).toBeInTheDocument();
 		expect(ui().queryByRole('list', { name: 'Codes' })).toBeNull();
 	});
 
 	it('opens a records link in Per row with its rows', () => {
 		open(DECK);
-		expect(ui().getByRole('combobox', { name: 'Editor' })).toHaveValue('rows');
+		expect(ui().getByRole('radio', { name: 'Per row' })).toBeChecked();
 		expect(ui().queryByRole('textbox', { name: 'Codes' })).toBeNull();
 		expect(ui().queryByRole('list', { name: 'Validation results' })).toBeNull();
 		expect(payloads()).toEqual(['036000291452', 'hello']);
@@ -624,7 +673,10 @@ describe('setup page: per-row editor', () => {
 
 	it('turns the list into one row per code at the list format', async () => {
 		open('http://localhost/#codes=036000291452%2C012345678905&seed=0');
+		ui().getByRole('radio', { name: 'Per row' }).focus();
 		await editor('rows');
+		await tick();
+		expect(ui().getByRole('radio', { name: 'Per row' })).toHaveFocus();
 		expect(payloads()).toEqual(['036000291452', '012345678905']);
 		expect(formats()).toEqual(['upc', 'upc']);
 	});
@@ -647,13 +699,13 @@ describe('setup page: per-row editor', () => {
 		expect(ui().getByRole('textbox', { name: 'Codes' })).toHaveValue('hello\nworld');
 		expect(ui().getByRole('combobox', { name: 'Format' })).toHaveValue('qr');
 		expect(ui().getByRole('combobox', { name: 'Error correction' })).toHaveValue('H');
-		expect(ui().getByRole('combobox', { name: 'Editor' })).toHaveValue('text');
+		expect(ui().getByRole('radio', { name: 'Plain text' })).toBeChecked();
 		expect(ui().queryByRole('alert')).toBeNull();
 	});
 
 	it('opens an empty codes= link in Plain text with its settings', () => {
 		open('http://localhost/#codes=&speed=120&seed=0&fmt=qr');
-		expect(ui().getByRole('combobox', { name: 'Editor' })).toHaveValue('text');
+		expect(ui().getByRole('radio', { name: 'Plain text' })).toBeChecked();
 		expect(ui().getByRole('textbox', { name: 'Codes' })).toHaveValue('');
 		expect(ui().getByRole('combobox', { name: 'Format' })).toHaveValue('qr');
 		expect(ui().getByRole('slider', { name: 'Speed' })).toHaveValue('120');
@@ -665,7 +717,8 @@ describe('setup page: per-row editor', () => {
 		expect(note()).toBe(
 			`${LIMIT} Switching now drops the format of 2 rows and cuts 1 payload at line breaks or commas. Every code will take the format of the first code, UPC-A.`
 		);
-		expect(ui().getByRole('combobox', { name: 'Editor' })).toHaveValue('rows');
+		expect(ui().getByRole('radio', { name: 'Per row' })).toBeChecked();
+		expect(ui().getByRole('radio', { name: 'Per row' })).toHaveFocus();
 		expect(rows()).toHaveLength(3);
 	});
 
@@ -677,7 +730,7 @@ describe('setup page: per-row editor', () => {
 		expect(note()).toBe(before);
 		await fireEvent.click(ui().getByRole('button', { name: 'Switch anyway' }));
 		expect(ui().getByRole('textbox', { name: 'Codes' })).toHaveValue('036000291452');
-		expect(ui().getByRole('combobox', { name: 'Editor' })).toHaveValue('text');
+		expect(ui().getByRole('radio', { name: 'Plain text' })).toBeChecked();
 	});
 
 	it('refreshes a stale note on Switch anyway, and switches on the second click', async () => {
@@ -689,10 +742,10 @@ describe('setup page: per-row editor', () => {
 		expect(note()).toBe(
 			`${LIMIT} Switching now drops the format of 1 row and cuts 1 payload at line breaks or commas. Every code will take the format of the first code, UPC-A.`
 		);
-		expect(ui().getByRole('combobox', { name: 'Editor' })).toHaveValue('rows');
+		expect(ui().getByRole('radio', { name: 'Per row' })).toBeChecked();
 		expect(rows()).toHaveLength(3);
 		await fireEvent.click(ui().getByRole('button', { name: 'Switch anyway' }));
-		expect(ui().getByRole('combobox', { name: 'Editor' })).toHaveValue('text');
+		expect(ui().getByRole('radio', { name: 'Plain text' })).toBeChecked();
 	});
 
 	it('takes a fresh snapshot when Plain text is chosen again', async () => {
@@ -704,30 +757,30 @@ describe('setup page: per-row editor', () => {
 		);
 	});
 
-	it("applies the first code's format on Switch anyway and returns focus to the Editor select", async () => {
+	it("applies the first code's format on Switch anyway and returns focus to the Editor switch", async () => {
 		await lossy();
 		await fireEvent.click(ui().getByRole('button', { name: 'Switch anyway' }));
 		expect(ui().getByRole('textbox', { name: 'Codes' })).toHaveValue(
 			'036000291452\nhello\nline 1\nline 2'
 		);
 		expect(ui().getByRole('combobox', { name: 'Format' })).toHaveValue('upc');
-		expect(ui().getByRole('combobox', { name: 'Editor' })).toHaveValue('text');
+		expect(ui().getByRole('radio', { name: 'Plain text' })).toBeChecked();
 		expect(ui().queryByRole('alert')).toBeNull();
 		expect(
 			within(ui().getByRole('list', { name: 'Validation results' })).getAllByRole('listitem')
 		).toHaveLength(4);
 		await tick();
-		expect(ui().getByRole('combobox', { name: 'Editor' })).toHaveFocus();
+		expect(ui().getByRole('radio', { name: 'Plain text' })).toHaveFocus();
 	});
 
 	it('closes the note on Cancel, keeping the rows and returning focus', async () => {
 		await lossy();
 		await fireEvent.click(ui().getByRole('button', { name: 'Cancel' }));
 		expect(ui().queryByRole('alert')).toBeNull();
-		expect(ui().getByRole('combobox', { name: 'Editor' })).toHaveValue('rows');
+		expect(ui().getByRole('radio', { name: 'Per row' })).toBeChecked();
 		expect(rows()).toHaveLength(3);
 		await tick();
-		expect(ui().getByRole('combobox', { name: 'Editor' })).toHaveFocus();
+		expect(ui().getByRole('radio', { name: 'Per row' })).toHaveFocus();
 	});
 
 	it("carries records in the share link and Start, storing a default level as ''", async () => {
@@ -790,7 +843,7 @@ describe('setup page: per-row editor', () => {
 		await upload(null);
 		await vi.waitFor(() => expect(ui().getByText('Could not read file')).toBeVisible());
 		await editor('text');
-		expect(ui().getByRole('combobox', { name: 'Editor' })).toHaveValue('text');
+		expect(ui().getByRole('radio', { name: 'Plain text' })).toBeChecked();
 		expect(ui().queryByText('Could not read file')).toBeNull();
 		open(MIXED);
 		await upload(null);
@@ -949,14 +1002,14 @@ describe('setup page: GS1 validation setting', () => {
 
 	it('carries the box into Per row rows and back, hiding the page box in Per row', async () => {
 		open(list(`${BAD}\n${S}`, '&lax=1'));
-		await set(screen.getByRole('combobox', { name: 'Editor' }), 'rows');
+		await fireEvent.click(screen.getByRole('radio', { name: 'Per row' }));
 		expect(
 			screen.queryByRole('checkbox', { name: 'Render GS1 data that fails validation' })
 		).toBeNull();
 		expect(rowBoxes()).toEqual([true, true]);
 		expect(screen.getAllByText(LAX_NOTE)).toHaveLength(1); // the row editor's
 		expect(screen.getAllByText(GS1_HINT)).toHaveLength(1);
-		await set(screen.getByRole('combobox', { name: 'Editor' }), 'text');
+		await fireEvent.click(screen.getByRole('radio', { name: 'Plain text' }));
 		expect(screen.queryByRole('alert')).toBeNull();
 		expect(box()).toBeChecked();
 		expect(share()).toContain('&fmt=gs1128&lax=1');
@@ -966,7 +1019,7 @@ describe('setup page: GS1 validation setting', () => {
 		open(
 			`http://localhost/#r1=gs1128_${encodeURIComponent(S)}&r2=gs1128-lax_${encodeURIComponent(S)}&seed=0`
 		);
-		await set(screen.getByRole('combobox', { name: 'Editor' }), 'text');
+		await fireEvent.click(screen.getByRole('radio', { name: 'Plain text' }));
 		expect(within(screen.getByRole('alert')).getByRole('paragraph').textContent).toBe(
 			`${GS1_LIMIT} Switching now drops the render-if-invalid setting of 1 row. Every code will take the format of the first code, GS1-128, with invalid GS1 data skipped.`
 		);
@@ -975,7 +1028,7 @@ describe('setup page: GS1 validation setting', () => {
 	it('appends uploaded rows with the box off', async () => {
 		open(`http://localhost/#r1=gs1128-lax_${encodeURIComponent(BAD)}&fmt=gs1128&lax=1&seed=0`);
 		vi.mocked(readCodesFile).mockResolvedValueOnce(S);
-		const fileInput = screen.getByLabelText('Load codes from a file');
+		const fileInput = screen.getByLabelText('Upload file');
 		Object.defineProperty(fileInput, 'files', {
 			value: [new File(['x'], 'codes.txt', { type: 'text/plain' })],
 			configurable: true
