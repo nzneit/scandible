@@ -1081,7 +1081,7 @@ describe('setup page: GS1 validation setting', () => {
 			(row, i) =>
 				(
 					within(row).getByRole('checkbox', {
-						name: `Render code ${i + 1} if invalid`
+						name: `Render if invalid, code ${i + 1}`
 					}) as HTMLInputElement
 				).checked
 		);

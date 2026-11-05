@@ -101,6 +101,43 @@ describe('RowEditor', () => {
 		]);
 	});
 
+	it('holds each row in a group named "Code n" inside its list item', () => {
+		mount();
+		const groups = rowItems().map((item, i) =>
+			within(item).getByRole('group', { name: `Code ${i + 1}` })
+		);
+		expect(groups).toHaveLength(3);
+	});
+
+	it('lays a row out as number, payload and buttons, then its settings, then its verdict', () => {
+		mount();
+		const code = within(ui().getByRole('group', { name: 'Code 2' }));
+		const parts = [
+			code.getByText('2'),
+			code.getByRole('textbox', { name: 'Code 2' }),
+			code.getByRole('button', { name: 'Move up, code 2' }),
+			code.getByRole('button', { name: 'Move down, code 2' }),
+			code.getByRole('button', { name: 'Delete code 2' }),
+			code.getByRole('combobox', { name: 'Format of code 2' }),
+			code.getByRole('combobox', { name: 'Error correction of code 2' }),
+			code.getByText('✓ · 25×25 modules · 11 bytes')
+		];
+		for (let i = 1; i < parts.length; i++) expect(parts[i - 1]).toAppearBefore(parts[i]);
+	});
+
+	it('keeps the icon buttons named, with a tooltip of the action', () => {
+		mount();
+		expect(ui().getByRole('button', { name: 'Move up, code 2' })).toHaveAccessibleDescription(
+			'Move up'
+		);
+		expect(ui().getByRole('button', { name: 'Move down, code 2' })).toHaveAccessibleDescription(
+			'Move down'
+		);
+		expect(ui().getByRole('button', { name: 'Delete code 2' })).toHaveAccessibleDescription(
+			'Delete'
+		);
+	});
+
 	it('describes each payload by the verdict in its own row', () => {
 		mount();
 		expect(ui().getByRole('textbox', { name: 'Code 1' })).toHaveAccessibleDescription('✓');
@@ -228,29 +265,31 @@ describe('RowEditor', () => {
 				newRowFormat: 'upc'
 			}
 		}).container;
-		expect(within(row(1)).queryByRole('checkbox', { name: 'Render code 1 if invalid' })).toBeNull();
-		expect(ui().getByRole('checkbox', { name: 'Render code 2 if invalid' })).not.toBeChecked();
+		expect(
+			within(row(1)).queryByRole('checkbox', { name: 'Render if invalid, code 1' })
+		).toBeNull();
+		expect(ui().getByRole('checkbox', { name: 'Render if invalid, code 2' })).not.toBeChecked();
 		expect(exactText(row(2), 'Render if invalid')!.trim()).toBe('Render if invalid');
 		expect(within(row(2)).getByLabelText('Render if invalid')).toBe(
-			ui().getByRole('checkbox', { name: 'Render code 2 if invalid' })
+			ui().getByRole('checkbox', { name: 'Render if invalid, code 2' })
 		);
 		expect(
 			ui()
 				.getAllByRole('checkbox')
 				.map((box) => box.getAttribute('aria-label'))
-		).toEqual(['Render code 2 if invalid', 'Render code 3 if invalid']);
-		await fireEvent.click(ui().getByRole('checkbox', { name: 'Render code 2 if invalid' }));
+		).toEqual(['Render if invalid, code 2', 'Render if invalid, code 3']);
+		await fireEvent.click(ui().getByRole('checkbox', { name: 'Render if invalid, code 2' }));
 		expect(current()[1].lax).toBe(true);
-		expect(ui().getByRole('checkbox', { name: 'Render code 2 if invalid' })).toBeChecked();
+		expect(ui().getByRole('checkbox', { name: 'Render if invalid, code 2' })).toBeChecked();
 		const third = row(3);
 		const controls = [
 			within(third).getByRole('textbox', { name: 'Code 3' }),
-			within(third).getByRole('combobox', { name: 'Format of code 3' }),
-			within(third).getByRole('combobox', { name: 'Error correction of code 3' }),
-			within(third).getByRole('checkbox', { name: 'Render code 3 if invalid' }),
 			within(third).getByRole('button', { name: 'Move up, code 3' }),
 			within(third).getByRole('button', { name: 'Move down, code 3' }),
-			within(third).getByRole('button', { name: 'Delete code 3' })
+			within(third).getByRole('button', { name: 'Delete code 3' }),
+			within(third).getByRole('combobox', { name: 'Format of code 3' }),
+			within(third).getByRole('combobox', { name: 'Error correction of code 3' }),
+			within(third).getByRole('checkbox', { name: 'Render if invalid, code 3' })
 		];
 		for (let i = 1; i < controls.length; i++) expect(controls[i - 1]).toAppearBefore(controls[i]);
 		expect(within(third).getAllByRole('textbox')).toHaveLength(1);
@@ -273,12 +312,14 @@ describe('RowEditor', () => {
 				newRowFormat: 'gs1128'
 			}
 		}).container;
-		expect(ui().getByRole('checkbox', { name: 'Render code 1 if invalid' })).toBeChecked();
+		expect(ui().getByRole('checkbox', { name: 'Render if invalid, code 1' })).toBeChecked();
 		await change(ui().getByRole('combobox', { name: 'Format of code 1' }), 'upc');
-		expect(within(row(1)).queryByRole('checkbox', { name: 'Render code 1 if invalid' })).toBeNull();
+		expect(
+			within(row(1)).queryByRole('checkbox', { name: 'Render if invalid, code 1' })
+		).toBeNull();
 		expect(current()[0].lax).toBe(false);
 		await change(ui().getByRole('combobox', { name: 'Format of code 1' }), 'gs1128');
-		expect(ui().getByRole('checkbox', { name: 'Render code 1 if invalid' })).not.toBeChecked();
+		expect(ui().getByRole('checkbox', { name: 'Render if invalid, code 1' })).not.toBeChecked();
 		await fireEvent.click(ui().getByRole('button', { name: 'Add code' }));
 		expect(current()[1]).toEqual({ payload: '', format: 'gs1128', ecc: '', lax: false });
 	});
@@ -296,6 +337,19 @@ describe('RowEditor', () => {
 				verdict.trim()
 			);
 		}
+	});
+
+	it('puts each hint in a disclosure after Add code, with its summary phrase', () => {
+		mount(deck(`gs1128_${S}`, 'qr-L_' + X2000), 'upc');
+		const parts = [
+			ui().getByRole('button', { name: 'Add code' }),
+			ui().getByText('How rows work'),
+			ui().getByText('How to write GS1 data'),
+			ui().getByText('What can never be rendered anyway'),
+			ui().getByText('What the arrow and GS mark mean'),
+			ui().getByText("If dense codes don't scan")
+		];
+		for (let i = 1; i < parts.length; i++) expect(parts[i - 1]).toAppearBefore(parts[i]);
 	});
 
 	it('shows the GS1 hint and lax note for a GS1 row or new-row format, and the scan hint for a GS1 entry', () => {
@@ -344,13 +398,15 @@ describe('RowEditor GS1 breakdown', () => {
 			within(row(3)).getByLabelText('Code 3 breakdown: 3 Application Identifiers')
 		).toBeInTheDocument();
 		expect(within(row(2)).queryByLabelText(BREAKDOWN)).toBeNull();
-		const verdict = within(row(1)).getByText(
+		const code = within(ui().getByRole('group', { name: 'Code 1' }));
+		const verdict = code.getByText(
 			'✓ · 255 modules wide · 31 characters → ]C1 01095011015300031726123110LOT42'
 		);
 		expect(within(verdict).queryByLabelText(BREAKDOWN)).toBeNull();
-		expect(within(row(1)).getByRole('button', { name: 'Delete code 1' })).toAppearBefore(
-			within(row(1)).getByLabelText('Code 1 breakdown: 3 Application Identifiers')
-		);
+		const breakdown = code.getByLabelText('Code 1 breakdown: 3 Application Identifiers');
+		expect(code.getByRole('button', { name: 'Delete code 1' })).toAppearBefore(breakdown);
+		expect(code.getByRole('combobox', { name: 'Format of code 1' })).toAppearBefore(breakdown);
+		expect(verdict).toAppearBefore(breakdown);
 	});
 
 	it('keeps the same details element, still open, while the payload is edited', async () => {
