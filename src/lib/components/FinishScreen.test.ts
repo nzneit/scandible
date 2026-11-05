@@ -67,8 +67,8 @@ describe('FinishScreen', () => {
 		const last = screen.getAllByRole('definition').at(-1)!;
 		const back = screen.getByRole('button', { name: 'Back' });
 		const restart = screen.getByRole('button', { name: 'Restart' });
-		expect(last.compareDocumentPosition(back) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-		expect(back.compareDocumentPosition(restart) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+		expect(last).toAppearBefore(back);
+		expect(back).toAppearBefore(restart);
 		await fireEvent.click(back);
 		await fireEvent.click(restart);
 		expect(onBack).toHaveBeenCalledTimes(1);
