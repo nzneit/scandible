@@ -168,10 +168,14 @@ describe('PlayOverlay', () => {
 	it('fades when not visible, and stays focusable', async () => {
 		const { rerender } = mount({ visible: false });
 		expect(group()).not.toBeVisible();
+		// fallback -- visual state: jsdom does not hit-test; a tap that wakes the faded overlay must not press a control it cannot see
+		expect(group()).toHaveStyle({ pointerEvents: 'none' });
 		button('Back').focus();
 		expect(button('Back')).toHaveFocus();
 		await rerender({ visible: true });
 		expect(group()).toBeVisible();
+		// fallback -- visual state: jsdom does not hit-test; the shown overlay takes taps again
+		expect(group()).not.toHaveStyle({ pointerEvents: 'none' });
 	});
 
 	it('reports focus entering and leaving it', () => {
