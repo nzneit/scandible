@@ -386,9 +386,10 @@ code left on screen once, and some read it again after the reread delay.
 
 **A run pauses or resumes by itself.** A keyboard-wedge scanner plugged into the computer that shows
 the codes types into the page. In Step, a space in a scanned code then pauses or resumes the run. A
-scanner that ends each scan with Tab moves focus into the overlay, and an Enter or a space then
-presses the focused control, in Step or Scroll. Click the page first, or connect the scanner to
-another computer.
+scanner that ends each scan with Enter presses whichever overlay control has focus, such as **Play**
+after you click it, so click the page, not a control, before you scan. A scanner that ends each scan
+with Tab moves focus through the overlay's controls, so set it to end each scan with Enter or with
+nothing. Or connect the scanner to another computer.
 
 **GS1 values run together.** A keyboard-wedge scanner that drops GS separators makes a
 variable-length value swallow what follows. Set the scanner to send `<GS>`.
