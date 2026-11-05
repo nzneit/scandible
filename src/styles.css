@@ -1,7 +1,8 @@
 @import 'tailwindcss' source(none);
 @source './**/*.svelte';
-/* The play overlay fades with its own class "hidden"; Tailwind's utility of that name would hide
-   it outright. scripts/check-css.ts fails the build if that rule returns. */
+/* Tailwind's "hidden" utility stays out of the build: nothing uses it, and a stray class of that
+   name should do nothing rather than hide an element outright (use the hidden attribute).
+   scripts/check-css.ts fails the build if that rule returns. */
 @source not inline('hidden');
 @plugin 'daisyui' {
 	themes: false; /* none of daisyUI's built-in themes ship */
@@ -55,8 +56,15 @@
 :is(.input, .textarea)::placeholder {
 	color: color-mix(in oklab, var(--color-base-content) 70%, #0000);
 }
-/* The setup page's range tracks at 3.95:1 (daisyUI draws them at currentColor 10%). The play
-   overlay's ranges are left to spec 3. */
+/* The setup page's range tracks at 3.95:1 (daisyUI draws them at currentColor 10%). */
 .setup-page .range {
 	--range-bg: color-mix(in oklab, var(--color-base-content) 55%, #0000);
+}
+/* The play overlay's range tracks at 3.18:1 against its fill over a white page (4.72:1 over black;
+   60% would give 3.47:1). Re-measure after any change to --color-neutral, the fill's alpha or this
+   mix. No fill: daisyUI draws it as a shadow of the thumb, which the input's 48 px height (h-12)
+   turns into a white slab, so only the track and the thumb are drawn. */
+.overlay .range {
+	--range-bg: color-mix(in oklab, var(--color-neutral-content) 55%, #0000);
+	--range-fill: 0;
 }

@@ -8,13 +8,21 @@
 		rangeAriaLabel?: string; // 'Dwell' | 'Gap'; set at every call site, setup page and overlay
 		rangeClass: string; // 'dwell-input' | 'gap-input' | 'ctl-dwell' | 'ctl-gap'
 		secondsClass: string; // 'dwell-seconds' | 'gap-seconds' | 'ctl-dwell-seconds' | 'ctl-gap-seconds'
-		size?: 'sm' | 'xs'; // default 'sm' (setup page); 'xs' in the overlay
+		size?: 'sm' | 'lg'; // default 'sm' (setup page); 'lg' (48 px) in the overlay
 		onchange?: (ms: number) => void; // the overlay passes step.setDwell / step.setGap
 	}
 
 	const SIZES = {
-		sm: { range: 'range range-sm w-32', input: 'input input-sm w-[4.5rem] text-base-content' },
-		xs: { range: 'range range-xs w-[110px]', input: 'input input-xs w-[4.5rem] text-base-content' }
+		sm: {
+			range: 'range range-sm w-32',
+			input: 'input input-sm w-[4.5rem] text-base-content',
+			unit: 'gap-1'
+		},
+		lg: {
+			range: 'range range-lg h-12 min-w-24 flex-1 md:w-40 md:flex-none',
+			input: 'input input-lg w-20 text-base-content',
+			unit: 'gap-2'
+		}
 	};
 
 	let {
@@ -50,7 +58,7 @@
 	bind:value
 	oninput={(e) => onchange?.(Number(e.currentTarget.value))}
 />
-<span class="seconds flex items-center gap-1">
+<span class={['seconds flex items-center', SIZES[size].unit]}>
 	<input
 		type="number"
 		class={[SIZES[size].input, secondsClass]}

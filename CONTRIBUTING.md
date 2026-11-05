@@ -27,16 +27,17 @@ npm run stage-check  # compare the play stage with main in headless Firefox
 ## Styling
 
 Tailwind CSS and daisyUI style the app. `src/styles.css` holds the one theme, **Instrument**, and
-the global overrides of daisyUI's defaults, and also the setup page's darker range tracks. The
-overlay's focus ring is overridden in the play page, the disabled **Start** button in
-`src/lib/components/ActionBar.svelte`, and the stage's barcode size caps are in
-`src/lib/components/barcode-caps.css`.
+the global overrides of daisyUI's defaults, and also the setup page's and the play overlay's darker
+range tracks. The overlay's focus ring is overridden in `src/lib/components/PlayOverlay.svelte`, the
+disabled **Start** button in `src/lib/components/ActionBar.svelte`, and the stage's barcode size
+caps are in `src/lib/components/barcode-caps.css`.
 
 - Build setup screens from the shared units in `src/lib/components/`: `Section` (a bordered section
   named by its heading), `Segmented` (radio buttons that look like joined buttons), `Hint` (a long
-  hint in a disclosure under its control), `ValueSlider` (a slider that shows its value), `Field`,
-  `Note`, `SecondsSlider`, `FormatSelect` and `EccSelect`. The setup page's state is one `Setup`
-  class in `src/lib/setup.svelte.ts`, which each pane takes as its `setup` prop.
+  hint in a disclosure under its control), `ValueSlider` (a slider that shows its value), `Icon` (an
+  inline stroke icon, `size-4` unless given a class), `Field`, `Note`, `SecondsSlider`,
+  `FormatSelect` and `EccSelect`. The setup page's state is one `Setup` class in
+  `src/lib/setup.svelte.ts`, which each pane takes as its `setup` prop.
 - Write Tailwind and daisyUI classes only in `.svelte` files. Tailwind scans no other files, so a
   class written in a `.ts` file is not generated unless the same word happens to appear in a
   `.svelte` file.
@@ -48,17 +49,17 @@ overlay's focus ring is overridden in the play page, the disabled **Start** butt
   and it fails when a Tailwind upgrade changes them. It does not see a named color (`red`,
   `white`) in CSS, in a `style` attribute or in an arbitrary value such as `bg-[red]`, nor a hex
   color in a script string outside a class, so review for those.
-- The barcode stage, the finish screen and the share QR keep a literal white background (`#fff`)
-  whatever the theme, and the engines draw literal black. The finish screen's text and buttons do
-  follow the theme. Put no daisyUI or Tailwind class on `ScrollColumn`, `StepStage` or the DOM that
-  `scroller.ts` and `stepper.ts` build.
+- The barcode stage and the share QR keep a literal white background (`#fff`) whatever the theme,
+  and the engines draw literal black. The finish screen is `bg-base-100`, as the rest of the app.
+  Put no daisyUI or Tailwind class on `ScrollColumn`, `StepStage` or the DOM that `scroller.ts` and
+  `stepper.ts` build.
 - Run `npm run stage-check` after any change that could touch the play page. It builds `main` and
   the current tree and compares the stage in headless Firefox (`firefox` on your `PATH`): pixel for
   pixel in Step mode at 1280×900 and 390×844, by barcode size in Scroll mode at 1280×900. It exits
   0 on a pass, 1 on a mismatch and 2 when it could not verify; an unverified run is not a pass. To
   compare with another branch, tag or commit, name it: `npm run stage-check -- <ref>`.
 - `npm run build` runs `scripts/check-css.ts` afterwards. The build fails if Tailwind's `hidden`
-  utility returns (the play overlay fades with a class of that name), if a theme other than
+  utility returns (a stray class of that name would hide an element outright), if a theme other than
   Instrument ships, or if a theme token is missing. So `hidden` does nothing as a Tailwind class:
   use the `hidden` attribute or a variant such as `max-sm:hidden`.
 
@@ -92,12 +93,15 @@ resemble the way your software is used, the more confidence they can give you."
 - **Two fallbacks may still use a selector**, each marked with its reason on the line above:
   - stage structure, which covers the engine's barcode items, since they have no role:
     `// eslint-disable-next-line testing-library/no-node-access -- stage structure: <reason>`;
-  - state that exists only visually, such as the play overlay's faded `hidden` class:
-    `// fallback -- visual state: <reason>`.
+  - state that only a real browser shows or acts on, such as a size class, a tooltip drawn from
+    `data-tip`, or the `inert` attribute: `// fallback -- visual state: <reason>`, or, when reaching
+    the element needs node access,
+    `// eslint-disable-next-line testing-library/no-node-access -- visual state: <reason>`.
 
-  Put repeated reads in one marked helper, as `stage()` and `faded()` in
-  `src/routes/play/page.test.ts` do. Anything else that seems to need a selector is a missing
-  accessible name: fix it with an attribute.
+  Put repeated reads in one marked helper, as `stage()` and `behind()` in
+  `src/routes/play/page.test.ts` and `tip()` in `src/lib/components/PlayOverlay.test.ts` do.
+  Anything else that seems to need a selector is a missing accessible name: fix it with an
+  attribute.
 
 - **Lint enforces part of this** for `src/routes/**/*.test.ts` and
   `src/lib/components/**/*.test.ts` (eslint-plugin-testing-library): no node access, no

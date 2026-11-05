@@ -3,6 +3,7 @@ import { render, fireEvent, screen, within } from '@testing-library/svelte';
 import PlayPage from './+page.svelte';
 import { encodeShareUrl } from '$lib/shareUrl';
 import { DEFAULT_SETTINGS } from '$lib/types';
+import { KEEP_AWAKE_NOTE } from '$lib/keepAwake';
 import { tick } from 'svelte';
 
 const mockPage = vi.hoisted(() => ({ url: new URL('http://localhost/play') }));
@@ -15,7 +16,8 @@ const CODES = ['036000291452', 'bad', '012345678905'];
 const PLAY_URL = 'http://localhost/play#codes=036000291452%0Abad%0A012345678905&seed=7';
 const READOUT = /^\d+ \/ \d+ · dwell /; // the step readout, whose text varies
 const overlay = () => screen.getByRole('group', { name: 'Playback controls' });
-const finish = () => screen.getByRole('group', { name: 'Run finished' });
+const finish = () => screen.getByRole('region', { name: 'Run finished' });
+const summary = () => screen.getByRole('status', { name: 'Run summary' });
 /** A button in the overlay. The finish screen repeats Restart and Back, so the scope matters. */
 const control = (name: string) => within(overlay()).getByRole('button', { name });
 const readout = () => screen.getByText(READOUT);
@@ -24,13 +26,40 @@ const exactText = (scope: HTMLElement, text: string) =>
 	within(scope).getByText(text.trim()).textContent;
 // eslint-disable-next-line testing-library/no-node-access -- stage structure: the engine's barcode items have no role (spec 3 may add one)
 const stage = (selector = '.barcode-item') => [...document.querySelectorAll<HTMLElement>(selector)];
-// fallback -- visual state: the faded overlay is opacity 0, which jsdom does not render (spec 3 can remove this)
-const faded = () => overlay().classList.contains('hidden');
+// eslint-disable-next-line testing-library/no-node-access -- visual state: jsdom does not act on inert (M5); the attribute on the overlay's wrapper is what can be tested
+const behind = () => overlay().parentElement;
 
 beforeEach(() => {
 	mockPage.url = new URL(PLAY_URL);
 	goto.mockReset();
 });
+
+/** A lock the fake browser grants; `release()` marks it released and fires `release`. */
+class FakeSentinel extends EventTarget {
+	released = false;
+	readonly type = 'screen';
+	onrelease = null;
+	release = vi.fn(async () => {
+		this.released = true;
+		this.dispatchEvent(new Event('release'));
+	});
+}
+let sentinels: FakeSentinel[] = [];
+const wakeLock = {
+	request: vi.fn<(type: WakeLockType) => Promise<FakeSentinel>>(async () => {
+		const sentinel = new FakeSentinel();
+		sentinels.push(sentinel);
+		return sentinel;
+	})
+};
+/** Every test plays with a browser that grants keep-awake; a test that wants none deletes it. */
+beforeEach(() => {
+	sentinels = [];
+	wakeLock.request.mockClear();
+	Object.defineProperty(navigator, 'wakeLock', { configurable: true, value: wakeLock });
+});
+afterEach(() => Reflect.deleteProperty(navigator, 'wakeLock'));
+const noteRegion = () => screen.getByRole('status', { name: 'Keep-awake status' });
 
 describe('play page', () => {
 	it('renders the scroll column and overlay controls, with no finish screen', () => {
@@ -38,17 +67,17 @@ describe('play page', () => {
 		expect(stage()).toHaveLength(4); // 2 valid × 2 copies
 		expect(control('Pause')).toBeInTheDocument();
 		expect(within(overlay()).getByRole('slider', { name: 'Speed' })).toBeInTheDocument();
-		expect(screen.queryByRole('group', { name: 'Run finished' })).toBeNull();
+		expect(screen.queryByRole('region', { name: 'Run finished' })).toBeNull();
 	});
 
 	it('toggles the play/pause label', async () => {
 		render(PlayPage);
 		const btn = control('Pause');
-		expect(btn.textContent).toBe('Pause');
+		expect(btn).toHaveAccessibleName('Pause');
 		await fireEvent.click(btn);
-		expect(btn.textContent).toBe('Play');
+		expect(btn).toHaveAccessibleName('Play');
 		await fireEvent.click(btn);
-		expect(btn.textContent).toBe('Pause');
+		expect(btn).toHaveAccessibleName('Pause');
 	});
 
 	it('navigates back to setup carrying the decoded state', async () => {
@@ -176,6 +205,33 @@ it('reloads on hashchange, and not after unmount', () => {
 	}
 });
 
+describe('play page: the overlay in Scroll mode', () => {
+	beforeEach(() => {
+		vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+		vi.stubGlobal('requestAnimationFrame', vi.fn());
+		vi.stubGlobal('cancelAnimationFrame', vi.fn());
+	});
+	afterEach(() => {
+		vi.useRealTimers();
+		vi.unstubAllGlobals();
+	});
+
+	it('brings a faded overlay back when focus enters it, but not on a key press', async () => {
+		render(PlayPage);
+		vi.advanceTimersByTime(3000);
+		await tick();
+		expect(overlay()).not.toBeVisible();
+		await fireEvent.keyDown(window, { key: 'a' });
+		expect(overlay()).not.toBeVisible();
+		control('Back').focus();
+		await tick();
+		expect(overlay()).toBeVisible();
+		vi.advanceTimersByTime(3000); // a focused control keeps it
+		await tick();
+		expect(overlay()).toBeVisible();
+	});
+});
+
 describe('play page: step mode', () => {
 	let frames: FrameRequestCallback[];
 	/** Render the play page for PLAY_URL (two valid codes, loop off) in step mode, plus `extra`. */
@@ -204,23 +260,23 @@ describe('play page: step mode', () => {
 		expect(screen.queryByRole('slider', { name: 'Speed' })).toBeNull();
 		const box = overlay();
 		const order = [
-			control('Play'),
+			control('Back'),
+			control('Restart'),
 			control('Prev'),
-			within(box).getByText('1 / 2'),
+			control('Play'),
 			control('Next'),
+			within(box).getByText('1 / 2'),
 			within(box).getByRole('slider', { name: 'Dwell' }),
 			within(box).getByRole('spinbutton', { name: 'Dwell in seconds' }),
 			within(box).getByRole('slider', { name: 'Gap' }),
-			within(box).getByRole('spinbutton', { name: 'Gap in seconds' }),
-			control('Restart'),
-			control('Back')
+			within(box).getByRole('spinbutton', { name: 'Gap in seconds' })
 		];
 		for (let i = 1; i < order.length; i++) expect(order[i - 1]).toAppearBefore(order[i]);
-		expect(
-			within(box)
-				.getAllByRole('button')
-				.map((b) => b.textContent)
-		).toEqual(['Play', 'Prev', 'Next', 'Restart', 'Back']);
+		const buttons = within(box).getAllByRole('button');
+		expect(buttons).toHaveLength(5);
+		['Back', 'Restart', 'Prev', 'Play', 'Next'].forEach((name, i) =>
+			expect(buttons[i]).toHaveAccessibleName(name)
+		);
 		expect(within(box).getAllByRole('slider')).toHaveLength(2);
 		expect(within(box).getAllByRole('spinbutton')).toHaveLength(2);
 		expect(exactText(box, '1 / 2')).toBe('1 / 2');
@@ -232,10 +288,10 @@ describe('play page: step mode', () => {
 
 	it('opens paused with Play, requests no frame, and steps once played', async () => {
 		open();
-		expect(control('Play').textContent).toBe('Play');
+		expect(control('Play')).toHaveAccessibleName('Play');
 		expect(frames).toEqual([]);
 		await click(control('Play'));
-		expect(control('Pause').textContent).toBe('Pause');
+		expect(control('Pause')).toHaveAccessibleName('Pause');
 		for (let ts = 0; ts <= 1000; ts += 100) frames.shift()?.(ts);
 		await tick();
 		expect(exactText(overlay(), '2 / 2')).toBe('2 / 2');
@@ -272,16 +328,16 @@ describe('play page: step mode', () => {
 			await tick();
 		};
 		await settle();
-		expect(faded()).toBe(false);
+		expect(overlay()).toBeVisible();
 		// fireEvent.click moves no focus in jsdom, and nwsapi's :focus-visible is :focus; this pins
 		// "playing, nothing focused, so it hides". The mouse case is verification row 6d.
 		await click(control('Play'));
 		await settle();
-		expect(faded()).toBe(true);
+		expect(overlay()).not.toBeVisible();
 		await fireEvent.pointerMove(window);
 		within(overlay()).getByRole('slider', { name: 'Dwell' }).focus(); // matches :focus-visible in jsdom
 		await settle();
-		expect(faded()).toBe(false);
+		expect(overlay()).toBeVisible();
 	});
 
 	it('loads dwell and gap from the link into the labelled sliders and seconds fields', async () => {
@@ -327,7 +383,7 @@ describe('play page: step mode', () => {
 		expect(within(overlay()).getByRole('slider', { name: 'Dwell' })).toHaveValue('1000');
 		await click(control('Next'));
 		await click(control('Next'));
-		expect(within(finish()).getByRole('paragraph').textContent).toBe(
+		expect(summary().textContent).toBe(
 			'Finished stepping 2 barcodes in 0.00 seconds at 1.00 s dwell.'
 		);
 	});
@@ -347,9 +403,9 @@ describe('play page: step mode', () => {
 	it('toggles on Space from the window or body, never from a button, field or slider', async () => {
 		open();
 		await key(window, { key: ' ' });
-		expect(control('Pause').textContent).toBe('Pause');
+		expect(control('Pause')).toHaveAccessibleName('Pause');
 		await key(window, { key: ' ' });
-		expect(control('Play').textContent).toBe('Play');
+		expect(control('Play')).toHaveAccessibleName('Play');
 		for (const get of [
 			() => control('Next'),
 			() => within(overlay()).getByRole('spinbutton', { name: 'Dwell in seconds' }),
@@ -360,25 +416,25 @@ describe('play page: step mode', () => {
 			const el = get();
 			el.focus();
 			await key(el, { key: ' ' });
-			expect(control('Play').textContent).toBe('Play');
+			expect(control('Play')).toHaveAccessibleName('Play');
 		}
 		await key(document.body, { key: ' ' });
-		expect(control('Pause').textContent).toBe('Pause');
+		expect(control('Pause')).toHaveAccessibleName('Pause');
 	});
 
 	it('finishes on Next at the last code with the run record as a status, then ignores keys', async () => {
 		open('&dwell=500&gap=250');
 		// Held across the finish: the live region must be the same node before and after.
-		const status = screen.getByRole('status');
+		const status = summary();
 		expect(status).toBeInTheDocument();
 		expect(status.textContent).toBe('');
 		await click(control('Next'));
 		await click(control('Next'));
 		const text = 'Finished stepping 2 barcodes in 0.00 seconds at 0.50 s dwell, 0.25 s gap.';
-		expect(within(finish()).getByRole('paragraph').textContent).toBe(text);
+		expect(summary().textContent).toBe(text);
 		expect(status.textContent).toBe(text);
 		await key(window, { key: 'ArrowRight' });
-		expect(within(finish()).getByRole('paragraph').textContent).toBe(text);
+		expect(summary().textContent).toBe(text);
 	});
 
 	it('reports a dwell set before Play as the dwell, and one changed after Play as a change', async () => {
@@ -388,7 +444,7 @@ describe('play page: step mode', () => {
 		});
 		await click(control('Next'));
 		await click(control('Next'));
-		expect(within(finish()).getByRole('paragraph')).toHaveTextContent('at 0.30 s dwell');
+		expect(summary()).toHaveTextContent('at 0.30 s dwell');
 		first.unmount();
 		open('&dwell=500&gap=250');
 		await click(control('Play'));
@@ -400,9 +456,7 @@ describe('play page: step mode', () => {
 		);
 		await click(control('Next'));
 		await click(control('Next'));
-		expect(within(finish()).getByRole('paragraph')).toHaveTextContent(
-			'dwell changed from 0.50 s to 0.30 s'
-		);
+		expect(summary()).toHaveTextContent('dwell changed from 0.50 s to 0.30 s');
 	});
 
 	it('shows Play and a paused readout behind the finish screen when the run ends while playing', async () => {
@@ -411,36 +465,103 @@ describe('play page: step mode', () => {
 		// The 0 frame counts nothing; then twenty 100 ms intervals: the swap at 1000, the finish at 2000.
 		for (let ts = 0; ts <= 2000; ts += 100) frames.shift()?.(ts);
 		await tick();
-		expect(within(finish()).getByRole('paragraph').textContent).toBe(
+		expect(summary().textContent).toBe(
 			'Finished stepping 2 barcodes in 2.00 seconds at 1.00 s dwell. Display about 10 Hz.'
 		);
-		expect(control('Play').textContent).toBe('Play');
+		expect(control('Play')).toHaveAccessibleName('Play');
 		expect(readout()).toHaveTextContent(/ · paused$/);
 	});
 
-	it("moves focus to the finish screen's Restart when a run finishes", async () => {
+	it("moves focus to the finish screen's heading when a run finishes", async () => {
 		open();
 		control('Next').focus();
 		await click(control('Next'));
 		await click(control('Next'));
 		await tick();
-		expect(within(finish()).getByRole('button', { name: 'Restart' })).toHaveFocus();
+		expect(within(finish()).getByRole('heading', { level: 1, name: 'Run finished' })).toHaveFocus();
 	});
 
 	it("returns to code 1 on Restart, and the finish screen's Restart lands paused", async () => {
 		open();
 		await click(control('Next'));
+		expect(exactText(overlay(), '2 / 2')).toBe('2 / 2');
+		await click(control('Restart')); // mid-run: once the run finishes, the overlay is inert
+		expect(exactText(overlay(), '1 / 2')).toBe('1 / 2');
+		await click(control('Next'));
 		await click(control('Next')); // finishes: PLAY_URL has loop off
-		await click(control('Restart'));
-		expect(screen.queryByRole('group', { name: 'Run finished' })).toBeNull();
-		expect(exactText(overlay(), '1 / 2')).toBe('1 / 2');
-		await click(control('Next'));
-		await click(control('Next'));
 		await click(within(finish()).getByRole('button', { name: 'Restart' }));
-		expect(screen.queryByRole('group', { name: 'Run finished' })).toBeNull();
+		expect(screen.queryByRole('region', { name: 'Run finished' })).toBeNull();
 		expect(exactText(overlay(), '1 / 2')).toBe('1 / 2');
-		expect(control('Play').textContent).toBe('Play');
+		expect(control('Play')).toHaveAccessibleName('Play');
 		expect(readout()).toHaveTextContent(/ · paused$/);
+	});
+
+	it('makes the stage, the readout and the overlay inert while the finish screen shows, and only then', async () => {
+		open();
+		expect(behind()).not.toHaveAttribute('inert');
+		await click(control('Next'));
+		await click(control('Next')); // finishes: PLAY_URL has loop off
+		expect(behind()).toHaveAttribute('inert');
+		expect(behind()).toContainElement(readout());
+		expect(behind()).toContainElement(stage('.step-stage')[0]);
+		await click(within(finish()).getByRole('button', { name: 'Restart' }));
+		expect(behind()).not.toHaveAttribute('inert');
+	});
+
+	it('ignores ←, → and Space while the finish screen shows', async () => {
+		open();
+		await click(control('Next'));
+		await click(control('Next')); // finishes: PLAY_URL has loop off
+		const text = summary().textContent;
+		// true: no key is default-prevented, so onKey returned before Space's preventDefault (the
+		// engine ignores next, prev and play once finished, so this is what pins the page's guard)
+		for (const k of ['ArrowLeft', 'ArrowRight', ' '])
+			expect(await key(window, { key: k })).toBe(true);
+		expect(finish()).toBeInTheDocument();
+		expect(summary().textContent).toBe(text);
+		expect(exactText(overlay(), '2 / 2')).toBe('2 / 2');
+		expect(control('Play')).toHaveAccessibleName('Play');
+		expect(readout()).toHaveTextContent(/ · paused$/);
+	});
+
+	it('ignores a scan typed at the focused finish heading', async () => {
+		open();
+		control('Next').focus();
+		await click(control('Next'));
+		await click(control('Next'));
+		await tick();
+		const heading = within(finish()).getByRole('heading', { level: 1, name: 'Run finished' });
+		expect(heading).toHaveFocus();
+		const text = summary().textContent;
+		for (const k of ['0', '3', ' ', 'Enter']) expect(await key(heading, { key: k })).toBe(true);
+		expect(finish()).toBeInTheDocument();
+		expect(heading).toHaveFocus();
+		expect(control('Play')).toHaveAccessibleName('Play');
+		expect(summary().textContent).toBe(text);
+	});
+
+	it('announces the run from a status region outside the inert part of the page', async () => {
+		open('&dwell=500&gap=250');
+		await click(control('Next'));
+		await click(control('Next'));
+		expect(summary().textContent).toBe(
+			'Finished stepping 2 barcodes in 0.00 seconds at 0.50 s dwell, 0.25 s gap.'
+		);
+		expect(behind()).toHaveAttribute('inert');
+		expect(behind()).not.toContainElement(summary());
+		expect(behind()).not.toContainElement(finish());
+	});
+
+	it('keeps the same stage through the finish screen and Restart', async () => {
+		open();
+		const [first] = stage('.step-stage');
+		await click(control('Next'));
+		await click(control('Next'));
+		expect(stage('.step-stage')).toHaveLength(1);
+		expect(stage('.step-stage')[0]).toBe(first);
+		await click(within(finish()).getByRole('button', { name: 'Restart' }));
+		expect(stage('.step-stage')).toHaveLength(1);
+		expect(stage('.step-stage')[0]).toBe(first);
 	});
 
 	it('carries the live dwell and gap back to setup', async () => {
@@ -528,4 +649,125 @@ it('plays a GS1-128 list link that renders invalid data only with lax=1, and car
 	expect(stage('.barcode-item--2d')).toHaveLength(0);
 	await fireEvent.click(control('Back'));
 	expect(goto.mock.calls[0][0]).toMatch(/&fmt=gs1128&lax=1$/);
+});
+
+describe('play page: keep-awake', () => {
+	const STEP_URL = PLAY_URL + '&mode=step';
+	beforeEach(() => {
+		vi.stubGlobal('requestAnimationFrame', vi.fn());
+		vi.stubGlobal('cancelAnimationFrame', vi.fn());
+	});
+	afterEach(() => {
+		vi.useRealTimers();
+		vi.unstubAllGlobals();
+	});
+
+	it('asks to keep the screen awake as soon as a Scroll run plays', async () => {
+		render(PlayPage);
+		await vi.waitFor(() => expect(wakeLock.request).toHaveBeenCalledTimes(1));
+		expect(wakeLock.request).toHaveBeenCalledWith('screen');
+	});
+
+	it('asks on Play in Step and lets go on Pause', async () => {
+		mockPage.url = new URL(STEP_URL);
+		render(PlayPage);
+		await tick();
+		expect(control('Play')).toBeInTheDocument();
+		expect(wakeLock.request).not.toHaveBeenCalled();
+		await fireEvent.click(control('Play'));
+		await vi.waitFor(() => expect(sentinels).toHaveLength(1));
+		expect(wakeLock.request).toHaveBeenCalledTimes(1);
+		await fireEvent.click(control('Pause'));
+		await vi.waitFor(() => expect(sentinels[0].release).toHaveBeenCalledTimes(1));
+	});
+
+	it('lets go when the run finishes', async () => {
+		mockPage.url = new URL(STEP_URL);
+		const { unmount } = render(PlayPage);
+		await fireEvent.click(control('Play'));
+		await vi.waitFor(() => expect(sentinels).toHaveLength(1));
+		expect(sentinels[0].release).not.toHaveBeenCalled();
+		await fireEvent.click(control('Next'));
+		await fireEvent.click(control('Next')); // finishes: PLAY_URL has loop off
+		expect(finish()).toBeInTheDocument();
+		await vi.waitFor(() => expect(sentinels[0].release).toHaveBeenCalledTimes(1));
+		// A Scroll run's onFinish leaves `playing` true. jsdom lays nothing out, so the column has
+		// no height and the run ends on its first frame.
+		unmount();
+		mockPage.url = new URL(PLAY_URL);
+		vi.mocked(requestAnimationFrame).mockClear();
+		render(PlayPage);
+		await vi.waitFor(() => expect(sentinels).toHaveLength(2));
+		expect(sentinels[1].release).not.toHaveBeenCalled();
+		vi.mocked(requestAnimationFrame).mock.calls[0][0](0);
+		await tick();
+		expect(finish()).toBeInTheDocument();
+		expect(control('Pause')).toBeInTheDocument(); // still playing
+		await vi.waitFor(() => expect(sentinels[1].release).toHaveBeenCalledTimes(1));
+	});
+
+	it('lets go when the page goes', async () => {
+		const { unmount } = render(PlayPage);
+		await vi.waitFor(() => expect(sentinels).toHaveLength(1));
+		expect(sentinels[0].release).not.toHaveBeenCalled();
+		unmount();
+		await vi.waitFor(() => expect(sentinels[0].release).toHaveBeenCalledTimes(1));
+	});
+
+	it('says while playing that the screen may turn off when the browser cannot keep it awake', async () => {
+		Reflect.deleteProperty(navigator, 'wakeLock');
+		mockPage.url = new URL(STEP_URL);
+		render(PlayPage);
+		expect(noteRegion().textContent).toBe('');
+		expect(noteRegion()).not.toBeVisible();
+		await fireEvent.click(control('Play'));
+		expect(noteRegion().textContent).toBe(KEEP_AWAKE_NOTE.unavailable);
+		expect(noteRegion()).toBeVisible();
+		expect(overlay()).toBeVisible();
+		await fireEvent.click(control('Pause'));
+		expect(noteRegion()).not.toBeVisible();
+		await fireEvent.click(control('Play'));
+		expect(noteRegion()).toBeVisible();
+	});
+
+	it('asks again after a refusal on a tap or a key, but not on a held key', async () => {
+		vi.useFakeTimers({ toFake: ['Date'] });
+		vi.setSystemTime(0);
+		const blocked = () => new DOMException('blocked', 'NotAllowedError');
+		wakeLock.request.mockRejectedValueOnce(blocked()).mockRejectedValueOnce(blocked());
+		render(PlayPage);
+		await vi.waitFor(() => expect(noteRegion().textContent).toBe(KEEP_AWAKE_NOTE.refused));
+		expect(noteRegion()).toBeVisible();
+		expect(wakeLock.request).toHaveBeenCalledTimes(1);
+		vi.setSystemTime(2000);
+		await fireEvent.keyDown(window, { key: 'a', repeat: true });
+		expect(wakeLock.request).toHaveBeenCalledTimes(1);
+		await fireEvent.pointerDown(window);
+		expect(wakeLock.request).toHaveBeenCalledTimes(2);
+		vi.setSystemTime(4000);
+		await fireEvent.keyDown(window, { key: 'a' });
+		expect(wakeLock.request).toHaveBeenCalledTimes(3);
+		await vi.waitFor(() => expect(noteRegion()).not.toBeVisible());
+		expect(sentinels).toHaveLength(1);
+		expect(noteRegion().textContent).toBe(KEEP_AWAKE_NOTE.refused);
+	});
+
+	it('shows the faded overlay when the browser lets go and asking again is refused', async () => {
+		// Date too: the lock is then held 3 s, and one released within 1 s of its request is refused.
+		vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
+		render(PlayPage);
+		await vi.waitFor(() => expect(sentinels).toHaveLength(1));
+		await tick(); // the grant settles
+		vi.advanceTimersByTime(3000);
+		await tick();
+		expect(overlay()).not.toBeVisible();
+		expect(noteRegion()).not.toBeVisible();
+		// Battery saver turns on: the browser releases the lock, and the controller's new ask is refused.
+		wakeLock.request.mockRejectedValueOnce(new DOMException('blocked', 'NotAllowedError'));
+		sentinels[0].dispatchEvent(new Event('release'));
+		expect(wakeLock.request).toHaveBeenCalledTimes(2);
+		await vi.waitFor(() => expect(noteRegion().textContent).toBe(KEEP_AWAKE_NOTE.refused));
+		expect(noteRegion()).toBeVisible();
+		expect(overlay()).toBeVisible();
+	});
 });

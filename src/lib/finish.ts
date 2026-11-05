@@ -28,3 +28,46 @@ export function formatStepFinishMessage(summary: StepSummary): string {
 	}
 	return message;
 }
+
+export interface Stat {
+	title: string;
+	value: string;
+	desc?: string;
+}
+
+export type FinishedRun =
+	{ mode: 'scroll'; count: number; seconds: number } | { mode: 'step'; summary: StepSummary };
+
+/** The finish screen's stats: `result` is tier 1, `conditions` tier 2 (empty for Scroll). */
+export function finishStats(run: FinishedRun): { result: Stat[]; conditions: Stat[] } {
+	if (run.mode === 'scroll') {
+		return {
+			result: [
+				{ title: 'Barcodes', value: String(run.count) },
+				{ title: 'Playback time', value: `${run.seconds} s` }
+			],
+			conditions: []
+		};
+	}
+	const { count, seconds, frameMs, stalls, dwell, gap } = run.summary;
+	const timed = (title: string, t: { first: number; last: number; changed: boolean }): Stat => {
+		const stat: Stat = { title, value: formatSeconds(t.last) };
+		if (t.changed) stat.desc = `changed from ${formatSeconds(t.first)}`;
+		return stat;
+	};
+	const conditions = [timed('Dwell', dwell), timed('Gap', gap)];
+	if (frameMs > 0) {
+		const refresh: Stat = { title: 'Refresh rate', value: `${Math.round(1000 / frameMs)} Hz` };
+		if (stalls > 0) {
+			refresh.desc = `${stalls} ${stalls === 1 ? 'frame' : 'frames'} took over 100 ms`;
+		}
+		conditions.push(refresh);
+	}
+	return {
+		result: [
+			{ title: 'Barcodes', value: String(count) },
+			{ title: 'Playback time', value: `${seconds.toFixed(2)} s` }
+		],
+		conditions
+	};
+}

@@ -123,7 +123,12 @@ const TEXT: Pair[] = [
 	['error on its soft alert', c('error'), softAlert(c('error'))],
 	['primary-content on primary', c('primary-content'), c('primary')],
 	['neutral-content on neutral', c('neutral-content'), c('neutral')],
-	['neutral-content on the overlay', c('neutral-content'), overlay]
+	['neutral-content on the overlay', c('neutral-content'), overlay],
+	[
+		'stat titles and descriptions (base-content at 60%) on base-100',
+		translucent(0.6, 'base-100'),
+		c('base-100')
+	]
 ];
 
 /** Controls, at least 3:1 (spec, "Theme and tokens"). */
@@ -138,7 +143,12 @@ const CONTROLS: Pair[] = [
 		c('base-content'),
 		c(bg)
 	]),
-	['overlay focus outline (neutral-content) on the overlay', c('neutral-content'), overlay]
+	['overlay focus outline (neutral-content) on the overlay', c('neutral-content'), overlay],
+	[
+		'overlay range track (neutral-content at 55%) on the overlay',
+		over(c('neutral-content'), 0.55, overlay),
+		overlay
+	]
 ];
 
 it('declares exactly the spec tokens', () => {
@@ -244,6 +254,14 @@ describe('overrides the tables rely on', () => {
 		);
 	});
 
+	it('styles.css darkens the play overlay range tracks to 55% and draws no fill', () => {
+		expect(flat(read('./styles.css'))).toContain(
+			flat(
+				'.overlay .range { --range-bg: color-mix(in oklab, var(--color-neutral-content) 55%, #0000); --range-fill: 0; }'
+			)
+		);
+	});
+
 	it('the setup page keeps a disabled Start recognizable', () => {
 		expect(flat(read('./lib/components/ActionBar.svelte'))).toContain(
 			flat(
@@ -253,7 +271,7 @@ describe('overrides the tables rely on', () => {
 	});
 
 	it('the play page recolors focus rings on the overlay', () => {
-		expect(flat(read('./routes/play/+page.svelte'))).toContain(
+		expect(flat(read('./lib/components/PlayOverlay.svelte'))).toContain(
 			flat('.overlay :global(:focus-visible) { outline-color: var(--color-neutral-content); }')
 		);
 	});

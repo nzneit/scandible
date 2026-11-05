@@ -66,6 +66,7 @@ export const DEFAULT_SETTINGS: Settings = {
 	gapMs: 0
 };
 
-// The only statement of the step ranges: the codec, the setup page and the play page read them.
+// The only statement of the ranges the pages read. The codec reads the step ranges; shareUrl.ts keeps its own speed bounds.
 export const DWELL_RANGE = { min: 50, max: 5000, step: 10 } as const;
 export const GAP_RANGE = { min: 0, max: 2000, step: 10 } as const;
+export const SPEED_RANGE = { min: 10, max: 5000, step: 5 } as const;

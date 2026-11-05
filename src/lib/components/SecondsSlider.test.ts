@@ -90,9 +90,9 @@ describe('SecondsSlider', () => {
 		],
 		['sm', ['range', 'range-sm', 'w-32'], ['input', 'input-sm', 'w-[4.5rem]', 'text-base-content']],
 		[
-			'xs',
-			['range', 'range-xs', 'w-[110px]'],
-			['input', 'input-xs', 'w-[4.5rem]', 'text-base-content']
+			'lg',
+			['range', 'range-lg', 'h-12', 'min-w-24', 'flex-1', 'md:w-40', 'md:flex-none'],
+			['input', 'input-lg', 'w-20', 'text-base-content']
 		]
 	])(
 		'size %s styles both inputs and keeps the passed classes',
@@ -109,5 +109,15 @@ describe('SecondsSlider', () => {
 		mount();
 		expect(slider()).toAppearBefore(screen.getByText('s'));
 		expect(screen.getByText('s')).toContainElement(seconds());
+	});
+
+	it.each([
+		[undefined, 'gap-1'],
+		['sm', 'gap-1'],
+		['lg', 'gap-2']
+	])('size %s sets the seconds field %s from its unit', (size, gap) => {
+		mount({ size });
+		// fallback -- visual state: the spacing class, which jsdom does not render
+		expect(screen.getByText('s')).toHaveClass('seconds', gap);
 	});
 });

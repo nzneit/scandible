@@ -1,11 +1,12 @@
 <script lang="ts">
-	import { DWELL_RANGE, GAP_RANGE, type PlaybackMode } from '$lib/types';
+	import { DWELL_RANGE, GAP_RANGE, SPEED_RANGE, type PlaybackMode } from '$lib/types';
 	import type { Setup } from '$lib/setup.svelte';
 	import Section from './Section.svelte';
 	import Segmented from './Segmented.svelte';
 	import ValueSlider from './ValueSlider.svelte';
 	import Field from './Field.svelte';
 	import Note from './Note.svelte';
+	import { speedText, speedValuetext } from '$lib/speed';
 	import SecondsSlider from './SecondsSlider.svelte';
 
 	interface SettingsPaneProps {
@@ -70,11 +71,11 @@
 			<ValueSlider
 				label="Speed"
 				bind:value={setup.speedPxPerSec}
-				min={10}
-				max={5000}
-				step={5}
-				text={(v) => `${v} px/s`}
-				valuetext={(v) => `${v} pixels per second`}
+				min={SPEED_RANGE.min}
+				max={SPEED_RANGE.max}
+				step={SPEED_RANGE.step}
+				text={speedText}
+				valuetext={speedValuetext}
 			/>
 		{/if}
 		<Field label="Loop">
