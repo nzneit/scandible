@@ -484,12 +484,11 @@ describe('play page: step mode', () => {
 	it("returns to code 1 on Restart, and the finish screen's Restart lands paused", async () => {
 		open();
 		await click(control('Next'));
-		await click(control('Next')); // finishes: PLAY_URL has loop off
-		await click(control('Restart'));
-		expect(screen.queryByRole('region', { name: 'Run finished' })).toBeNull();
+		expect(exactText(overlay(), '2 / 2')).toBe('2 / 2');
+		await click(control('Restart')); // mid-run: once the run finishes, the overlay is inert
 		expect(exactText(overlay(), '1 / 2')).toBe('1 / 2');
 		await click(control('Next'));
-		await click(control('Next'));
+		await click(control('Next')); // finishes: PLAY_URL has loop off
 		await click(within(finish()).getByRole('button', { name: 'Restart' }));
 		expect(screen.queryByRole('region', { name: 'Run finished' })).toBeNull();
 		expect(exactText(overlay(), '1 / 2')).toBe('1 / 2');
