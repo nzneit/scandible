@@ -123,7 +123,12 @@ const TEXT: Pair[] = [
 	['error on its soft alert', c('error'), softAlert(c('error'))],
 	['primary-content on primary', c('primary-content'), c('primary')],
 	['neutral-content on neutral', c('neutral-content'), c('neutral')],
-	['neutral-content on the overlay', c('neutral-content'), overlay]
+	['neutral-content on the overlay', c('neutral-content'), overlay],
+	[
+		'stat titles and descriptions (base-content at 60%) on base-100',
+		translucent(0.6, 'base-100'),
+		c('base-100')
+	]
 ];
 
 /** Controls, at least 3:1 (spec, "Theme and tokens"). */
