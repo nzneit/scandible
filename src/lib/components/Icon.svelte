@@ -6,6 +6,9 @@
 	}
 
 	let { d, filled = false, class: className = 'size-4' }: IconProps = $props();
+	// The <svg> spread keeps the attribute order of the row editor's old icons byte for byte (plain
+	// attributes put class and fill last and fail Icon test 1); the each block is keyed by index
+	// because a path string can repeat.
 	const paths = $derived(typeof d === 'string' ? [d] : d);
 </script>
 
