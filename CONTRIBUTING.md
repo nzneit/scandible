@@ -44,8 +44,10 @@ overlay's focus ring is overridden in the play page, the disabled **Start** butt
   in classes, `var(--color-…)` in CSS. `src/colors.test.ts` fails on a raw color in a `.svelte`
   file: a hex color, a color function (`rgb()`, `hsl()`, `oklch()`, `oklab()`, `lab()`, `lch()`,
   `hwb()` or `color()`), or a Tailwind palette class such as `text-red-600`, `text-red-600/50` or
-  `bg-white`. It does not see named colors in arbitrary values, such as `bg-[red]`, so review for
-  those.
+  `bg-white`. Its palettes are those of Tailwind's theme (`node_modules/tailwindcss/theme.css`),
+  and it fails when a Tailwind upgrade changes them. It does not see a named color (`red`,
+  `white`) in CSS, in a `style` attribute or in an arbitrary value such as `bg-[red]`, nor a hex
+  color in a script string outside a class, so review for those.
 - The barcode stage, the finish screen and the share QR keep a literal white background (`#fff`)
   whatever the theme, and the engines draw literal black. The finish screen's text and buttons do
   follow the theme. Put no daisyUI or Tailwind class on `ScrollColumn`, `StepStage` or the DOM that

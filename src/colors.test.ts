@@ -31,10 +31,42 @@ const ARBITRARY_COLOR = new RegExp(
 	String.raw`\[(#[0-9a-f]{3,8}|(?:${FUNCTIONS})\([^)\]]*\))\]`,
 	'gi'
 );
+/** Tailwind's palettes, each a `--color-<name>-50` … `-950` scale in its `theme.css`; a test below
+ *  fails when this list and the installed Tailwind's differ. */
+const PALETTES = [
+	'slate',
+	'gray',
+	'zinc',
+	'neutral',
+	'stone',
+	'red',
+	'orange',
+	'amber',
+	'yellow',
+	'lime',
+	'green',
+	'emerald',
+	'teal',
+	'cyan',
+	'sky',
+	'blue',
+	'indigo',
+	'violet',
+	'purple',
+	'fuchsia',
+	'pink',
+	'rose',
+	'mauve',
+	'olive',
+	'mist',
+	'taupe'
+];
 /** A Tailwind palette class, such as `text-red-600` or `bg-white`. It has no trailing boundary, so
  *  `text-red-600/50` is caught; the lookbehind keeps it to a whole class (`hover:` is allowed). */
-const PALETTE =
-	/(?<![\w-])(?:text|bg|border(?:-[xytrbls])?|ring|ring-offset|inset-ring|outline|fill|stroke|from|via|to|accent|caret|decoration|divide|placeholder|shadow|inset-shadow|text-shadow)-(?:(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d{2,3}|black|white)/g;
+const PALETTE = new RegExp(
+	String.raw`(?<![\w-])(?:text|bg|border(?:-(?:[xytrblse]|bs|be))?|ring|ring-offset|inset-ring|outline|fill|stroke|from|via|to|accent|caret|decoration|divide|placeholder|shadow|inset-shadow|text-shadow|drop-shadow|scrollbar-thumb|scrollbar-track|mask-(?:[xytrbl]|linear|radial|conic)-(?:from|to))-(?:(?:${PALETTES.join('|')})-\d{2,3}|black|white)`,
+	'g'
+);
 
 /** The stage allowances (spec, "Stage guard"): white in the stage's own rules, nowhere else. */
 const isStageWhite = (path: string, selector: string, literal: string) =>
@@ -133,9 +165,20 @@ describe('scanColors', () => {
 			OTHER,
 			'<p class="bg-neutral/85 text-neutral-content">x</p><style>.a { color: color-mix(in oklab, var(--color-base-content) 55%, transparent); border-color: currentColor; }</style>',
 			[]
-		]
+		],
+		[OTHER, '<p class="text-taupe-500">x</p>', [OTHER + ': markup: text-taupe-500']],
+		[OTHER, '<p class="border-e-red-500">x</p>', [OTHER + ': markup: border-e-red-500']],
+		[OTHER, '<p class="drop-shadow-black/50">x</p>', [OTHER + ': markup: drop-shadow-black']]
 	])('%s with %s reports %j', (path, source, expected) => {
 		expect(violations(path, source)).toEqual(expected);
+	});
+});
+
+describe('PALETTES', () => {
+	it("lists exactly the palettes of the installed Tailwind's theme", () => {
+		const theme = readFileSync(here('../node_modules/tailwindcss/theme.css'), 'utf8');
+		const installed = [...theme.matchAll(/--color-([a-z]+)-50:/g)].map(([, name]) => name);
+		expect([...PALETTES].sort()).toEqual(installed.sort());
 	});
 });
 
