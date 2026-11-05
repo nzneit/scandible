@@ -318,8 +318,10 @@ describe('setup page', () => {
 		expect(share).toHaveAttribute('aria-expanded', 'false');
 		expect(share).not.toHaveAttribute('aria-controls');
 		expect(screen.queryByRole('region', { name: 'Share' })).toBeNull();
+		share.focus();
 		await fireEvent.click(share);
 		const region = screen.getByRole('region', { name: 'Share' });
+		expect(share).toHaveFocus();
 		expect(share).toHaveAttribute('aria-expanded', 'true');
 		expect(share).toHaveAttribute('aria-controls', region.id);
 		expect(share).toAppearBefore(region);
@@ -363,9 +365,9 @@ describe('setup page', () => {
 		await fireEvent.change(level(), { target: { value: 'H' } });
 		await fireEvent.click(screen.getByRole('checkbox', { name: 'Loop' }));
 		expect(screen.getByRole('region', { name: 'Share' })).toBeInTheDocument();
-		const close = screen.getByRole('button', { name: 'Close' });
-		close.focus();
-		await fireEvent.click(close);
+		// Safari, macOS Firefox and iOS do not focus a clicked button, so focus is on <body> here.
+		expect(document.body).toHaveFocus();
+		await fireEvent.click(screen.getByRole('button', { name: 'Close' }));
 		expect(screen.queryByRole('region', { name: 'Share' })).toBeNull();
 		expect(share).toHaveFocus();
 		await fireEvent.click(share);

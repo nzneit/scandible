@@ -26,16 +26,20 @@
 		);
 	});
 
-	// Focus returns to Share only from inside the bar (the panel is in it), never from the page.
+	// Close always returns focus to Share: Safari, macOS Firefox and iOS do not focus a clicked
+	// button, so focus may be on <body> when Close is clicked.
 	function close(): void {
-		const inside = bar?.contains(document.activeElement) ?? false;
 		open = false;
-		if (inside) shareButton?.focus();
+		shareButton?.focus();
 	}
 
-	// An Escape that something else already handled, such as closing a select's list, is left alone.
+	// Escape returns focus to Share only from inside the bar (the panel is in it), never from the
+	// page. An Escape that something else already handled, such as closing a select's list, is left
+	// alone.
 	function onkeydown(e: KeyboardEvent): void {
-		if (open && e.key === 'Escape' && !e.defaultPrevented) close();
+		if (!open || e.key !== 'Escape' || e.defaultPrevented) return;
+		if (bar?.contains(document.activeElement)) close();
+		else open = false;
 	}
 
 	function start(): void {
