@@ -55,8 +55,13 @@
 :is(.input, .textarea)::placeholder {
 	color: color-mix(in oklab, var(--color-base-content) 70%, #0000);
 }
-/* The setup page's range tracks at 3.95:1 (daisyUI draws them at currentColor 10%). The play
-   overlay's ranges are left to spec 3. */
+/* The setup page's range tracks at 3.95:1 (daisyUI draws them at currentColor 10%). */
 .setup-page .range {
 	--range-bg: color-mix(in oklab, var(--color-base-content) 55%, #0000);
+}
+/* The play overlay's range tracks at 3.18:1 against its fill over a white page (4.72:1 over black;
+   60% would give 3.47:1). Re-measure after any change to --color-neutral, the fill's alpha or this
+   mix. */
+.overlay .range {
+	--range-bg: color-mix(in oklab, var(--color-neutral-content) 55%, #0000);
 }

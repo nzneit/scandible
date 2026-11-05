@@ -138,7 +138,12 @@ const CONTROLS: Pair[] = [
 		c('base-content'),
 		c(bg)
 	]),
-	['overlay focus outline (neutral-content) on the overlay', c('neutral-content'), overlay]
+	['overlay focus outline (neutral-content) on the overlay', c('neutral-content'), overlay],
+	[
+		'overlay range track (neutral-content at 55%) on the overlay',
+		over(c('neutral-content'), 0.55, overlay),
+		overlay
+	]
 ];
 
 it('declares exactly the spec tokens', () => {
@@ -244,6 +249,14 @@ describe('overrides the tables rely on', () => {
 		);
 	});
 
+	it('styles.css darkens the play overlay range tracks to 55%', () => {
+		expect(flat(read('./styles.css'))).toContain(
+			flat(
+				'.overlay .range { --range-bg: color-mix(in oklab, var(--color-neutral-content) 55%, #0000); }'
+			)
+		);
+	});
+
 	it('the setup page keeps a disabled Start recognizable', () => {
 		expect(flat(read('./lib/components/ActionBar.svelte'))).toContain(
 			flat(
@@ -253,7 +266,7 @@ describe('overrides the tables rely on', () => {
 	});
 
 	it('the play page recolors focus rings on the overlay', () => {
-		expect(flat(read('./routes/play/+page.svelte'))).toContain(
+		expect(flat(read('./lib/components/PlayOverlay.svelte'))).toContain(
 			flat('.overlay :global(:focus-visible) { outline-color: var(--color-neutral-content); }')
 		);
 	});
