@@ -30,7 +30,7 @@
 
 <main class="setup-page mx-auto flex max-w-[1200px] flex-col gap-6 px-6 pt-6 max-sm:px-4">
 	<h1 class="text-2xl font-bold tracking-tight">scandible</h1>
-	<div class="grid gap-6 min-[900px]:grid-cols-[1.4fr_1fr]">
+	<div class="grid items-start gap-6 min-[900px]:grid-cols-[1.4fr_1fr]">
 		<CodesPane {setup} />
 		<SettingsPane {setup} />
 	</div>
