@@ -32,6 +32,7 @@ describe('ValueSlider', () => {
 		mount();
 		expect(screen.getByLabelText('Maximum rotation')).toBe(slider());
 		expect(screen.getByText('± 8°')).toBeInTheDocument();
+		expect(screen.getByText('± 8°')).toHaveAttribute('aria-hidden', 'true');
 	});
 
 	it('gives its range, its value and the value in words', () => {

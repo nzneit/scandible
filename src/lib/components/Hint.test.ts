@@ -18,6 +18,7 @@ describe('Hint', () => {
 		mount();
 		expect(screen.getByText('How rows work')).toBeInTheDocument();
 		expect(screen.getByRole('group')).not.toHaveAttribute('open');
+		expect(screen.getByText('▸')).toHaveAttribute('aria-hidden', 'true');
 	});
 
 	it('opens and closes when its summary is clicked', async () => {

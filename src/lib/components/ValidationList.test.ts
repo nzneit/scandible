@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/svelte';
+import { render, screen, within, fireEvent } from '@testing-library/svelte';
 import ValidationList from './ValidationList.svelte';
 import type { CodeEntry, SymbolFacts } from '$lib/types';
 import type { FormatId } from '$lib/formats';
@@ -215,17 +215,18 @@ describe('ValidationList GS1 rows', () => {
 		);
 	});
 
-	it('puts the scan and dense hints in disclosures after the list, each with its summary phrase', () => {
+	it('puts the scan and dense hints in disclosures after the list, each with its summary phrase', async () => {
 		render(ValidationList, { entries: [...parseCodeList(S, 'gs1128'), qrDense] });
 		const results = screen.getByRole('list', { name: 'Validation results' });
 		const scan = screen.getByText('What the arrow and GS mark mean');
 		const dense = screen.getByText("If dense codes don't scan");
-		const follows = (a: Node, b: Node) =>
-			a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING;
-		expect(follows(results, scan)).toBeTruthy();
-		expect(follows(scan, dense)).toBeTruthy();
+		expect(results).toAppearBefore(scan);
+		expect(scan).toAppearBefore(dense);
 		expect(screen.getByText(SCAN_HINT).textContent).toBe(SCAN_HINT);
 		expect(screen.getByText(DENSE_HINT).textContent).toBe(DENSE_HINT);
+		expect(screen.getByText(SCAN_HINT)).not.toBeVisible();
+		await fireEvent.click(scan);
+		expect(screen.getByText(SCAN_HINT)).toBeVisible();
 	});
 
 	it('shows no scan hint without a GS1 entry, invalid GS1 rows included', () => {
