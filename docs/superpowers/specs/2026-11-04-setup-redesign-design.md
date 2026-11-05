@@ -5,7 +5,7 @@
 section, with two mockups in the visual companion (the per-row editor's row layout, and the whole
 page at 1280 px and 390 px). Revised the same day after a four-lens review on Sonnet subagents
 (codebase fit and tests; tooling probes in a throwaway worktree; UX and accessibility; internal
-coherence), judged by the author. Awaiting the user's review of this written spec.
+coherence), judged by the author. Approved by the user on 2026-11-04 (`e1dccaf`).
 Spec 2 of the three-spec UI revamp series. The series, its decisions and spec 1's foundation are in
 `docs/superpowers/specs/2026-11-04-ui-foundation-design.md` (merged as `fde5de1`). Facts measured
 for this spec are in _Measurements_ at the end, cited as _M1_ to _M12_.
