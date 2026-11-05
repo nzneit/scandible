@@ -55,4 +55,36 @@ describe('ValueSlider', () => {
 		mount({ disabled: true });
 		expect(slider()).toBeDisabled();
 	});
+
+	it('reports a moved value through oninput, as a number', async () => {
+		const oninput = vi.fn();
+		const { set } = mount({ oninput });
+		await fireEvent.input(slider(), { target: { value: '20' } });
+		expect(oninput).toHaveBeenLastCalledWith(20);
+		expect(set).toHaveBeenLastCalledWith(20);
+	});
+
+	it('lays the overlay variant out in one 48 px row, named by its label alone', () => {
+		mount({ variant: 'overlay' });
+		expect(screen.getByLabelText('Maximum rotation')).toBe(slider());
+		expect(screen.getByText('± 8°')).toHaveAttribute('aria-hidden', 'true');
+		// fallback -- visual state: the size and width classes, which jsdom does not render
+		expect(slider()).toHaveClass(
+			'range',
+			'range-lg',
+			'h-12',
+			'min-w-24',
+			'flex-1',
+			'md:w-40',
+			'md:flex-none'
+		);
+	});
+
+	it('keeps the setup layout by default', () => {
+		mount();
+		// fallback -- visual state: the size and width classes, which jsdom does not render
+		expect(slider()).toHaveClass('range', 'range-sm', 'w-32');
+		// fallback -- visual state: the size class, which jsdom does not render
+		expect(slider()).not.toHaveClass('range-lg');
+	});
 });

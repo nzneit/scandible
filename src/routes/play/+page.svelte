@@ -193,7 +193,7 @@
 						rangeAriaLabel="Dwell"
 						rangeClass="ctl-dwell"
 						secondsClass="ctl-dwell-seconds"
-						size="xs"
+						size="lg"
 						onchange={(ms) => step?.setDwell(ms)}
 					/>
 				</div>
@@ -206,7 +206,7 @@
 						rangeAriaLabel="Gap"
 						rangeClass="ctl-gap"
 						secondsClass="ctl-gap-seconds"
-						size="xs"
+						size="lg"
 						onchange={(ms) => step?.setGap(ms)}
 					/>
 				</div>
