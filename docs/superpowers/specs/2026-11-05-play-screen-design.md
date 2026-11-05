@@ -1,13 +1,13 @@
 # Play screen for any size: overlay, readout, finish stats and keep-awake — Design
 
 **Date:** 2026-11-05
-**Status:** Draft, revised after review. Design agreed in conversation on 2026-11-05, question by
+**Status:** Approved by the owner on 2026-11-05 (text `7f4388b`). Design agreed in conversation on 2026-11-05, question by
 question and then section by section, with three mockups in the visual companion (the overlay's
 layout, the finish screen's stats, and the readout with the keep-awake note). Reviewed the same day
 by four lenses on Sonnet subagents (codebase fit and tests; tooling probes in a throwaway worktree;
 UX and accessibility; internal coherence) and revised by the author; the owner settled the three
 questions the review raised (_Decisions_ 10 to 12). _Review_ lists what changed and what was not
-taken. The owner's approval of this text is pending.
+taken.
 Spec 3 of the three-spec UI revamp series. The series, its decisions and spec 1's foundation are in
 `docs/superpowers/specs/2026-11-04-ui-foundation-design.md` (merged as `fde5de1`); spec 2 is
 `docs/superpowers/specs/2026-11-04-setup-redesign-design.md` (merged as `8a17280`). Facts measured
