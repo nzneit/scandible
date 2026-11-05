@@ -254,10 +254,10 @@ describe('overrides the tables rely on', () => {
 		);
 	});
 
-	it('styles.css darkens the play overlay range tracks to 55%', () => {
+	it('styles.css darkens the play overlay range tracks to 55% and draws no fill', () => {
 		expect(flat(read('./styles.css'))).toContain(
 			flat(
-				'.overlay .range { --range-bg: color-mix(in oklab, var(--color-neutral-content) 55%, #0000); }'
+				'.overlay .range { --range-bg: color-mix(in oklab, var(--color-neutral-content) 55%, #0000); --range-fill: 0; }'
 			)
 		);
 	});

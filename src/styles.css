@@ -62,7 +62,9 @@
 }
 /* The play overlay's range tracks at 3.18:1 against its fill over a white page (4.72:1 over black;
    60% would give 3.47:1). Re-measure after any change to --color-neutral, the fill's alpha or this
-   mix. */
+   mix. No fill: daisyUI draws it as a shadow of the thumb, which the input's 48 px height (h-12)
+   turns into a white slab, so only the track and the thumb are drawn. */
 .overlay .range {
 	--range-bg: color-mix(in oklab, var(--color-neutral-content) 55%, #0000);
+	--range-fill: 0;
 }
