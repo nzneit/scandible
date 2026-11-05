@@ -1,13 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { decodeShareUrl } from '$lib/shareUrl';
 	import { Setup } from '$lib/setup.svelte';
 	import CodesPane from '$lib/components/CodesPane.svelte';
 	import SettingsPane from '$lib/components/SettingsPane.svelte';
-	import ShareLink from '$lib/components/ShareLink.svelte';
+	import ActionBar from '$lib/components/ActionBar.svelte';
 
 	const decoded = decodeShareUrl(page.url);
 	const seed = decoded.settings.seed ?? Math.floor(Math.random() * 0x100000000) >>> 0;
@@ -21,11 +19,6 @@
 		window.addEventListener('hashchange', reload);
 		return () => window.removeEventListener('hashchange', reload);
 	});
-
-	function start(): void {
-		// eslint-disable-next-line svelte/no-navigation-without-resolve -- pathname IS resolve()-based; the rule cannot see through the fragment concatenation
-		goto(resolve('/play') + setup.shareHash);
-	}
 </script>
 
 <main class="setup-page mx-auto flex max-w-[1200px] flex-col gap-6 px-6 pt-6 max-sm:px-4">
@@ -34,24 +27,31 @@
 		<CodesPane {setup} />
 		<SettingsPane {setup} />
 	</div>
-	<ShareLink hash={setup.shareHash} />
-	<button
-		type="button"
-		class="start btn btn-primary btn-lg"
-		disabled={!setup.canStart}
-		onclick={start}>Start</button
-	>
+	<ActionBar {setup} />
 </main>
 
 <style>
-	.setup-page {
-		padding-bottom: 1.5rem;
+	/* The pinned bar's height, which the page's bottom padding and the root's scroll padding keep
+	   clear, so a control reached by Tab is never hidden behind the bar. */
+	:global(html:has(.setup-page)) {
+		--bar-height: 3.5rem;
+		scroll-padding-bottom: calc(var(--bar-height) + env(safe-area-inset-bottom));
 	}
-	/* daisyUI dims a disabled btn to 1.39:1. Start keeps its primary look at half opacity, as
-	   before, so it stays recognizable while it waits for a valid code. */
-	.start:disabled {
-		background-color: var(--color-primary);
-		color: var(--color-primary-content);
-		opacity: 0.5;
+	.setup-page {
+		padding-bottom: calc(var(--bar-height) + env(safe-area-inset-bottom) + 1.5rem);
+	}
+	@media (max-width: 639.98px) {
+		:global(html:has(.setup-page)) {
+			--bar-height: 4.5rem;
+		}
+	}
+	/* On short windows the bar is static at the end of the page: nothing to keep clear. */
+	@media (max-height: 30rem) {
+		:global(html:has(.setup-page)) {
+			scroll-padding-bottom: 0;
+		}
+		.setup-page {
+			padding-bottom: 1.5rem;
+		}
 	}
 </style>

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, fireEvent, screen, within } from '@testing-library/svelte';
+import { render, fireEvent, createEvent, screen, within } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import SetupPage from './+page.svelte';
 import { readCodesFile } from '$lib/fileInput';
@@ -109,21 +109,21 @@ describe('setup page', () => {
 		expect(slider).toBeEnabled();
 	});
 
-	it('builds a share URL into the Share link field via ShareLink', async () => {
+	it('builds a share URL into the link field of the Share panel', async () => {
 		mockPage.url = new URL('http://localhost/?codes=036000291452');
 		render(SetupPage);
-		await fireEvent.click(screen.getByRole('button', { name: 'Share link' }));
+		await fireEvent.click(screen.getByRole('button', { name: 'Share' }));
 		expect(
-			(screen.getByRole('textbox', { name: 'Share link' }) as HTMLInputElement).value
+			(screen.getByRole('textbox', { name: 'Share link address' }) as HTMLInputElement).value
 		).toContain('codes=036000291452');
 	});
 
 	it('preserves a URL-provided seed in the share URL', async () => {
 		mockPage.url = new URL('http://localhost/?codes=036000291452&skew=1&seed=424242');
 		render(SetupPage);
-		await fireEvent.click(screen.getByRole('button', { name: 'Share link' }));
+		await fireEvent.click(screen.getByRole('button', { name: 'Share' }));
 		expect(
-			(screen.getByRole('textbox', { name: 'Share link' }) as HTMLInputElement).value
+			(screen.getByRole('textbox', { name: 'Share link address' }) as HTMLInputElement).value
 		).toContain('seed=424242');
 	});
 
@@ -132,8 +132,9 @@ describe('setup page', () => {
 		try {
 			mockPage.url = new URL('http://localhost/?codes=036000291452');
 			render(SetupPage);
-			await fireEvent.click(screen.getByRole('button', { name: 'Share link' }));
-			const url = (screen.getByRole('textbox', { name: 'Share link' }) as HTMLInputElement).value;
+			await fireEvent.click(screen.getByRole('button', { name: 'Share' }));
+			const url = (screen.getByRole('textbox', { name: 'Share link address' }) as HTMLInputElement)
+				.value;
 			const expectedSeed = Math.floor(0.42 * 0x100000000) >>> 0;
 			expect(randomSpy).toHaveBeenCalled();
 			expect(url).toContain(`seed=${expectedSeed}`);
@@ -148,14 +149,16 @@ describe('setup page', () => {
 		try {
 			mockPage.url = new URL('http://localhost/?codes=036000291452');
 			const { container: first } = render(SetupPage);
-			await fireEvent.click(within(first).getByRole('button', { name: 'Share link' }));
-			const url1 = (within(first).getByRole('textbox', { name: 'Share link' }) as HTMLInputElement)
-				.value;
+			await fireEvent.click(within(first).getByRole('button', { name: 'Share' }));
+			const url1 = (
+				within(first).getByRole('textbox', { name: 'Share link address' }) as HTMLInputElement
+			).value;
 
 			const { container: second } = render(SetupPage);
-			await fireEvent.click(within(second).getByRole('button', { name: 'Share link' }));
-			const url2 = (within(second).getByRole('textbox', { name: 'Share link' }) as HTMLInputElement)
-				.value;
+			await fireEvent.click(within(second).getByRole('button', { name: 'Share' }));
+			const url2 = (
+				within(second).getByRole('textbox', { name: 'Share link address' }) as HTMLInputElement
+			).value;
 
 			expect(url1.match(/[?&]seed=(\d+)/)![1]).not.toBe(url2.match(/[?&]seed=(\d+)/)![1]);
 		} finally {
@@ -163,37 +166,41 @@ describe('setup page', () => {
 		}
 	});
 
-	it('clears a rendered QR when the code list is edited afterwards', async () => {
+	it('redraws the QR when the code list is edited while the panel is open', async () => {
 		mockPage.url = new URL('http://localhost/?codes=036000291452');
 		render(SetupPage);
-		await fireEvent.click(screen.getByRole('button', { name: 'Share link' }));
-		expect(screen.getByLabelText('QR code for the share link')).not.toBeEmptyDOMElement();
+		await fireEvent.click(screen.getByRole('button', { name: 'Share' }));
+		const qr = screen.getByLabelText('QR code for the share link');
+		const before = qr.innerHTML;
 		await fireEvent.input(screen.getByRole('textbox', { name: 'Codes' }), {
 			target: { value: '012345678905' }
 		});
+		expect(qr).toBeVisible();
+		expect(qr.innerHTML).not.toBe(before);
+	});
+
+	it('redraws the QR when a setting is changed while the panel is open', async () => {
+		mockPage.url = new URL('http://localhost/?codes=036000291452');
+		render(SetupPage);
+		await fireEvent.click(screen.getByRole('button', { name: 'Share' }));
 		const qr = screen.getByLabelText('QR code for the share link');
-		expect(qr).not.toBeVisible();
-		expect(qr).toBeEmptyDOMElement();
-	});
-
-	it('clears a rendered QR when a setting is changed afterwards', async () => {
-		mockPage.url = new URL('http://localhost/?codes=036000291452');
-		render(SetupPage);
-		await fireEvent.click(screen.getByRole('button', { name: 'Share link' }));
-		expect(screen.getByLabelText('QR code for the share link')).not.toBeEmptyDOMElement();
+		const before = qr.innerHTML;
 		await fireEvent.click(screen.getByRole('checkbox', { name: 'Loop' }));
-		expect(screen.getByLabelText('QR code for the share link')).not.toBeVisible();
+		expect(qr).toBeVisible();
+		expect(qr.innerHTML).not.toBe(before);
 	});
 
-	it('clears a rendered QR when the format is switched afterwards', async () => {
+	it('redraws the QR when the format is switched while the panel is open', async () => {
 		mockPage.url = new URL('http://localhost/?codes=036000291452');
 		render(SetupPage);
-		await fireEvent.click(screen.getByRole('button', { name: 'Share link' }));
-		expect(screen.getByLabelText('QR code for the share link')).not.toBeEmptyDOMElement();
+		await fireEvent.click(screen.getByRole('button', { name: 'Share' }));
+		const qr = screen.getByLabelText('QR code for the share link');
+		const before = qr.innerHTML;
 		await fireEvent.change(screen.getByRole('combobox', { name: 'Format' }), {
 			target: { value: 'code39' }
 		});
-		expect(screen.getByLabelText('QR code for the share link')).not.toBeVisible();
+		expect(qr).toBeVisible();
+		expect(qr.innerHTML).not.toBe(before);
 	});
 
 	it('loads codes from a file into the textarea', async () => {
@@ -287,6 +294,82 @@ describe('setup page', () => {
 		render(SetupPage);
 		await fireEvent.click(screen.getByRole('button', { name: 'Start' }));
 		expect(goto.mock.calls[0][0]).toContain('fmt=code39');
+	});
+
+	it('counts the ready and skipped codes in the bar, before Share and Start', async () => {
+		render(SetupPage);
+		const share = screen.getByRole('button', { name: 'Share' });
+		const start = screen.getByRole('button', { name: 'Start' });
+		const input = screen.getByRole('textbox', { name: 'Codes' });
+		expect(screen.getByText('0 codes ready')).toAppearBefore(share);
+		await fireEvent.input(input, { target: { value: '036000291452' } });
+		expect(screen.getByText('1 code ready')).toBeInTheDocument();
+		await fireEvent.input(input, { target: { value: '036000291452\n\nbad\n012345678905' } });
+		expect(screen.getByText('2 codes ready · 1 skipped')).toBeInTheDocument();
+		expect(start).toBeEnabled();
+		await fireEvent.input(input, { target: { value: 'bad' } });
+		expect(screen.getByText('0 codes ready · 1 skipped')).toBeInTheDocument();
+		expect(start).toBeDisabled();
+	});
+
+	it('opens the Share panel from the bar, between Share and Start, and closes it again', async () => {
+		render(SetupPage);
+		const share = screen.getByRole('button', { name: 'Share' });
+		expect(share).toHaveAttribute('aria-expanded', 'false');
+		expect(share).not.toHaveAttribute('aria-controls');
+		expect(screen.queryByRole('region', { name: 'Share' })).toBeNull();
+		await fireEvent.click(share);
+		const region = screen.getByRole('region', { name: 'Share' });
+		expect(share).toHaveAttribute('aria-expanded', 'true');
+		expect(share).toHaveAttribute('aria-controls', region.id);
+		expect(share).toAppearBefore(region);
+		expect(region).toAppearBefore(screen.getByRole('button', { name: 'Start' }));
+		await fireEvent.click(share);
+		expect(screen.queryByRole('region', { name: 'Share' })).toBeNull();
+		expect(share).toHaveAttribute('aria-expanded', 'false');
+	});
+
+	it('closes the panel on Escape from anywhere, returning focus to Share only from the panel', async () => {
+		render(SetupPage);
+		const share = screen.getByRole('button', { name: 'Share' });
+		await fireEvent.click(share);
+		screen.getByRole('button', { name: 'Copy link' }).focus();
+		await fireEvent.keyDown(document, { key: 'Escape' });
+		expect(screen.queryByRole('region', { name: 'Share' })).toBeNull();
+		expect(share).toHaveFocus();
+		await fireEvent.click(share);
+		expect(screen.getByRole('region', { name: 'Share' })).toBeInTheDocument();
+		const codes = screen.getByRole('textbox', { name: 'Codes' });
+		codes.focus();
+		await fireEvent.keyDown(codes, { key: 'Escape' });
+		expect(screen.queryByRole('region', { name: 'Share' })).toBeNull();
+		expect(codes).toHaveFocus();
+	});
+
+	it('keeps the panel open on an Escape that was already handled', async () => {
+		render(SetupPage);
+		await fireEvent.click(screen.getByRole('button', { name: 'Share' }));
+		const escape = createEvent.keyDown(document, { key: 'Escape', cancelable: true });
+		escape.preventDefault();
+		await fireEvent(document, escape);
+		expect(screen.getByRole('region', { name: 'Share' })).toBeInTheDocument();
+	});
+
+	it('closes the panel with Close, focusing Share, and keeps the QR level for the next opening', async () => {
+		render(SetupPage);
+		const share = screen.getByRole('button', { name: 'Share' });
+		const level = () => screen.getByRole('combobox', { name: 'QR error correction' });
+		await fireEvent.click(share);
+		await fireEvent.change(level(), { target: { value: 'H' } });
+		await fireEvent.click(screen.getByRole('checkbox', { name: 'Loop' }));
+		expect(screen.getByRole('region', { name: 'Share' })).toBeInTheDocument();
+		const close = screen.getByRole('button', { name: 'Close' });
+		close.focus();
+		await fireEvent.click(close);
+		expect(screen.queryByRole('region', { name: 'Share' })).toBeNull();
+		expect(share).toHaveFocus();
+		await fireEvent.click(share);
+		expect(level()).toHaveValue('H');
 	});
 
 	it('names the Codes section, its code box and its controls by their visible text', () => {
@@ -688,7 +771,9 @@ describe('setup page: per-row editor', () => {
 		Object.defineProperty(fileInput, 'files', { value: [file], configurable: true });
 		await fireEvent.change(fileInput);
 	};
-	const share = () => (ui().getByRole('textbox', { name: 'Share link' }) as HTMLInputElement).value;
+	const share = () =>
+		(ui().getByRole('textbox', { name: 'Share link address' }) as HTMLInputElement).value;
+	const openShare = () => fireEvent.click(ui().getByRole('button', { name: 'Share' }));
 	const lossy = async () => {
 		open(MIXED);
 		await editor('text');
@@ -832,6 +917,7 @@ describe('setup page: per-row editor', () => {
 
 	it("carries records in the share link and Start, storing a default level as ''", async () => {
 		open(DECK);
+		await openShare();
 		expect(share()).toContain('#r1=upc_036000291452&r2=qr-H_hello&speed=60');
 		expect(share()).not.toContain('codes=');
 		expect(await start()).toBe(
@@ -913,6 +999,7 @@ describe('setup page: per-row editor', () => {
 
 	it('switches an empty list to no rows, and a blank row changes neither Start nor the link', async () => {
 		open('http://localhost/#codes=&seed=0');
+		await openShare();
 		await editor('rows');
 		expect(
 			within(ui().getByRole('list', { name: 'Codes' })).queryAllByRole('listitem')
@@ -937,6 +1024,7 @@ describe('setup page: per-row editor', () => {
 
 	it('writes no record for a blank new row, and its record once typed', async () => {
 		open(DECK);
+		await openShare();
 		await set(ui().getByRole('combobox', { name: 'Format for new rows' }), 'qr');
 		const before = share();
 		await fireEvent.click(ui().getByRole('button', { name: 'Add code' }));
@@ -951,6 +1039,7 @@ describe('setup page: per-row editor', () => {
 
 	it('empties the deck on the last Delete, focusing Add code', async () => {
 		open(DECK);
+		await openShare();
 		await fireEvent.click(ui().getByRole('button', { name: 'Delete code 1' }));
 		await fireEvent.click(ui().getByRole('button', { name: 'Delete code 1' }));
 		await tick();
@@ -983,7 +1072,8 @@ describe('setup page: GS1 validation setting', () => {
 	const box = () => screen.getByRole('checkbox', { name: 'Render GS1 data that fails validation' });
 	const set = (el: HTMLElement, value: string) => fireEvent.change(el, { target: { value } });
 	const share = () =>
-		(screen.getByRole('textbox', { name: 'Share link' }) as HTMLInputElement).value;
+		(screen.getByRole('textbox', { name: 'Share link address' }) as HTMLInputElement).value;
+	const openShare = () => fireEvent.click(screen.getByRole('button', { name: 'Share' }));
 	const rows = () => within(screen.getByRole('list', { name: 'Codes' })).getAllByRole('listitem');
 	/** Each row's render-if-invalid box, in row order, as checked or not. */
 	const rowBoxes = () =>
@@ -1026,6 +1116,7 @@ describe('setup page: GS1 validation setting', () => {
 
 	it('prefills the box from lax=1, flags the row amber with the scan hint, and clears when the format leaves GS1', async () => {
 		open(list(BAD, '&lax=1'));
+		await openShare();
 		expect(box()).toBeChecked();
 		expect(exactText(items()[0], LENIENT)).toBe(LENIENT);
 		expect(screen.getByText(SCAN_HINT).textContent).toBe(SCAN_HINT);
@@ -1041,6 +1132,7 @@ describe('setup page: GS1 validation setting', () => {
 
 	it('ticks the box, validates leniently and writes lax=1 at the end of the link', async () => {
 		open(list(BAD));
+		await openShare();
 		expect(exactText(items()[0], INVALID)).toBe(INVALID);
 		await fireEvent.click(box());
 		expect(exactText(items()[0], LENIENT)).toBe(LENIENT);
@@ -1049,6 +1141,7 @@ describe('setup page: GS1 validation setting', () => {
 
 	it('carries the box into Per row rows and back, hiding the page box in Per row', async () => {
 		open(list(`${BAD}\n${S}`, '&lax=1'));
+		await openShare();
 		await fireEvent.click(screen.getByRole('radio', { name: 'Per row' }));
 		expect(
 			screen.queryByRole('checkbox', { name: 'Render GS1 data that fails validation' })

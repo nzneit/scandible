@@ -11,7 +11,7 @@ const violations = (path: string, source: string) =>
 		.filter((e) => !e.allowed)
 		.map((e) => e.text);
 const PLAY = 'src/routes/play/+page.svelte';
-const SHARE = 'src/lib/components/ShareLink.svelte';
+const SHARE = 'src/lib/components/SharePanel.svelte';
 const OTHER = 'src/lib/components/Other.svelte';
 
 const STYLE = /<style[^>]*>([\s\S]*?)<\/style>/g;
@@ -119,7 +119,7 @@ describe('the real components', () => {
 			.map((e) => e.text)
 			.sort();
 		expect(allowed).toEqual([
-			'src/lib/components/ShareLink.svelte: .qr-code: #fff',
+			'src/lib/components/SharePanel.svelte: .qr-code: #fff',
 			'src/routes/play/+page.svelte: .finish-screen: #fff',
 			'src/routes/play/+page.svelte: .play: #fff'
 		]);
