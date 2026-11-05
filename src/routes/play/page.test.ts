@@ -754,7 +754,8 @@ describe('play page: keep-awake', () => {
 	});
 
 	it('shows the faded overlay when the browser lets go and asking again is refused', async () => {
-		vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+		// Date too: the lock is then held 3 s, and one released within 1 s of its request is refused.
+		vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
 		render(PlayPage);
 		await vi.waitFor(() => expect(sentinels).toHaveLength(1));
 		await tick(); // the grant settles

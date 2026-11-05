@@ -12,7 +12,10 @@ export interface KeepAwake {
 	destroy(): void;
 }
 
-/** The shortest time between the start of one request and a `retry()` that asks again. */
+/**
+ * The shortest time between the start of one request and a `retry()` that asks again. A lock the
+ * browser releases sooner than this after its request, on a visible tab, counts as refused.
+ */
 const RETRY_MS = 1000;
 
 export function createKeepAwake(options: {
@@ -61,10 +64,16 @@ export function createKeepAwake(options: {
 		set(doc.visibilityState === 'visible' ? 'refused' : 'off');
 	}
 
-	/** The browser released the lock: the tab was hidden, or battery saver turned on. */
+	/**
+	 * The browser released the lock: the tab was hidden, or battery saver turned on. A release on a
+	 * visible tab within RETRY_MS of the request is a refusal, so a browser that grants and drops at
+	 * once is not asked in a loop; `retry()` or a returning tab asks later.
+	 */
 	function onRelease(event: Event): void {
 		if (event.target !== sentinel) return;
 		sentinel = null;
+		const early = Date.now() - lastAsk < RETRY_MS;
+		if (early && doc.visibilityState === 'visible') return set('refused');
 		set('off');
 		if (wanted) ask();
 	}

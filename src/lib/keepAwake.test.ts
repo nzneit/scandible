@@ -194,10 +194,25 @@ describe('createKeepAwake', () => {
 		const { keep } = make(fake.lock);
 		keep.want(true);
 		await fake.grant(0);
+		vi.setSystemTime(1000); // a lock held a second or more; a shorter one is refused (below)
 		fake.sentinels[0].drop();
 		expect(fake.request).toHaveBeenCalledTimes(2);
 		await fake.refuse(1);
 		expect(keep.state()).toBe('refused');
+	});
+
+	it('treats a lock released within a second of its request as refused, and asks again only on retry', async () => {
+		const fake = fakeLock();
+		const { keep } = make(fake.lock);
+		keep.want(true);
+		await fake.grant(0);
+		vi.setSystemTime(500);
+		fake.sentinels[0].drop();
+		expect(keep.state()).toBe('refused');
+		expect(fake.request).toHaveBeenCalledTimes(1);
+		vi.setSystemTime(1000);
+		keep.retry();
+		expect(fake.request).toHaveBeenCalledTimes(2);
 	});
 
 	it('after a refusal asks again only when the tab returns', async () => {
