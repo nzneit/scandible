@@ -26,6 +26,8 @@
 	}
 </script>
 
+<!-- In forced colors the system paints every segment alike, so there the native radios show, to
+     mark the checked option. -->
 <div role="radiogroup" aria-label={label} class="inline-flex">
 	{#each options as option, i (option.value)}
 		<label
@@ -33,7 +35,7 @@
 		>
 			<input
 				type="radio"
-				class="sr-only"
+				class="sr-only forced-colors:not-sr-only"
 				{name}
 				value={option.value}
 				checked={option.value === value}
