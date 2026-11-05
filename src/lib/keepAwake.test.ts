@@ -141,6 +141,16 @@ describe('createKeepAwake', () => {
 		expect(onState.mock.calls.flat()).not.toContain('held');
 	});
 
+	it('ignores a refusal that arrives after it stopped being wanted', async () => {
+		const fake = fakeLock();
+		const { keep, onState } = make(fake.lock);
+		keep.want(true);
+		keep.want(false);
+		await fake.refuse(0);
+		expect(keep.state()).toBe('off');
+		expect(onState.mock.calls.flat()).toEqual([]);
+	});
+
 	it('releases the lock when it is no longer wanted, and does not ask again', async () => {
 		const fake = fakeLock();
 		const { keep } = make(fake.lock);
