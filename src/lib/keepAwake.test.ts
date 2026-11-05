@@ -104,6 +104,18 @@ describe('createKeepAwake', () => {
 		expect(keep.state()).toBe('refused');
 	});
 
+	it('reports off for a refusal that arrives on a hidden tab, and asks again when it returns', async () => {
+		const fake = fakeLock();
+		const { keep, onState, doc } = make(fake.lock);
+		keep.want(true);
+		show(doc, 'hidden');
+		await fake.refuse(0);
+		expect(keep.state()).toBe('off');
+		expect(onState.mock.calls.flat()).not.toContain('refused');
+		show(doc, 'visible');
+		expect(fake.request).toHaveBeenCalledTimes(2);
+	});
+
 	it('waits for a visible tab, and asks nothing for a tab that returns unwanted', () => {
 		const fake = fakeLock();
 		const doc = fakeDoc();

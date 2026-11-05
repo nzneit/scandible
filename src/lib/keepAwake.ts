@@ -54,10 +54,11 @@ export function createKeepAwake(options: {
 		set('held');
 	}
 
+	/** A request rejected on a hidden tab is not a refusal: the tab's return asks again. */
 	function refused(): void {
 		pending = false;
 		if (destroyed || !wanted) return;
-		set('refused');
+		set(doc.visibilityState === 'visible' ? 'refused' : 'off');
 	}
 
 	/** The browser released the lock: the tab was hidden, or battery saver turned on. */
