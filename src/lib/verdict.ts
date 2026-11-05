@@ -41,7 +41,7 @@ function gs1Line(entry: CodeEntry, gs1: Gs1Data): string {
 	const head =
 		entry.lint !== undefined
 			? ` ⚠ rendered anyway · ${plainGs1Message(entry.lint)}${parentheses(entry)}`
-			: ' ✓';
+			: ' ✓ valid';
 	const count = n === 1 ? '1 character' : `${n} characters`;
 	const dense = entry.facts?.dense ? ' · dense' : '';
 	const over =
@@ -61,15 +61,15 @@ export function verdictText(entry: CodeEntry): string {
 		? entry.gs1
 			? gs1Line(entry, entry.gs1)
 			: entry.facts
-				? ` ✓ · ${entry.facts.summary} · ${entry.facts.bytes === 1 ? '1 byte' : `${entry.facts.bytes} bytes`}${entry.facts.bytes !== entry.value.length ? ' · UTF-8, no ECI' : ''}${entry.facts.dense ? ' · dense' : ''}`
+				? ` ✓ valid · ${entry.facts.summary} · ${entry.facts.bytes === 1 ? '1 byte' : `${entry.facts.bytes} bytes`}${entry.facts.bytes !== entry.value.length ? ' · UTF-8, no ECI' : ''}${entry.facts.dense ? ' · dense' : ''}`
 				: entry.encoded !== undefined && entry.encoded !== entry.value
-					? ` ✓ → ${entry.encoded}`
-					: ' ✓'
+					? ` ✓ valid → ${entry.encoded}`
+					: ' ✓ valid'
 		: entry.reason === 'too-long'
 			? levelOf(entry)
-				? ` ✗ too long for ${labelOf(entry)} (${levelOf(entry)?.label})${override(entry)}`
-				: ` ✗ too long for ${labelOf(entry)}${override(entry)}`
+				? ` ✗ invalid: too long for ${labelOf(entry)} (${levelOf(entry)?.label})${override(entry)}`
+				: ` ✗ invalid: too long for ${labelOf(entry)}${override(entry)}`
 			: entry.message !== undefined
-				? ` ✗ ${plainGs1Message(entry.message)}${parentheses(entry)}${override(entry)}`
+				? ` ✗ invalid: ${plainGs1Message(entry.message)}${parentheses(entry)}${override(entry)}`
 				: ` ✗ invalid${override(entry)}`;
 }

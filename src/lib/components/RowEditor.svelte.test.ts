@@ -120,7 +120,7 @@ describe('RowEditor', () => {
 			code.getByRole('button', { name: 'Delete code 2' }),
 			code.getByRole('combobox', { name: 'Format of code 2' }),
 			code.getByRole('combobox', { name: 'Error correction of code 2' }),
-			code.getByText('✓ · 25×25 modules · 11 bytes')
+			code.getByText('✓ valid · 25×25 modules · 11 bytes')
 		];
 		for (let i = 1; i < parts.length; i++) expect(parts[i - 1]).toAppearBefore(parts[i]);
 	});
@@ -140,9 +140,9 @@ describe('RowEditor', () => {
 
 	it('describes each payload by the verdict in its own row', () => {
 		mount();
-		expect(ui().getByRole('textbox', { name: 'Code 1' })).toHaveAccessibleDescription('✓');
+		expect(ui().getByRole('textbox', { name: 'Code 1' })).toHaveAccessibleDescription('✓ valid');
 		expect(ui().getByRole('textbox', { name: 'Code 2' })).toHaveAccessibleDescription(
-			'✓ · 25×25 modules · 11 bytes'
+			'✓ valid · 25×25 modules · 11 bytes'
 		);
 		expect(ui().getByRole('textbox', { name: 'Code 3' })).toHaveAccessibleDescription(
 			'skipped (empty)'
@@ -230,11 +230,11 @@ describe('RowEditor', () => {
 	it("shows each row's own verdict", () => {
 		mount(deck('upc_036000291452', 'qr_hello world', 'qr_', 'upc_bad', 'qr-H_' + X2000));
 		const V = [
-			' ✓',
-			' ✓ · 21×21 modules · 11 bytes',
+			' ✓ valid',
+			' ✓ valid · 21×21 modules · 11 bytes',
 			' skipped (empty)',
 			' ✗ invalid',
-			' ✗ too long for QR Code (level H)'
+			' ✗ invalid: too long for QR Code (level H)'
 		];
 		expect(rowItems().map((item, i) => exactText(item, V[i]))).toEqual(V);
 		for (const [i, verdict] of V.entries()) {
@@ -328,8 +328,8 @@ describe('RowEditor', () => {
 		mount(deck(`gs1128-lax_${BAD}`, `gs1128_${BAD}`, `gs1128_${S}`));
 		const V = [
 			' ⚠ rendered anyway · (01) GTIN: Bad checksum · 134 modules wide · 16 characters → ]C1 0109501101530004',
-			' ✗ (01) GTIN: Bad checksum',
-			' ✓ · 255 modules wide · 31 characters → ]C1 01095011015300031726123110LOT42'
+			' ✗ invalid: (01) GTIN: Bad checksum',
+			' ✓ valid · 255 modules wide · 31 characters → ]C1 01095011015300031726123110LOT42'
 		];
 		expect(rowItems().map((item, i) => exactText(item, V[i]))).toEqual(V);
 		for (const [i, verdict] of V.entries()) {
@@ -400,7 +400,7 @@ describe('RowEditor GS1 breakdown', () => {
 		expect(within(row(2)).queryByLabelText(BREAKDOWN)).toBeNull();
 		const code = within(ui().getByRole('group', { name: 'Code 1' }));
 		const verdict = code.getByText(
-			'✓ · 255 modules wide · 31 characters → ]C1 01095011015300031726123110LOT42'
+			'✓ valid · 255 modules wide · 31 characters → ]C1 01095011015300031726123110LOT42'
 		);
 		expect(within(verdict).queryByLabelText(BREAKDOWN)).toBeNull();
 		const breakdown = code.getByLabelText('Code 1 breakdown: 3 Application Identifiers');

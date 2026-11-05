@@ -45,8 +45,8 @@ describe('ValidationList', () => {
 		});
 		const [first, second] = items();
 		expect(items()).toHaveLength(2);
-		expect(exactText(first, ' ✓')).toBe(' ✓');
-		expect(first.textContent).toBe('036000291452 ✓');
+		expect(exactText(first, ' ✓ valid')).toBe(' ✓ valid');
+		expect(first.textContent).toBe('036000291452 ✓ valid');
 		expect(exactText(second, ' ✗ invalid')).toBe(' ✗ invalid');
 		expect(second.textContent).toBe('bad ✗ invalid');
 	});
@@ -71,7 +71,7 @@ describe('ValidationList', () => {
 				}
 			]
 		});
-		expect(items()[0].textContent).toBe('590123412345 ✓ → 5901234123457');
+		expect(items()[0].textContent).toBe('590123412345 ✓ valid → 5901234123457');
 	});
 
 	it('keeps entries without encoded arrow-free (undefined guard)', () => {
@@ -80,7 +80,7 @@ describe('ValidationList', () => {
 				{ raw: '036000291452', value: '036000291452', format: 'upc', options: {}, valid: true }
 			]
 		});
-		expect(items()[0].textContent).toBe('036000291452 ✓');
+		expect(items()[0].textContent).toBe('036000291452 ✓ valid');
 	});
 });
 
@@ -132,12 +132,12 @@ describe('ValidationList 2D rows', () => {
 				ok(E, 'qr', 'L', [2000, 149, 149, '149×149 modules', true])
 			])
 		).toEqual([
-			'hello world ✓ · 21×21 modules · 11 bytes',
-			'hello world ✓ · 2 columns × 8 rows · 11 bytes',
-			'héllo → 日本 ✓ · 25×25 modules · 17 bytes · UTF-8, no ECI',
-			'x ✓ · 21×21 modules · 1 byte',
-			`${X2000} ✓ · 149×149 modules · 2000 bytes · dense`,
-			`${E} ✓ · 149×149 modules · 2000 bytes · UTF-8, no ECI · dense`
+			'hello world ✓ valid · 21×21 modules · 11 bytes',
+			'hello world ✓ valid · 2 columns × 8 rows · 11 bytes',
+			'héllo → 日本 ✓ valid · 25×25 modules · 17 bytes · UTF-8, no ECI',
+			'x ✓ valid · 21×21 modules · 1 byte',
+			`${X2000} ✓ valid · 149×149 modules · 2000 bytes · dense`,
+			`${E} ✓ valid · 149×149 modules · 2000 bytes · UTF-8, no ECI · dense`
 		]);
 	});
 
@@ -158,22 +158,22 @@ describe('ValidationList 2D rows', () => {
 				invalid
 			])
 		).toEqual([
-			`${X2000} ✗ too long for QR Code (level H)`,
-			`${X5000} ✗ too long for Aztec (≥23% error correction)`,
-			`${X3000} ✗ too long for Data Matrix`,
+			`${X2000} ✗ invalid: too long for QR Code (level H)`,
+			`${X5000} ✗ invalid: too long for Aztec (≥23% error correction)`,
+			`${X3000} ✗ invalid: too long for Data Matrix`,
 			'x ✗ invalid'
 		]);
 	});
 
 	it('falls back to the unlevelled too-long row when options.ecc is unset', () => {
-		expect(rowTexts([tooLong(X2000, 'qr')])).toEqual([`${X2000} ✗ too long for QR Code`]);
+		expect(rowTexts([tooLong(X2000, 'qr')])).toEqual([`${X2000} ✗ invalid: too long for QR Code`]);
 	});
 
 	it("separates each row's raw text from its verdict with a space", () => {
 		render(ValidationList, { entries: [qrHello] });
 		expect(exactText(screen, 'hello world')).toBe('hello world');
-		expect(exactText(screen, ' ✓ · 21×21 modules · 11 bytes')).toBe(
-			' ✓ · 21×21 modules · 11 bytes'
+		expect(exactText(screen, ' ✓ valid · 21×21 modules · 11 bytes')).toBe(
+			' ✓ valid · 21×21 modules · 11 bytes'
 		);
 	});
 
@@ -200,7 +200,8 @@ describe('ValidationList GS1 rows', () => {
 
 	it('shows a lax render as rendered anyway, and the scan hint for GS1 entries', () => {
 		const c = list(`${S}\n(01)09501101530004`, true);
-		const VALID_S = ' ✓ · 255 modules wide · 31 characters → ]C1 01095011015300031726123110LOT42';
+		const VALID_S =
+			' ✓ valid · 255 modules wide · 31 characters → ]C1 01095011015300031726123110LOT42';
 		const LENIENT =
 			' ⚠ rendered anyway · (01) GTIN: Bad checksum · 134 modules wide · 16 characters → ]C1 0109501101530004';
 		expect(items(c)).toHaveLength(2);
@@ -209,9 +210,22 @@ describe('ValidationList GS1 rows', () => {
 		expect(exactText(items(c)[1], LENIENT)).toBe(LENIENT);
 		expect(within(c).getByText(SCAN_HINT).textContent).toBe(SCAN_HINT);
 		const strict = list('(01)09501101530004', false);
-		expect(exactText(items(strict)[0], ' ✗ (01) GTIN: Bad checksum')).toBe(
-			' ✗ (01) GTIN: Bad checksum'
+		expect(exactText(items(strict)[0], ' ✗ invalid: (01) GTIN: Bad checksum')).toBe(
+			' ✗ invalid: (01) GTIN: Bad checksum'
 		);
+	});
+
+	it('puts the scan and dense hints in disclosures after the list, each with its summary phrase', () => {
+		render(ValidationList, { entries: [...parseCodeList(S, 'gs1128'), qrDense] });
+		const results = screen.getByRole('list', { name: 'Validation results' });
+		const scan = screen.getByText('What the arrow and GS mark mean');
+		const dense = screen.getByText("If dense codes don't scan");
+		const follows = (a: Node, b: Node) =>
+			a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING;
+		expect(follows(results, scan)).toBeTruthy();
+		expect(follows(scan, dense)).toBeTruthy();
+		expect(screen.getByText(SCAN_HINT).textContent).toBe(SCAN_HINT);
+		expect(screen.getByText(DENSE_HINT).textContent).toBe(DENSE_HINT);
 	});
 
 	it('shows no scan hint without a GS1 entry, invalid GS1 rows included', () => {

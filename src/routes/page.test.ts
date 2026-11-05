@@ -254,7 +254,7 @@ describe('setup page', () => {
 		await fireEvent.change(screen.getByRole('combobox', { name: 'Format' }), {
 			target: { value: 'code39' }
 		});
-		expect(exactText(items()[0], ' ✓')).toBe(' ✓');
+		expect(exactText(items()[0], ' ✓ valid')).toBe(' ✓ valid');
 		expect(screen.getByRole('button', { name: 'Start' })).toBeEnabled();
 	});
 
@@ -271,14 +271,14 @@ describe('setup page', () => {
 	it('shows exact arrow rows for encoder mutations, numeric and text', async () => {
 		mockPage.url = new URL('http://localhost/?codes=590123412345&fmt=ean13');
 		render(SetupPage);
-		expect(items()[0].textContent).toBe('590123412345 ✓ → 5901234123457');
+		expect(items()[0].textContent).toBe('590123412345 ✓ valid → 5901234123457');
 		await fireEvent.change(screen.getByRole('combobox', { name: 'Format' }), {
 			target: { value: 'code39' }
 		});
 		await fireEvent.input(screen.getByRole('textbox', { name: 'Codes' }), {
 			target: { value: 'hello' }
 		});
-		expect(items()[0].textContent).toBe('hello ✓ → HELLO');
+		expect(items()[0].textContent).toBe('hello ✓ valid → HELLO');
 	});
 
 	it('shows no arrow for app-side whitespace stripping', async () => {
@@ -286,7 +286,7 @@ describe('setup page', () => {
 		await fireEvent.input(screen.getByRole('textbox', { name: 'Codes' }), {
 			target: { value: '0360 00291452' }
 		});
-		expect(items()[0].textContent).toBe('0360 00291452 ✓');
+		expect(items()[0].textContent).toBe('0360 00291452 ✓ valid');
 	});
 
 	it('carries a non-default format into the Start URL', async () => {
@@ -434,7 +434,7 @@ describe('setup page: error correction', () => {
 		render(SetupPage);
 		await setText('hello world');
 		await setFormat('qr');
-		expect(firstRow()).toBe('hello world ✓ · 21×21 modules · 11 bytes');
+		expect(firstRow()).toBe('hello world ✓ valid · 21×21 modules · 11 bytes');
 		const select = screen.getByRole('combobox', { name: 'Error correction' });
 		expect(select).toHaveValue('M');
 		expect(select).toHaveDisplayValue('level M (~15% recovery, default)');
@@ -454,12 +454,12 @@ describe('setup page: error correction', () => {
 		render(SetupPage);
 		await setText(X2000);
 		await setFormat('qr');
-		expect(firstRow()).toBe(`${X2000} ✓ · 169×169 modules · 2000 bytes · dense`);
+		expect(firstRow()).toBe(`${X2000} ✓ valid · 169×169 modules · 2000 bytes · dense`);
 		await setEcc('H');
-		expect(firstRow()).toBe(`${X2000} ✗ too long for QR Code (level H)`);
+		expect(firstRow()).toBe(`${X2000} ✗ invalid: too long for QR Code (level H)`);
 		await setEcc('M');
 		expect(screen.getByRole('combobox', { name: 'Error correction' })).toHaveValue('M');
-		expect(firstRow()).toBe(`${X2000} ✓ · 169×169 modules · 2000 bytes · dense`);
+		expect(firstRow()).toBe(`${X2000} ✓ valid · 169×169 modules · 2000 bytes · dense`);
 	});
 
 	it('resets to the new format’s default when switching from qr at H to aztec', async () => {
@@ -471,7 +471,7 @@ describe('setup page: error correction', () => {
 		const select = screen.getByRole('combobox', { name: 'Error correction' });
 		expect(select).toHaveValue('23');
 		expect(select).toHaveDisplayValue('≥23% error correction (default)');
-		expect(firstRow()).toBe('hello world ✓ · 19×19 modules · 11 bytes');
+		expect(firstRow()).toBe('hello world ✓ valid · 19×19 modules · 11 bytes');
 	});
 });
 
@@ -1058,11 +1058,11 @@ describe('setup page: GS1 validation setting', () => {
 	const GS1_LIMIT =
 		'Plain text keeps one format, one error-correction level and one render-if-invalid setting for the whole list, and one code per line.';
 	/** BAD's verdict in the validation list: strict, and with the box ticked. */
-	const INVALID = ' ✗ (01) GTIN: Bad checksum';
+	const INVALID = ' ✗ invalid: (01) GTIN: Bad checksum';
 	const LENIENT =
 		' ⚠ rendered anyway · (01) GTIN: Bad checksum · 134 modules wide · 16 characters → ]C1 0109501101530004';
 	/** The scan-data verdict of 10LOT42, a GS, then 0109501101530003. */
-	const GS_VERDICT = ' ✓ · 222 modules wide · 23 characters → ]C1 10LOT42␝0109501101530003';
+	const GS_VERDICT = ' ✓ valid · 222 modules wide · 23 characters → ]C1 10LOT42␝0109501101530003';
 	const list = (payload: string, tail = '') =>
 		`http://localhost/#codes=${encodeURIComponent(payload)}&seed=0&fmt=gs1128${tail}`;
 	const open = (url: string) => {
