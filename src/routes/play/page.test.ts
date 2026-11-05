@@ -752,4 +752,22 @@ describe('play page: keep-awake', () => {
 		expect(sentinels).toHaveLength(1);
 		expect(noteRegion().textContent).toBe(KEEP_AWAKE_NOTE.refused);
 	});
+
+	it('shows the faded overlay when the browser lets go and asking again is refused', async () => {
+		vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+		render(PlayPage);
+		await vi.waitFor(() => expect(sentinels).toHaveLength(1));
+		await tick(); // the grant settles
+		vi.advanceTimersByTime(3000);
+		await tick();
+		expect(overlay()).not.toBeVisible();
+		expect(noteRegion()).not.toBeVisible();
+		// Battery saver turns on: the browser releases the lock, and the controller's new ask is refused.
+		wakeLock.request.mockRejectedValueOnce(new DOMException('blocked', 'NotAllowedError'));
+		sentinels[0].dispatchEvent(new Event('release'));
+		expect(wakeLock.request).toHaveBeenCalledTimes(2);
+		await vi.waitFor(() => expect(noteRegion().textContent).toBe(KEEP_AWAKE_NOTE.refused));
+		expect(noteRegion()).toBeVisible();
+		expect(overlay()).toBeVisible();
+	});
 });
