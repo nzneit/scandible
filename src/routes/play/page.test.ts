@@ -3,6 +3,7 @@ import { render, fireEvent, screen, within } from '@testing-library/svelte';
 import PlayPage from './+page.svelte';
 import { encodeShareUrl } from '$lib/shareUrl';
 import { DEFAULT_SETTINGS } from '$lib/types';
+import { KEEP_AWAKE_NOTE } from '$lib/keepAwake';
 import { tick } from 'svelte';
 
 const mockPage = vi.hoisted(() => ({ url: new URL('http://localhost/play') }));
@@ -32,6 +33,33 @@ beforeEach(() => {
 	mockPage.url = new URL(PLAY_URL);
 	goto.mockReset();
 });
+
+/** A lock the fake browser grants; `release()` marks it released and fires `release`. */
+class FakeSentinel extends EventTarget {
+	released = false;
+	readonly type = 'screen';
+	onrelease = null;
+	release = vi.fn(async () => {
+		this.released = true;
+		this.dispatchEvent(new Event('release'));
+	});
+}
+let sentinels: FakeSentinel[] = [];
+const wakeLock = {
+	request: vi.fn<(type: WakeLockType) => Promise<FakeSentinel>>(async () => {
+		const sentinel = new FakeSentinel();
+		sentinels.push(sentinel);
+		return sentinel;
+	})
+};
+/** Every test plays with a browser that grants keep-awake; a test that wants none deletes it. */
+beforeEach(() => {
+	sentinels = [];
+	wakeLock.request.mockClear();
+	Object.defineProperty(navigator, 'wakeLock', { configurable: true, value: wakeLock });
+});
+afterEach(() => Reflect.deleteProperty(navigator, 'wakeLock'));
+const noteRegion = () => screen.getByRole('status', { name: 'Keep-awake status' });
 
 describe('play page', () => {
 	it('renders the scroll column and overlay controls, with no finish screen', () => {
@@ -622,4 +650,106 @@ it('plays a GS1-128 list link that renders invalid data only with lax=1, and car
 	expect(stage('.barcode-item--2d')).toHaveLength(0);
 	await fireEvent.click(control('Back'));
 	expect(goto.mock.calls[0][0]).toMatch(/&fmt=gs1128&lax=1$/);
+});
+
+describe('play page: keep-awake', () => {
+	const STEP_URL = PLAY_URL + '&mode=step';
+	beforeEach(() => {
+		vi.stubGlobal('requestAnimationFrame', vi.fn());
+		vi.stubGlobal('cancelAnimationFrame', vi.fn());
+	});
+	afterEach(() => {
+		vi.useRealTimers();
+		vi.unstubAllGlobals();
+	});
+
+	it('asks to keep the screen awake as soon as a Scroll run plays', async () => {
+		render(PlayPage);
+		await vi.waitFor(() => expect(wakeLock.request).toHaveBeenCalledTimes(1));
+		expect(wakeLock.request).toHaveBeenCalledWith('screen');
+	});
+
+	it('asks on Play in Step and lets go on Pause', async () => {
+		mockPage.url = new URL(STEP_URL);
+		render(PlayPage);
+		await tick();
+		expect(control('Play')).toBeInTheDocument();
+		expect(wakeLock.request).not.toHaveBeenCalled();
+		await fireEvent.click(control('Play'));
+		await vi.waitFor(() => expect(sentinels).toHaveLength(1));
+		expect(wakeLock.request).toHaveBeenCalledTimes(1);
+		await fireEvent.click(control('Pause'));
+		await vi.waitFor(() => expect(sentinels[0].release).toHaveBeenCalledTimes(1));
+	});
+
+	it('lets go when the run finishes', async () => {
+		mockPage.url = new URL(STEP_URL);
+		const { unmount } = render(PlayPage);
+		await fireEvent.click(control('Play'));
+		await vi.waitFor(() => expect(sentinels).toHaveLength(1));
+		expect(sentinels[0].release).not.toHaveBeenCalled();
+		await fireEvent.click(control('Next'));
+		await fireEvent.click(control('Next')); // finishes: PLAY_URL has loop off
+		expect(finish()).toBeInTheDocument();
+		await vi.waitFor(() => expect(sentinels[0].release).toHaveBeenCalledTimes(1));
+		// A Scroll run's onFinish leaves `playing` true. jsdom lays nothing out, so the column has
+		// no height and the run ends on its first frame.
+		unmount();
+		mockPage.url = new URL(PLAY_URL);
+		vi.mocked(requestAnimationFrame).mockClear();
+		render(PlayPage);
+		await vi.waitFor(() => expect(sentinels).toHaveLength(2));
+		expect(sentinels[1].release).not.toHaveBeenCalled();
+		vi.mocked(requestAnimationFrame).mock.calls[0][0](0);
+		await tick();
+		expect(finish()).toBeInTheDocument();
+		expect(control('Pause')).toBeInTheDocument(); // still playing
+		await vi.waitFor(() => expect(sentinels[1].release).toHaveBeenCalledTimes(1));
+	});
+
+	it('lets go when the page goes', async () => {
+		const { unmount } = render(PlayPage);
+		await vi.waitFor(() => expect(sentinels).toHaveLength(1));
+		expect(sentinels[0].release).not.toHaveBeenCalled();
+		unmount();
+		await vi.waitFor(() => expect(sentinels[0].release).toHaveBeenCalledTimes(1));
+	});
+
+	it('says while playing that the screen may turn off when the browser cannot keep it awake', async () => {
+		Reflect.deleteProperty(navigator, 'wakeLock');
+		mockPage.url = new URL(STEP_URL);
+		render(PlayPage);
+		expect(noteRegion().textContent).toBe('');
+		expect(noteRegion()).not.toBeVisible();
+		await fireEvent.click(control('Play'));
+		expect(noteRegion().textContent).toBe(KEEP_AWAKE_NOTE.unavailable);
+		expect(noteRegion()).toBeVisible();
+		expect(overlay()).toBeVisible();
+		await fireEvent.click(control('Pause'));
+		expect(noteRegion()).not.toBeVisible();
+		await fireEvent.click(control('Play'));
+		expect(noteRegion()).toBeVisible();
+	});
+
+	it('asks again after a refusal on a tap or a key, but not on a held key', async () => {
+		vi.useFakeTimers({ toFake: ['Date'] });
+		vi.setSystemTime(0);
+		const blocked = () => new DOMException('blocked', 'NotAllowedError');
+		wakeLock.request.mockRejectedValueOnce(blocked()).mockRejectedValueOnce(blocked());
+		render(PlayPage);
+		await vi.waitFor(() => expect(noteRegion().textContent).toBe(KEEP_AWAKE_NOTE.refused));
+		expect(noteRegion()).toBeVisible();
+		expect(wakeLock.request).toHaveBeenCalledTimes(1);
+		vi.setSystemTime(2000);
+		await fireEvent.keyDown(window, { key: 'a', repeat: true });
+		expect(wakeLock.request).toHaveBeenCalledTimes(1);
+		await fireEvent.pointerDown(window);
+		expect(wakeLock.request).toHaveBeenCalledTimes(2);
+		vi.setSystemTime(4000);
+		await fireEvent.keyDown(window, { key: 'a' });
+		expect(wakeLock.request).toHaveBeenCalledTimes(3);
+		await vi.waitFor(() => expect(noteRegion()).not.toBeVisible());
+		expect(sentinels).toHaveLength(1);
+		expect(noteRegion().textContent).toBe(KEEP_AWAKE_NOTE.refused);
+	});
 });

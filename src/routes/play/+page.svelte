@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount, untrack } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
@@ -8,6 +8,12 @@
 	import { decodeShareUrl, encodeRowsShareUrl, encodeShareUrl } from '$lib/shareUrl';
 	import { formatFinishMessage, formatStepFinishMessage, type FinishedRun } from '$lib/finish';
 	import { formatSeconds } from '$lib/seconds';
+	import {
+		createKeepAwake,
+		keepAwakeNote,
+		type KeepAwake,
+		type KeepAwakeState
+	} from '$lib/keepAwake';
 	import { DEFAULT_SETTINGS, type Settings } from '$lib/types';
 	import type { Player } from '$lib/player';
 	import type { StepSummary } from '$lib/stepper';
@@ -42,6 +48,12 @@
 	let gap = $state(settings.gapMs);
 	let position = $state({ index: 0, count });
 	let idleTimer: ReturnType<typeof setTimeout> | undefined;
+	let keepAwake: KeepAwake | undefined = $state.raw();
+	let keepAwakeState: KeepAwakeState = $state('off');
+	// Held only while a run plays (spec, Decisions 1): a Scroll run's onFinish leaves `playing`
+	// true, and `finished` covers it.
+	const wanted = $derived(playing && !finished);
+	const note = $derived(keepAwakeNote(wanted, keepAwakeState));
 
 	onMount(() => {
 		if (!hasValid) {
@@ -51,6 +63,11 @@
 			goto(resolve('/') + page.url.search + page.url.hash, { replaceState: true });
 			return;
 		}
+		keepAwake = createKeepAwake({
+			wakeLock: navigator.wakeLock,
+			doc: document,
+			onState: (s) => (keepAwakeState = s)
+		});
 		showOverlay();
 		return () => clearTimeout(idleTimer);
 	});
@@ -63,6 +80,13 @@
 		const reload = () => location.reload();
 		window.addEventListener('hashchange', reload);
 		return () => window.removeEventListener('hashchange', reload);
+	});
+
+	onDestroy(() => keepAwake?.destroy());
+	$effect(() => keepAwake?.want(wanted));
+	// The note's appearance shows the overlay.
+	$effect(() => {
+		if (note !== null) untrack(showOverlay);
 	});
 
 	function currentSettings(): Settings {
@@ -105,6 +129,16 @@
 		if (!playing || overlay?.hasKeyboardFocus()) return;
 		overlayVisible = false;
 	}
+	/** A tap or a click shows the overlay and asks again for a refused keep-awake. */
+	function onPointerDown(): void {
+		showOverlay();
+		keepAwake?.retry();
+	}
+	/** A key press asks again for a refused keep-awake; a held key does not. */
+	function onKeyDown(event: KeyboardEvent): void {
+		if (!event.repeat) keepAwake?.retry();
+		onKey(event);
+	}
 	function onKey(event: KeyboardEvent): void {
 		if (finished) return; // the finish screen shows: no key steps, toggles or shows the overlay
 		if (settings.mode !== 'step') return;
@@ -144,7 +178,7 @@
 	);
 </script>
 
-<svelte:window onpointermove={showOverlay} onpointerdown={showOverlay} onkeydown={onKey} />
+<svelte:window onpointermove={showOverlay} onpointerdown={onPointerDown} onkeydown={onKeyDown} />
 
 {#if hasValid}
 	<div class="play">
@@ -184,7 +218,7 @@
 				bind:dwell
 				bind:gap
 				bind:speed
-				note={null}
+				{note}
 				onToggle={toggle}
 				onPrev={() => step?.prev()}
 				onNext={() => step?.next()}
