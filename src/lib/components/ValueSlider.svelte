@@ -36,7 +36,8 @@
 			row: 'flex items-center gap-2',
 			label: 'flex flex-1 items-center gap-2 md:flex-none',
 			range: 'range range-lg h-12 min-w-24 flex-1 md:w-40 md:flex-none',
-			value: 'tabular-nums whitespace-nowrap'
+			// 9ch holds the widest value, "5000 px/s", so the slider does not move during a drag
+			value: 'min-w-[9ch] text-end tabular-nums whitespace-nowrap'
 		}
 	};
 </script>
