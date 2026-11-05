@@ -27,10 +27,16 @@ npm run stage-check  # compare the play stage with main in headless Firefox
 ## Styling
 
 Tailwind CSS and daisyUI style the app. `src/styles.css` holds the one theme, **Instrument**, and
-the global overrides of daisyUI's defaults. The overlay's focus ring and the disabled **Start**
-button are overridden in their own pages, and the stage's barcode size caps are in
+the global overrides of daisyUI's defaults, and also the setup page's darker range tracks. The
+overlay's focus ring is overridden in the play page, the disabled **Start** button in
+`src/lib/components/ActionBar.svelte`, and the stage's barcode size caps are in
 `src/lib/components/barcode-caps.css`.
 
+- Build setup screens from the shared units in `src/lib/components/`: `Section` (a bordered section
+  named by its heading), `Segmented` (radio buttons that look like joined buttons), `Hint` (a long
+  hint in a disclosure under its control), `ValueSlider` (a slider that shows its value), `Field`,
+  `Note`, `SecondsSlider`, `FormatSelect` and `EccSelect`. The setup page's state is one `Setup`
+  class in `src/lib/setup.svelte.ts`, which each pane takes as its `setup` prop.
 - Write Tailwind and daisyUI classes only in `.svelte` files. Tailwind scans no other files, so a
   class written in a `.ts` file is not generated unless the same word happens to appear in a
   `.svelte` file.

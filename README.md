@@ -16,7 +16,7 @@ so there is nothing to install.
 | Test 2D reads by an imager or a phone camera     | QR Code, Data Matrix, PDF417 or Aztec, at the error-correction level you choose.                                   | [Scanning 2D symbols](docs/guide.md#scanning-2d-symbols)                      |
 | Test reads of tilted or slanted codes            | **Random rotation** and **Random skew**, up to 30° each.                                                           | [Rotation and skew](docs/guide.md#rotation-and-skew)                          |
 | Test GS1 data, including a lane's rejection path | GS1 element strings or pasted scanner output. **Render GS1 data that fails validation** draws bad data on purpose. | [GS1](docs/guide.md#gs1)                                                      |
-| Give a colleague the exact same test             | **Share link**: a URL, or a QR code, that reproduces the list and every setting.                                   | [Sharing a test deck](docs/guide.md#sharing-a-test-deck)                      |
+| Give a colleague the exact same test             | **Share**: a URL, or a QR code, that reproduces the list and every setting.                                        | [Sharing a test deck](docs/guide.md#sharing-a-test-deck)                      |
 
 ## Quick start
 
