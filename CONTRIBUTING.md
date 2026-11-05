@@ -35,9 +35,11 @@ button are overridden in their own pages, and the stage's barcode size caps are 
   class written in a `.ts` file is not generated unless the same word happens to appear in a
   `.svelte` file.
 - Take every color from the theme tokens: `text-success`, `bg-base-200`, `btn-primary` and so on
-  in classes, `var(--color-…)` in CSS. `src/colors.test.ts` fails on a hex, `rgb()` or `hsl()`
-  color in a `.svelte` file. It does not see named colors or Tailwind palette classes such as
-  `text-red-600`, so review for those.
+  in classes, `var(--color-…)` in CSS. `src/colors.test.ts` fails on a raw color in a `.svelte`
+  file: a hex color, a color function (`rgb()`, `hsl()`, `oklch()`, `oklab()`, `lab()`, `lch()`,
+  `hwb()` or `color()`), or a Tailwind palette class such as `text-red-600`, `text-red-600/50` or
+  `bg-white`. It does not see named colors in arbitrary values, such as `bg-[red]`, so review for
+  those.
 - The barcode stage, the finish screen and the share QR keep a literal white background (`#fff`)
   whatever the theme, and the engines draw literal black. The finish screen's text and buttons do
   follow the theme. Put no daisyUI or Tailwind class on `ScrollColumn`, `StepStage` or the DOM that

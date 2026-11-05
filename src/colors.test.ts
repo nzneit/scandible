@@ -19,11 +19,22 @@ const SCRIPT = /<script[^>]*>([\s\S]*?)<\/script>/g;
 const HTML_COMMENT = /<!--[\s\S]*?-->/g;
 /** A CSS comment, or a string (group 1), kept whole so that a `/*` inside it starts no comment. */
 const CSS_COMMENT = /("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')|\/\*[\s\S]*?\*\//g;
-/** A color literal: hex (not an entity's `&#…` or a Svelte `{#…}` block), rgb(a) or hsl(a). */
-const COLOR =
-	/(?<![\w&{])#(?:[0-9a-f]{8}|[0-9a-f]{6}|[0-9a-f]{3,4})\b|\b(?:rgba?|hsla?)\([^)]*\)/gi;
+const FUNCTIONS = 'rgba?|hsla?|oklch|oklab|lab|lch|hwb|color';
+/** A color literal: hex (not an entity's `&#…` or a Svelte `{#…}` block), or a color function:
+ *  rgb(a), hsl(a), oklch, oklab, lab, lch, hwb or color. */
+const COLOR = new RegExp(
+	String.raw`(?<![\w&{])#(?:[0-9a-f]{8}|[0-9a-f]{6}|[0-9a-f]{3,4})\b|\b(?:${FUNCTIONS})\([^)]*\)`,
+	'gi'
+);
 /** A color in a Tailwind arbitrary value, such as `bg-[#123456]`; the color is group 1. */
-const ARBITRARY_COLOR = /\[(#[0-9a-f]{3,8}|(?:rgba?|hsla?)\([^)\]]*\))\]/gi;
+const ARBITRARY_COLOR = new RegExp(
+	String.raw`\[(#[0-9a-f]{3,8}|(?:${FUNCTIONS})\([^)\]]*\))\]`,
+	'gi'
+);
+/** A Tailwind palette class, such as `text-red-600` or `bg-white`. It has no trailing boundary, so
+ *  `text-red-600/50` is caught; the lookbehind keeps it to a whole class (`hover:` is allowed). */
+const PALETTE =
+	/(?<![\w-])(?:text|bg|border(?:-[xytrbls])?|ring|ring-offset|inset-ring|outline|fill|stroke|from|via|to|accent|caret|decoration|divide|placeholder|shadow|inset-shadow|text-shadow)-(?:(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d{2,3}|black|white)/g;
 
 /** The stage allowances (spec, "Stage guard"): white in the stage's own rules, nowhere else. */
 const isStageWhite = (path: string, selector: string, literal: string) =>
@@ -57,9 +68,11 @@ function scanColors(path: string, source: string): { text: string; allowed: bool
 	}
 	for (const [, script] of source.matchAll(SCRIPT)) {
 		for (const [, literal] of script.matchAll(ARBITRARY_COLOR)) add('script', literal);
+		for (const [literal] of script.matchAll(PALETTE)) add('script', literal);
 	}
 	const markup = source.replace(STYLE, '').replace(SCRIPT, '').replace(HTML_COMMENT, '');
 	for (const [literal] of markup.matchAll(COLOR)) add('markup', literal);
+	for (const [literal] of markup.matchAll(PALETTE)) add('markup', literal);
 	return found;
 }
 
@@ -106,6 +119,20 @@ describe('scanColors', () => {
 			PLAY,
 			'<style>.play { background: #fff; } @keyframes k { to { background: #fff } }</style>',
 			[PLAY + ': style: #fff']
+		],
+		[OTHER, '<p class="text-red-600">x</p>', [OTHER + ': markup: text-red-600']],
+		[OTHER, '<style>.x { color: oklch(50% 0.1 30) }</style>', [OTHER + ': .x: oklch(50% 0.1 30)']],
+		[
+			OTHER,
+			'<p class="hover:bg-blue-500/50 border-x-white">x</p>',
+			[OTHER + ': markup: bg-blue-500', OTHER + ': markup: border-x-white']
+		],
+		[OTHER, "<script>const tone = 'text-rose-700';</script>", [OTHER + ': script: text-rose-700']],
+		[OTHER, '<p class="text-[lab(50%_40_30)]">x</p>', [OTHER + ': markup: lab(50%_40_30)']],
+		[
+			OTHER,
+			'<p class="bg-neutral/85 text-neutral-content">x</p><style>.a { color: color-mix(in oklab, var(--color-base-content) 55%, transparent); border-color: currentColor; }</style>',
+			[]
 		]
 	])('%s with %s reports %j', (path, source, expected) => {
 		expect(violations(path, source)).toEqual(expected);
