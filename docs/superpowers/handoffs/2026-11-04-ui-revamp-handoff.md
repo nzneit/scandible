@@ -14,9 +14,12 @@ tests_ (the test rules every new test follows), and `docs/superpowers/handoffs/2
 
 **Status:** **Open** — 6 of 20 items open as of 2026-11-04 (third session). Closed: T1 to T7, T11,
 T12, Q1, Q2, F1, F2, F3. Spec 1 (T7) is merged as `fde5de1` (PR #10) and deployed; F1 and F3 as
-`86e28a5` (PR #11). Session 3 brainstorms T8 (spec 2) on branch `feat/setup-redesign`, rebased on
-`86e28a5`. Then T9 (spec 3). T10 (two human checks), Q3, F4 and F5 can run any time. SvelteKit 3
-waits until after the series (Q2). The handoff was first written right after PR #9 (the accessible test queries migration) was
+`86e28a5` (PR #11). Session 3, on branch `feat/setup-redesign` (rebased on `86e28a5`): T8's spec 2 is
+written, reviewed by four Sonnet lenses and approved (`docs/superpowers/specs/2026-11-04-setup-redesign-design.md`,
+approved text `e1dccaf`, marked approved `6b21526`); one Opus agent is writing its plan,
+`docs/superpowers/plans/2026-11-04-setup-redesign.md`. Next: verify the plan's commit, the user
+reviews it and picks the execution method. Then T9 (spec 3). T10, F4 and F5 (except c) can run any
+time; Q3 and F5 c land with spec 2. SvelteKit 3 waits until after the series (Q2). The handoff was first written right after PR #9 (the accessible test queries migration) was
 squash-merged to `main` as `384b359`, and updated after PR #10 merged.
 
 **Why this exists.** The UI revamp is a three-spec series (foundation → setup page redesign → play
@@ -488,7 +491,10 @@ gzipped`; Vite's chunk warning is 579.37 kB (accepted, F2). `npm run stage-check
   up. Run a multi-lens review before asking for approval.
 - **Acceptance:** a spec file under `docs/superpowers/specs/`, reviewed and approved by the user,
   that answers each carry-in above.
-- **Status:** ☐ open
+- **Status:** ☐ open — spec approved 2026-11-04 (session 3): `e1dccaf`, marked approved in
+  `6b21526`, on `feat/setup-redesign`; it answers every carry-in in its _Carry-ins_ table. Plan in
+  progress (1 Opus agent). Mockups: `.superpowers/brainstorm/2964599-1793836118/content/`
+  (`row-editor-layout.html`, `page-layout.html`; git-ignored, local).
 
 ### T9 — Brainstorm and spec spec 3, the play screen for any size
 
@@ -632,7 +638,8 @@ gzipped`; Vite's chunk warning is 579.37 kB (accepted, F2). `npm run stage-check
   `<style>.x { color: oklch(50% 0.1 30) }</style>` are each flagged, and the real-file test still
   passes; for (b) or (c), a Decision log row.
 - **Relates to:** T8
-- **Status:** ☐ open
+- **Status:** ☐ open — decided 2026-11-04 (session 3): option (a), widened test-first in spec 2's
+  plan; spec 2 _Styling_ holds the exact pattern and its known gap (`bg-[red]`).
 
 ### F4 — GitHub Actions: Node 20 actions and the Ubuntu 26 runner move
 
@@ -690,7 +697,8 @@ gzipped`; Vite's chunk warning is 579.37 kB (accepted, F2). `npm run stage-check
 - **Recommended resolution:** as listed per sub-point; e is one line and a rebuild.
 - **Acceptance:** per sub-point; for e, after `npm run build`, no CSS file under `dist/` contains
   `.steps` and `npm test` still passes; for c, `npm test` passes with no test change.
-- **Status:** ☐ open
+- **Status:** ☐ open — c is folded into spec 2 (its `RowEditor` section); a, b, d, e, f and g
+  remain.
 
 ---
 
@@ -735,3 +743,6 @@ _(Append one row per resolved item: ID · decision taken · file(s) patched · r
 | F1, F3      | One Sonnet agent prepares the `test:` branch in a throwaway worktree while spec 2 is brainstormed; merged before spec 2's code starts                                                                                                                  | none yet                                                                | user                                  | 2026-11-04 |
 | F1, F3 run  | 1 Sonnet agent, one send-back (F3 a missed the container helpers); controller re-ran every commit; PR #11 squash-merged as `86e28a5`                                                                                                                   | four test files                                                         | session 3, user merged                | 2026-11-04 |
 | T12         | This update committed on `feat/setup-redesign`, as T2 was on `feat/ui-foundation`                                                                                                                                                                      | this file                                                               | user                                  | 2026-11-04 |
+| T8 design   | Hints as `<details>` disclosures (A); Share as a non-modal panel (A); per-row layout A; visible verdict words (A); color guard widened (Q3 a); a shared `Setup` state class (approach 1); full-page mockup approved                                    | spec 2                                                                  | user                                  | 2026-11-04 |
+| T8 review   | Four Sonnet lenses (codebase fit, tooling probes, UX and accessibility, coherence); all findings judged by the author, five kept as is with reasons in the spec                                                                                        | spec 2 (`e1dccaf`)                                                      | session 3                             | 2026-11-04 |
+| T8 approved | Spec 2 approved ("Proceed"); one Opus agent writes the plan                                                                                                                                                                                            | spec 2 (`6b21526`)                                                      | user                                  | 2026-11-04 |
