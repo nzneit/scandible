@@ -379,7 +379,7 @@ describe('setup page', () => {
 		render(SetupPage);
 		const codes = within(screen.getByRole('region', { name: 'Codes' }));
 		expect(codes.getByRole('heading', { level: 2, name: 'Codes' })).toBeInTheDocument();
-		expect(codes.getByRole('textbox', { name: 'Codes' })).toBeInTheDocument();
+		expect(codes.getByLabelText('Codes')).toBe(codes.getByRole('textbox', { name: 'Codes' }));
 		expect(codes.getByRole('radiogroup', { name: 'Editor' })).toBeInTheDocument();
 		expect(codes.getByLabelText('Upload file')).toHaveAttribute('accept', '.txt,.csv');
 		expect(codes.getByLabelText('Format')).toBe(codes.getByRole('combobox', { name: 'Format' }));
@@ -579,6 +579,8 @@ describe('setup page: step playback', () => {
 		open();
 		await mode('Step');
 		expect(screen.queryByRole('slider', { name: 'Speed' })).toBeNull();
+		expect(screen.getByLabelText('Dwell')).toBe(dwellSlider());
+		expect(screen.getByLabelText('Gap')).toBe(gapSlider());
 		const dwell = dwellSlider();
 		expect(dwell).toHaveAttribute('min', '50');
 		expect(dwell).toHaveAttribute('max', '5000');
@@ -678,6 +680,9 @@ describe('setup page: step playback', () => {
 		expect(playbackSection).toAppearBefore(distortion);
 		const inPlayback = within(playbackSection);
 		expect(inPlayback.getByRole('radiogroup', { name: 'Playback mode' })).toBe(playback());
+		for (const name of ['Scroll', 'Step']) {
+			expect(inPlayback.getByLabelText(name)).toBe(inPlayback.getByRole('radio', { name }));
+		}
 		expect(inPlayback.getByLabelText('Speed')).toBe(speedSlider());
 		expect(inPlayback.getByLabelText('Loop')).toBe(
 			inPlayback.getByRole('checkbox', { name: 'Loop' })
@@ -823,7 +828,9 @@ describe('setup page: per-row editor', () => {
 		expect(ui().getByRole('combobox', { name: 'Error correction of code 1' })).toHaveValue('H');
 		expect(ui().getByRole('combobox', { name: 'Error correction of code 2' })).toHaveValue('H');
 		expect(ui().queryByRole('combobox', { name: 'Error correction' })).toBeNull();
-		expect(ui().getByRole('combobox', { name: 'Format for new rows' })).toBeInTheDocument();
+		expect(ui().getByLabelText('Format for new rows')).toBe(
+			ui().getByRole('combobox', { name: 'Format for new rows' })
+		);
 	});
 
 	it('switches back at once when nothing is lost', async () => {
