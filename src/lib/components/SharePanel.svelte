@@ -52,7 +52,7 @@
 	{id}
 	aria-labelledby="{uid}-heading"
 	class={[
-		'flex flex-col gap-3 rounded-box border border-base-300 bg-base-100 p-4 shadow-lg',
+		'flex flex-col gap-3 rounded-box border border-base-300 bg-base-100 p-4 shadow-lg shadow-base-content/10',
 		className
 	]}
 >
@@ -78,7 +78,8 @@
 			<button type="button" class="btn btn-sm" onclick={copy}>Copy link</button>
 		</div>
 	</div>
-	<span role="status" aria-label="Copy status">{copyStatus}</span>
+	<!-- The line is kept when empty, so "Link copied." does not make the panel grow. -->
+	<span role="status" aria-label="Copy status" class="min-h-[1lh]">{copyStatus}</span>
 	<Field label="QR error correction">
 		<select class="select w-auto select-sm" bind:value={ecc}>
 			<option value="L">L (most capacity)</option>
