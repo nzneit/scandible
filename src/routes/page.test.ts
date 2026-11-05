@@ -462,7 +462,9 @@ describe('setup page: step playback', () => {
 		mockPage.url = new URL(url);
 		render(SetupPage);
 	};
-	const playback = () => screen.getByRole('combobox', { name: 'Playback' });
+	const playback = () => screen.getByRole('radiogroup', { name: 'Playback mode' });
+	const mode = (name: 'Scroll' | 'Step') =>
+		fireEvent.click(within(playback()).getByRole('radio', { name }));
 	const speedSlider = () => screen.getByRole('slider', { name: 'Speed' });
 	const dwellSlider = () => screen.getByRole('slider', { name: 'Dwell' });
 	const gapSlider = () => screen.getByRole('slider', { name: 'Gap' });
@@ -477,21 +479,20 @@ describe('setup page: step playback', () => {
 
 	it('offers Scroll and Step after Error correction and before Speed, showing scroll', () => {
 		open('http://localhost/#codes=hello&fmt=qr');
-		const opts = within(playback())
-			.getAllByRole('option')
-			.map((o) => [(o as HTMLOptionElement).value, (o as HTMLOptionElement).text]);
-		expect(opts).toEqual([
-			['scroll', 'Scroll'],
-			['step', 'Step']
+		const radios = within(playback()).getAllByRole('radio');
+		expect(radios).toEqual([
+			screen.getByRole('radio', { name: 'Scroll' }),
+			screen.getByRole('radio', { name: 'Step' })
 		]);
-		expect(playback()).toHaveValue('scroll');
+		expect(radios.map((radio) => (radio as HTMLInputElement).value)).toEqual(['scroll', 'step']);
+		expect(screen.getByRole('radio', { name: 'Scroll' })).toBeChecked();
 		expect(screen.getByRole('combobox', { name: 'Error correction' })).toAppearBefore(playback());
 		expect(playback()).toAppearBefore(speedSlider());
 	});
 
 	it('replaces Speed with Dwell and Gap in Step, with their ranges and seconds fields', async () => {
 		open();
-		await set(playback(), 'step');
+		await mode('Step');
 		expect(screen.queryByRole('slider', { name: 'Speed' })).toBeNull();
 		const dwell = dwellSlider();
 		expect(dwell).toHaveAttribute('min', '50');
@@ -511,7 +512,7 @@ describe('setup page: step playback', () => {
 
 	it('takes typed seconds snapped and clamped, and shows the value again when unchanged', async () => {
 		open();
-		await set(playback(), 'step');
+		await mode('Step');
 		await set(dwellSeconds(), '1');
 		expect(dwellSlider()).toHaveValue('1000');
 		expect(dwellSeconds()).toHaveDisplayValue('1.00');
@@ -532,7 +533,7 @@ describe('setup page: step playback', () => {
 
 	it('shows the flashing note for a dwell under 330 ms only', async () => {
 		open();
-		await set(playback(), 'step');
+		await mode('Step');
 		await slide(dwellSlider(), '300');
 		expect(screen.getByText(FLASH_NOTE)).toBeInTheDocument();
 		await slide(dwellSlider(), '330');
@@ -542,7 +543,7 @@ describe('setup page: step playback', () => {
 	it('names identical neighbours under Gap while the gap is under 1.00 s, in Step only', async () => {
 		open('http://localhost/#codes=a%0Ab%0Ab&fmt=code128');
 		expect(screen.queryByText(DUP_HINT)).toBeNull();
-		await set(playback(), 'step');
+		await mode('Step');
 		expect(screen.getByText(DUP_HINT).textContent).toBe(
 			"Codes 2 and 3 are identical. Many scanners skip a repeat read: set a gap of 1.00 s or more, or lower the scanner's reread delay."
 		);
@@ -556,25 +557,25 @@ describe('setup page: step playback', () => {
 		expect(screen.queryByText(DUP_HINT)).toBeNull();
 		await slide(gapSlider(), '990');
 		expect(screen.getByText(DUP_HINT)).toBeInTheDocument();
-		await set(playback(), 'scroll');
+		await mode('Scroll');
 		expect(screen.queryByText(DUP_HINT)).toBeNull();
 	});
 
 	it('keeps a hidden dwell and a hidden speed across mode switches', async () => {
 		open();
-		await set(playback(), 'step');
+		await mode('Step');
 		await slide(dwellSlider(), '500');
-		await set(playback(), 'scroll');
+		await mode('Scroll');
 		await slide(speedSlider(), '120');
-		await set(playback(), 'step');
+		await mode('Step');
 		expect(dwellSlider()).toHaveValue('500');
-		await set(playback(), 'scroll');
+		await mode('Scroll');
 		expect(speedSlider()).toHaveValue('120');
 	});
 
 	it('carries mode, dwell and gap into the Start URL in order', async () => {
 		open();
-		await set(playback(), 'step');
+		await mode('Step');
 		expect(await start()).toMatch(/&fmt=upc&mode=step$/);
 		await slide(dwellSlider(), '500');
 		await slide(gapSlider(), '250');
@@ -583,9 +584,55 @@ describe('setup page: step playback', () => {
 		);
 	});
 
+	it('names the settings sections and their controls by their visible text', () => {
+		open();
+		const [codes, playbackSection, distortion] = ['Codes', 'Playback', 'Distortion'].map((name) =>
+			screen.getByRole('region', { name })
+		);
+		expect(codes).toAppearBefore(playbackSection);
+		expect(playbackSection).toAppearBefore(distortion);
+		const inPlayback = within(playbackSection);
+		expect(inPlayback.getByRole('radiogroup', { name: 'Playback mode' })).toBe(playback());
+		expect(inPlayback.getByLabelText('Speed')).toBe(speedSlider());
+		expect(inPlayback.getByLabelText('Loop')).toBe(
+			inPlayback.getByRole('checkbox', { name: 'Loop' })
+		);
+		const inDistortion = within(distortion);
+		for (const toggle of ['Random rotation', 'Random skew']) {
+			expect(inDistortion.getByLabelText(toggle)).toBe(
+				inDistortion.getByRole('checkbox', { name: toggle })
+			);
+		}
+		for (const slider of ['Maximum rotation', 'Maximum skew']) {
+			expect(inDistortion.getByLabelText(slider)).toBe(
+				inDistortion.getByRole('slider', { name: slider })
+			);
+		}
+	});
+
+	it('shows each slider value beside it, and in words to a screen reader', async () => {
+		open('http://localhost/#codes=036000291452&rot=1&rotmax=1&seed=0');
+		const rotation = () => screen.getByRole('slider', { name: 'Maximum rotation' });
+		expect(screen.getByText('60 px/s')).toBeInTheDocument();
+		expect(speedSlider()).toHaveAttribute('aria-valuetext', '60 pixels per second');
+		await slide(speedSlider(), '120');
+		expect(screen.getByText('120 px/s')).toBeInTheDocument();
+		expect(speedSlider()).toHaveAttribute('aria-valuetext', '120 pixels per second');
+		expect(screen.getByText('± 1°')).toBeInTheDocument();
+		expect(rotation()).toHaveAttribute('aria-valuetext', '1 degree');
+		await slide(rotation(), '25');
+		expect(screen.getByText('± 25°')).toBeInTheDocument();
+		expect(rotation()).toHaveAttribute('aria-valuetext', '25 degrees');
+		expect(screen.getByText('± 8°')).toBeInTheDocument();
+		expect(screen.getByRole('slider', { name: 'Maximum skew' })).toHaveAttribute(
+			'aria-valuetext',
+			'8 degrees'
+		);
+	});
+
 	it('prefills Step and the dwell from a step link', () => {
 		open('http://localhost/#codes=036000291452&mode=step&dwell=500');
-		expect(playback()).toHaveValue('step');
+		expect(screen.getByRole('radio', { name: 'Step' })).toBeChecked();
 		expect(dwellSlider()).toHaveValue('500');
 		expect(dwellSeconds()).toHaveDisplayValue('0.50');
 	});
@@ -961,10 +1008,10 @@ describe('setup page: GS1 validation setting', () => {
 			'Paste GS1 element strings or scan data — one per line'
 		);
 		expect(screen.getByRole('combobox', { name: 'Format' })).toAppearBefore(box());
-		expect(box()).toAppearBefore(screen.getByRole('combobox', { name: 'Playback' }));
+		expect(box()).toAppearBefore(screen.getByRole('radiogroup', { name: 'Playback mode' }));
 		await set(screen.getByRole('combobox', { name: 'Format' }), 'gs1qr');
 		expect(screen.getByRole('combobox', { name: 'Error correction' })).toAppearBefore(box());
-		expect(box()).toAppearBefore(screen.getByRole('combobox', { name: 'Playback' }));
+		expect(box()).toAppearBefore(screen.getByRole('radiogroup', { name: 'Playback mode' }));
 		await set(screen.getByRole('combobox', { name: 'Format' }), 'upc');
 		expect(
 			screen.queryByRole('checkbox', { name: 'Render GS1 data that fails validation' })
