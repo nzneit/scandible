@@ -438,7 +438,8 @@ gzipped`; Vite's chunk warning is 579.37 kB (accepted, F2). `npm run stage-check
 - **Acceptance:** a Decision log row for each check that names the browser, or a FAILED note with
   what was seen.
 - **Relates to:** T9
-- **Status:** ☐ open
+- **Status:** ☐ open — runs now as spec 3's H2 on the new overlay (`feat/play-screen`): a keyboard
+  pass with these two checks; closes when H2 is done.
 
 ---
 
@@ -528,7 +529,14 @@ gzipped`; Vite's chunk warning is 579.37 kB (accepted, F2). `npm run stage-check
 - **Recommended resolution:** brainstorm after spec 2, as for T8.
 - **Acceptance:** an approved spec that decides the overlay's faded state and the finish screen's
   role.
-- **Status:** ☐ open
+- **Status:** ☐ open — spec approved `01b6b7d` (text `7f4388b`) on `feat/play-screen`. Plan
+  `6ac20ed` (12 tasks); its eight readings accepted, spec amended to match (`79c3be6`).
+  Implemented 2026-11-05, subagent-driven: code `a9b1b07`..`31a861a`, branch head `a592c7c` after
+  the final review's fix wave and spec amendment; 1000 tests, svelte-check 0/0, stage-check
+  8 PASS. Fail-closed record (`verification.md`, `pr-body.md`, probe, shots) kept local in
+  `.superpowers/records/2026-11-05-play-screen/` (git-ignored); every row PASS but C8 (UNVERIFIED:
+  the faded overlay's opacity after focus cannot be measured in headless Firefox; H2 checks it)
+  and the human checks H1 to H4 (open). PR not opened.
 
 ---
 
@@ -754,3 +762,4 @@ _(Append one row per resolved item: ID · decision taken · file(s) patched · r
 | T8 approved | Spec 2 approved ("Proceed"); one Opus agent writes the plan                                                                                                                                                                                                                                                                       | spec 2 (`6b21526`)                                                      | user                                  | 2026-11-04 |
 | T8 plan     | Plan `a0c5784` accepted with its three readings (63 rem sticky threshold, the guide's quoted verdicts updated, "1 degree"); slider minimum stays 1; subagent-driven: Opus and Sonnet implementers, Sonnet task reviewers, three Opus final-review chunks, no Fable                                                                | plan (`a0c5784`)                                                        | user                                  | 2026-11-04 |
 | T8 build    | Spec 2 implemented subagent-driven (`371c1c8`..`de71258`): Opus and Sonnet implementers, Sonnet task reviewers, three Opus final-review chunks, one Opus fix wave (a long code widened the page; Close focus; forced colors; guard widened to Tailwind 4.3.4's 26 palettes, a spec erratum), Sonnet audit of the record; no Fable | spec 2 code, docs                                                       | session 3                             | 2026-11-05 |
+| T9 build    | Spec 3 implemented (`a9b1b07`..`31a861a`), 1000 tests; the record's non-PASS rows: C8 (the faded overlay's opacity after focus, unmeasurable headless) and H1 to H4; H1 to H4 open; Opus and Sonnet implementers, Sonnet task reviewers, three Opus final-review chunks, one Opus fix wave, a Sonnet re-review; 0 Fable           | spec 3 code, docs                                                       | session 3                             | 2026-11-05 |
