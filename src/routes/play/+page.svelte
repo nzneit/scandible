@@ -1,19 +1,20 @@
 <script lang="ts">
-	import { onMount, tick } from 'svelte';
+	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { parseCodeList } from '$lib/codes';
 	import { rowEntries } from '$lib/rows';
 	import { decodeShareUrl, encodeRowsShareUrl, encodeShareUrl } from '$lib/shareUrl';
-	import { formatFinishMessage, formatStepFinishMessage } from '$lib/finish';
+	import { formatFinishMessage, formatStepFinishMessage, type FinishedRun } from '$lib/finish';
 	import { formatSeconds } from '$lib/seconds';
-	import { DEFAULT_SETTINGS, DWELL_RANGE, GAP_RANGE, type Settings } from '$lib/types';
+	import { DEFAULT_SETTINGS, type Settings } from '$lib/types';
 	import type { Player } from '$lib/player';
 	import type { StepSummary } from '$lib/stepper';
 	import ScrollColumn, { type ScrollColumnHandle } from '$lib/components/ScrollColumn.svelte';
 	import StepStage, { type StepStageHandle } from '$lib/components/StepStage.svelte';
-	import SecondsSlider from '$lib/components/SecondsSlider.svelte';
+	import PlayOverlay from '$lib/components/PlayOverlay.svelte';
+	import FinishScreen from '$lib/components/FinishScreen.svelte';
 
 	const OVERLAY_IDLE_MS = 3000;
 
@@ -34,9 +35,9 @@
 	let speed = $state(settings.speedPxPerSec);
 	let finish: { count: number; seconds: number } | null = $state(null);
 	let stepFinish: StepSummary | null = $state(null);
+	const finished = $derived.by(() => finish !== null || stepFinish !== null);
 	let overlayVisible = $state(true);
-	let overlayEl: HTMLDivElement | undefined = $state();
-	let finishRestartEl: HTMLButtonElement | undefined = $state();
+	let overlay: ReturnType<typeof PlayOverlay> | undefined = $state();
 	let dwell = $state(settings.dwellMs);
 	let gap = $state(settings.gapMs);
 	let position = $state({ index: 0, count });
@@ -101,10 +102,11 @@
 	}
 	function hideOverlay(): void {
 		// The overlay stays while playback is paused or while one of its controls has keyboard focus.
-		if (!playing || overlayEl?.querySelector(':focus-visible')) return;
+		if (!playing || overlay?.hasKeyboardFocus()) return;
 		overlayVisible = false;
 	}
 	function onKey(event: KeyboardEvent): void {
+		if (finished) return; // the finish screen shows: no key steps, toggles or shows the overlay
 		if (settings.mode !== 'step') return;
 		if (event.altKey || event.ctrlKey || event.metaKey) return; // Alt+Arrow is browser Back
 		showOverlay();
@@ -133,113 +135,73 @@
 				? formatFinishMessage(finish.count, finish.seconds)
 				: null
 	);
+	const run = $derived.by((): FinishedRun | null =>
+		stepFinish
+			? { mode: 'step', summary: stepFinish }
+			: finish
+				? { mode: 'scroll', ...finish }
+				: null
+	);
 </script>
 
 <svelte:window onpointermove={showOverlay} onpointerdown={showOverlay} onkeydown={onKey} />
 
 {#if hasValid}
 	<div class="play">
-		{#if settings.mode === 'step'}
-			<StepStage
-				bind:this={step}
-				{entries}
-				{settings}
-				onFinish={(s) => {
-					stepFinish = s;
-					playing = false;
-					tick().then(() => finishRestartEl?.focus());
-				}}
-				onIndex={(index, count) => (position = { index, count })}
-			/>
-		{:else}
-			<ScrollColumn
-				bind:this={scroll}
-				{entries}
-				{settings}
-				onFinish={(s) => {
-					finish = s;
-					tick().then(() => finishRestartEl?.focus());
-				}}
-			/>
-		{/if}
-		{#if settings.mode === 'step'}
-			<p class="readout bg-base-100/85 text-base-content" aria-hidden="true">
-				{position.index + 1} / {position.count} · dwell {formatSeconds(dwell)} · gap {formatSeconds(
-					gap
-				)}{playing ? '' : ' · paused'}
-			</p>
-		{/if}
-		<div
-			class="overlay bg-neutral/85 text-neutral-content"
-			role="group"
-			aria-label="Playback controls"
-			class:hidden={!overlayVisible}
-			bind:this={overlayEl}
-			onfocusout={showOverlay}
-		>
-			<button type="button" class="ctl-playpause btn btn-sm" onclick={toggle}
-				>{playing ? 'Pause' : 'Play'}</button
-			>
+		<!-- Rendered for the page's life, so the stage never remounts; inert while the finish screen
+		     shows. A spread, because inert={finished} renders no attribute in jsdom (M11). -->
+		<div class="contents" {...finished ? { inert: true } : {}}>
 			{#if settings.mode === 'step'}
-				<button type="button" class="ctl-prev btn btn-sm" onclick={() => step?.prev()}>Prev</button>
-				<span class="ctl-counter">{position.index + 1} / {position.count}</span>
-				<button type="button" class="ctl-next btn btn-sm" onclick={() => step?.next()}>Next</button>
-				<div class="ctl-group">
-					<span>Dwell</span>
-					<SecondsSlider
-						bind:value={dwell}
-						range={DWELL_RANGE}
-						label="Dwell"
-						rangeAriaLabel="Dwell"
-						rangeClass="ctl-dwell"
-						secondsClass="ctl-dwell-seconds"
-						size="lg"
-						onchange={(ms) => step?.setDwell(ms)}
-					/>
-				</div>
-				<div class="ctl-group">
-					<span>Gap</span>
-					<SecondsSlider
-						bind:value={gap}
-						range={GAP_RANGE}
-						label="Gap"
-						rangeAriaLabel="Gap"
-						rangeClass="ctl-gap"
-						secondsClass="ctl-gap-seconds"
-						size="lg"
-						onchange={(ms) => step?.setGap(ms)}
-					/>
-				</div>
-			{:else}
-				<input
-					type="range"
-					class="ctl-speed range range-xs w-[110px]"
-					aria-label="Speed"
-					min="10"
-					max="5000"
-					step="5"
-					bind:value={speed}
-					oninput={() => scroll?.setSpeed(speed)}
+				<StepStage
+					bind:this={step}
+					{entries}
+					{settings}
+					onFinish={(s) => {
+						stepFinish = s;
+						playing = false;
+					}}
+					onIndex={(index, count) => (position = { index, count })}
 				/>
+			{:else}
+				<ScrollColumn bind:this={scroll} {entries} {settings} onFinish={(s) => (finish = s)} />
 			{/if}
-			<button type="button" class="ctl-restart btn btn-sm" onclick={restart}>Restart</button>
-			<button type="button" class="ctl-back btn btn-sm" onclick={back}>Back</button>
+			{#if settings.mode === 'step'}
+				<p
+					class="readout pointer-events-none fixed top-2 left-2 m-0 max-w-[calc(100%-1rem)] rounded bg-base-100/85 px-2.5 py-1 text-base text-base-content forced-colors:border"
+					aria-hidden="true"
+				>
+					{position.index + 1} / {position.count} · dwell {formatSeconds(dwell)} · gap {formatSeconds(
+						gap
+					)}{playing ? '' : ' · paused'}
+				</p>
+			{/if}
+			<PlayOverlay
+				bind:this={overlay}
+				mode={settings.mode}
+				visible={overlayVisible}
+				{playing}
+				{position}
+				bind:dwell
+				bind:gap
+				bind:speed
+				note={null}
+				onToggle={toggle}
+				onPrev={() => step?.prev()}
+				onNext={() => step?.next()}
+				onRestart={restart}
+				onBack={back}
+				onDwell={(ms) => step?.setDwell(ms)}
+				onGap={(ms) => step?.setGap(ms)}
+				onSpeed={(v) => scroll?.setSpeed(v)}
+				onfocusin={showOverlay}
+				onfocusout={showOverlay}
+			/>
 		</div>
 		<!-- Mounted for the page's life, so the summary is announced as a change to an existing live
-		     region: a status region inserted already holding its text is announced inconsistently. -->
-		<p class="finish-status" role="status">{finishText ?? ''}</p>
-		{#if finishText !== null}
-			<div class="finish-screen text-2xl" role="group" aria-label="Run finished">
-				<p class="finish-text mb-6">{finishText}</p>
-				<button
-					type="button"
-					class="finish-restart btn btn-primary"
-					bind:this={finishRestartEl}
-					onclick={restart}>Restart</button
-				>
-				<button type="button" class="finish-back btn" onclick={back}>Back</button>
-			</div>
-		{/if}
+		     region: a status region inserted already holding its text is announced inconsistently.
+		     Outside the inert wrapper, which would silence it. -->
+		<p class="sr-only" role="status" aria-label="Run summary">{finishText ?? ''}</p>
+		{#if run}<FinishScreen {run} onBack={back} onRestart={restart} />{/if}
 	</div>
 {/if}
 
@@ -249,65 +211,5 @@
 		inset: 0;
 		background: #fff;
 		overflow: hidden;
-	}
-	.overlay {
-		position: fixed;
-		bottom: 16px;
-		left: 50%;
-		transform: translateX(-50%);
-		display: flex;
-		gap: 12px;
-		align-items: center;
-		padding: 10px 16px;
-		border-radius: 8px;
-		transition: opacity 0.3s;
-		opacity: 1;
-		flex-wrap: wrap;
-		justify-content: center;
-		width: max-content;
-		max-width: calc(100vw - 32px);
-	}
-	.overlay.hidden {
-		opacity: 0;
-		pointer-events: none;
-	}
-	/* daisyUI's focus outline is base-content, 2.66:1 on the overlay; neutral-content is 6.38:1.
-	   The seconds fields belong to SecondsSlider, a child component, hence :global. */
-	.overlay :global(:focus-visible) {
-		outline-color: var(--color-neutral-content);
-	}
-	.ctl-group {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-	}
-	.readout {
-		position: fixed;
-		top: 8px;
-		left: 8px;
-		margin: 0;
-		padding: 2px 8px;
-		font-size: 13px;
-		line-height: 1.4;
-		border-radius: 4px;
-		pointer-events: none;
-	}
-	.finish-status {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		overflow: hidden;
-		clip: rect(0 0 0 0);
-		white-space: nowrap;
-	}
-	.finish-screen {
-		position: fixed;
-		inset: 0;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		gap: 16px;
-		background: #fff;
 	}
 </style>

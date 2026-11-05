@@ -1,7 +1,8 @@
 @import 'tailwindcss' source(none);
 @source './**/*.svelte';
-/* The play overlay fades with its own class "hidden"; Tailwind's utility of that name would hide
-   it outright. scripts/check-css.ts fails the build if that rule returns. */
+/* Tailwind's "hidden" utility stays out of the build: nothing uses it, and a stray class of that
+   name should do nothing rather than hide an element outright (use the hidden attribute).
+   scripts/check-css.ts fails the build if that rule returns. */
 @source not inline('hidden');
 @plugin 'daisyui' {
 	themes: false; /* none of daisyUI's built-in themes ship */

@@ -71,8 +71,7 @@ const PALETTE = new RegExp(
 /** The stage allowances (spec, "Stage guard"): white in the stage's own rules, nowhere else. */
 const isStageWhite = (path: string, selector: string, literal: string) =>
 	/^#(?:fff|ffffff)$/i.test(literal) &&
-	((path === PLAY && (selector === '.play' || selector === '.finish-screen')) ||
-		(path === SHARE && selector === '.qr-code'));
+	((path === PLAY && selector === '.play') || (path === SHARE && selector === '.qr-code'));
 
 /** Every color literal in one .svelte file. `text` is `<path>: <where>: <literal>`, where `where` is
  *  the rule's selector (from cssRules), `style` (outside every style rule, as in `@keyframes`),
@@ -146,7 +145,11 @@ describe('scanColors', () => {
 			"<style>@property --x { syntax: '<color>'; inherits: false; initial-value: rgb(0 0 0) }</style>",
 			[OTHER + ': style: rgb(0 0 0)']
 		],
-		[PLAY, '<style>.play { background: #fff; } .finish-screen { background: #fff; }</style>', []],
+		[
+			PLAY,
+			'<style>.play { background: #fff; } .finish-screen { background: #fff; }</style>',
+			[PLAY + ': .finish-screen: #fff']
+		],
 		[
 			PLAY,
 			'<style>.play { background: #fff; } @keyframes k { to { background: #fff } }</style>',
@@ -190,12 +193,11 @@ describe('the real components', () => {
 			.sort();
 		expect(allowed).toEqual([
 			'src/lib/components/SharePanel.svelte: .qr-code: #fff',
-			'src/routes/play/+page.svelte: .finish-screen: #fff',
 			'src/routes/play/+page.svelte: .play: #fff'
 		]);
 	});
 
-	it('finds no raw color outside the three allowed white backgrounds', () => {
+	it('finds no raw color outside the two allowed white backgrounds', () => {
 		const found = SOURCES.flatMap(([path, source]) => violations(path, source)).sort();
 		expect(found).toEqual([]);
 	});
