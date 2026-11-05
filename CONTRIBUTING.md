@@ -35,7 +35,7 @@ caps are in `src/lib/components/barcode-caps.css`.
 - Build setup screens from the shared units in `src/lib/components/`: `Section` (a bordered section
   named by its heading), `Segmented` (radio buttons that look like joined buttons), `Hint` (a long
   hint in a disclosure under its control), `ValueSlider` (a slider that shows its value), `Icon` (an
-  inline stroke icon, `size-4` unless given a size class), `Field`, `Note`, `SecondsSlider`,
+  inline stroke icon, `size-4` unless given a class), `Field`, `Note`, `SecondsSlider`,
   `FormatSelect` and `EccSelect`. The setup page's state is one `Setup` class in
   `src/lib/setup.svelte.ts`, which each pane takes as its `setup` prop.
 - Write Tailwind and daisyUI classes only in `.svelte` files. Tailwind scans no other files, so a

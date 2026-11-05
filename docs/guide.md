@@ -131,9 +131,9 @@ gap all change live during a run as well.
 **Loop** repeats the list without a break. With Loop off, the run ends on a **Run finished** screen.
 Scroll lists **Barcodes** (the number of codes) and **Playback time** (the time on the playback
 clock); Step adds **Dwell** and **Gap** (each with the value it started at, if it changed during the
-run) and **Refresh rate** (the display's refresh rate, with how many frames took over 100 ms, if
-any). **Back** returns to setup, **Restart** plays again, and a screen reader also hears the run as
-one sentence.
+run) and, when it was measured, **Refresh rate** (the display's refresh rate, with how many frames
+took over 100 ms, if any). **Back** returns to setup, **Restart** starts the run again from the
+first code (in Step, paused), and a screen reader also hears the run as one sentence.
 
 ### During a run
 
@@ -143,13 +143,15 @@ bottom of the screen, in this order:
 - **Back** to the setup page, which keeps the speed, dwell and gap you set during the run
 - **Restart**, then **Prev**, **Play** / **Pause** and **Next** (Prev and Next in Step), as icon
   buttons; point at one, or move focus to it, to see its name
-- in Step, the code number, then **Dwell** and **Gap**, each a slider with a seconds field
+- in Step, the code number on a window 768 px wide or wider (the line in the top-left corner always
+  shows it), then **Dwell** and **Gap**, each a slider with a seconds field
 - in Scroll, **Speed**, with its value in px/s
 
 The overlay hides 3 seconds after the last input while a run plays, unless a control in it has
-focus; while a run is paused it stays. Move the pointer, tap the screen or press Tab to bring it
-back; in Step, any key brings it back too. The overlay's Tab order starts at **Back**. In Scroll,
-press Tab until **Pause** has focus, then Enter or Space, to pause.
+keyboard focus (a button you clicked does not keep it up); while a run is paused it stays. Move the
+pointer, tap the screen or press Tab to bring it back; in Step, any key brings it back too. The
+overlay's Tab order starts at **Back**. In Scroll, press Tab until **Pause** has focus, then Enter
+or Space, to pause.
 
 In Step, the keyboard works too: Space plays and pauses, and ← and → step back and forward.
 
@@ -161,13 +163,14 @@ or tablet does not dim or lock in the middle of a long run. It lets go when you 
 ends and when you leave the page, so a paused device sleeps as usual. When the screen cannot be kept
 awake, the overlay says so:
 
-- _This browser can't keep the screen awake._ The browser is too old, the page was opened over plain
-  HTTP, or it is a Home Screen web app on iOS before 18.4.
+- _This browser can't keep the screen awake._ The browser is too old, or the page was opened over
+  plain HTTP.
 - _Keep-awake was blocked, perhaps by battery saver._ Battery saver is on, or the page runs inside
   another site's frame that does not allow it. A tap or a key press asks again.
 
-Either way, raise the device's screen timeout for the run. Keeping the screen lit costs battery,
-most of all during a long run with **Loop** on.
+On iOS before 18.4, a Home Screen web app may not keep the screen awake, and no note shows. In each
+case, raise the device's screen timeout for the run. Keeping the screen lit costs battery, most of
+all during a long run with **Loop** on.
 
 ## Measuring a scanner's top rate
 
