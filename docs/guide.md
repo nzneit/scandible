@@ -22,8 +22,8 @@ quick start, see the [README](../README.md).
 There are three ways to enter a list:
 
 - **Paste** it into the text box.
-- **Upload** a `.txt` or `.csv` file with the file picker under the box. The file replaces the
-  text in the box.
+- **Upload** a `.txt` or `.csv` file with **Upload file**, at the top of the **Codes** section. The
+  file replaces the text in the box.
 - **Open a link** that carries the list. See [Sharing a test deck](#sharing-a-test-deck).
 
 How the list splits into codes depends on the format:
@@ -45,12 +45,12 @@ To give each code its own format or level, or a payload of several lines, use th
 
 ## Reading the code list
 
-Under the settings, the list shows one line per code, with a verdict:
+Under the code box, the list shows one line per code, with a verdict:
 
-- **✓** means the code will play. When the encoder adds a check digit or normalizes the input, the
-  line shows the exact value the scanner will read after an arrow: `✓ → …`.
-- **✗** means the code is skipped. The reason follows, for example `✗ invalid` or
-  `✗ too long for QR Code (level H)`.
+- **✓ valid** means the code will play. When the encoder adds a check digit or normalizes the
+  input, the line shows the exact value the scanner will read after an arrow: `✓ valid → …`.
+- **✗ invalid** means the code is skipped. The reason follows when there is one, for example
+  `✗ invalid: too long for QR Code (level H)`.
 - **2D codes** show the symbol size (for example `25×25 modules`), the byte count and, when it
   applies, `dense`. Text with non-ASCII characters also shows `UTF-8, no ECI`; see
   [Scanner settings and troubleshooting](#scanner-settings-and-troubleshooting).
@@ -68,7 +68,7 @@ Only valid codes play, and every counter counts valid codes only.
 
 ## Per-row editor
 
-The **Editor** select above the code box chooses how you enter the list:
+The **Editor** switch at the top of the **Codes** section chooses how you enter the list:
 
 - **Plain text**, the default, is one text box: one format and one error-correction level for the
   whole list, and one code per line.
@@ -87,7 +87,7 @@ vCard.
 - A comma never splits a row: one row is one code.
 - Each row shows its verdict, with the same details as the Plain text list. Blank rows are skipped.
 - **Add code** appends a row in the format chosen under **Format for new rows**.
-- **Move up**, **Move down** and **Delete** reorder and remove rows.
+- The ↑ and ↓ buttons (**Move up**, **Move down**) reorder rows, and ✕ (**Delete**) removes one.
 - Uploading a file adds one row per code after the existing rows.
 
 ### Switching between Plain text and Per row
@@ -114,7 +114,7 @@ For links to a per-row list, see [Sharing a test deck](#sharing-a-test-deck).
 
 ## Playback
 
-The **Playback** select chooses how codes reach the scanner.
+The **Playback mode** switch chooses how codes reach the scanner.
 
 |              | **Scroll**                                                           | **Step**                                                                                                                           |
 | ------------ | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
@@ -248,13 +248,13 @@ Each code is checked against GS1's rules for its Application Identifiers. A code
 the reason:
 
 ```
-✗ (01) GTIN: Bad checksum
+✗ invalid: (01) GTIN: Bad checksum
 ```
 
 A valid code shows what a scanner sends:
 
 ```
-✓ · 255 modules wide · 31 characters → ]C1 01095011015300031726123110LOT42
+✓ valid · 255 modules wide · 31 characters → ]C1 01095011015300031726123110LOT42
 ```
 
 After the arrow comes the symbology identifier, which a scanner adds when set to transmit one, then
@@ -311,11 +311,12 @@ per-row editor, each GS1 row has its own **Render if invalid** box.
 
 ## Sharing a test deck
 
-**Share link** copies a URL that reproduces the exact list and settings. The page also shows the
-link as a QR code, so a phone can open it.
+**Share**, in the bar at the bottom of the window, opens the Share panel. The panel shows a URL
+that reproduces the exact list and settings, and the same link as a QR code, so a phone can open
+it. While the panel is open, the link and the QR code follow every change you make. **Copy link**
+copies the URL. Close the panel with ✕ or Escape.
 
-- **Share QR error correction** sets the QR code's level: L (most capacity), M (the default), Q or
-  H.
+- **QR error correction** sets the QR code's level: L (most capacity), M (the default), Q or H.
 - A status line says when the link makes a dense QR code, or is too long for a QR code at the
   chosen level, and why. The link itself always works.
 

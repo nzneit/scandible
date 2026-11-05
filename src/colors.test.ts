@@ -11,7 +11,7 @@ const violations = (path: string, source: string) =>
 		.filter((e) => !e.allowed)
 		.map((e) => e.text);
 const PLAY = 'src/routes/play/+page.svelte';
-const SHARE = 'src/lib/components/ShareLink.svelte';
+const SHARE = 'src/lib/components/SharePanel.svelte';
 const OTHER = 'src/lib/components/Other.svelte';
 
 const STYLE = /<style[^>]*>([\s\S]*?)<\/style>/g;
@@ -19,11 +19,54 @@ const SCRIPT = /<script[^>]*>([\s\S]*?)<\/script>/g;
 const HTML_COMMENT = /<!--[\s\S]*?-->/g;
 /** A CSS comment, or a string (group 1), kept whole so that a `/*` inside it starts no comment. */
 const CSS_COMMENT = /("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')|\/\*[\s\S]*?\*\//g;
-/** A color literal: hex (not an entity's `&#…` or a Svelte `{#…}` block), rgb(a) or hsl(a). */
-const COLOR =
-	/(?<![\w&{])#(?:[0-9a-f]{8}|[0-9a-f]{6}|[0-9a-f]{3,4})\b|\b(?:rgba?|hsla?)\([^)]*\)/gi;
+const FUNCTIONS = 'rgba?|hsla?|oklch|oklab|lab|lch|hwb|color';
+/** A color literal: hex (not an entity's `&#…` or a Svelte `{#…}` block), or a color function:
+ *  rgb(a), hsl(a), oklch, oklab, lab, lch, hwb or color. */
+const COLOR = new RegExp(
+	String.raw`(?<![\w&{])#(?:[0-9a-f]{8}|[0-9a-f]{6}|[0-9a-f]{3,4})\b|\b(?:${FUNCTIONS})\([^)]*\)`,
+	'gi'
+);
 /** A color in a Tailwind arbitrary value, such as `bg-[#123456]`; the color is group 1. */
-const ARBITRARY_COLOR = /\[(#[0-9a-f]{3,8}|(?:rgba?|hsla?)\([^)\]]*\))\]/gi;
+const ARBITRARY_COLOR = new RegExp(
+	String.raw`\[(#[0-9a-f]{3,8}|(?:${FUNCTIONS})\([^)\]]*\))\]`,
+	'gi'
+);
+/** Tailwind's palettes, each a `--color-<name>-50` … `-950` scale in its `theme.css`; a test below
+ *  fails when this list and the installed Tailwind's differ. */
+const PALETTES = [
+	'slate',
+	'gray',
+	'zinc',
+	'neutral',
+	'stone',
+	'red',
+	'orange',
+	'amber',
+	'yellow',
+	'lime',
+	'green',
+	'emerald',
+	'teal',
+	'cyan',
+	'sky',
+	'blue',
+	'indigo',
+	'violet',
+	'purple',
+	'fuchsia',
+	'pink',
+	'rose',
+	'mauve',
+	'olive',
+	'mist',
+	'taupe'
+];
+/** A Tailwind palette class, such as `text-red-600` or `bg-white`. It has no trailing boundary, so
+ *  `text-red-600/50` is caught; the lookbehind keeps it to a whole class (`hover:` is allowed). */
+const PALETTE = new RegExp(
+	String.raw`(?<![\w-])(?:text|bg|border(?:-(?:[xytrblse]|bs|be))?|ring|ring-offset|inset-ring|outline|fill|stroke|from|via|to|accent|caret|decoration|divide|placeholder|shadow|inset-shadow|text-shadow|drop-shadow|scrollbar-thumb|scrollbar-track|mask-(?:[xytrbl]|linear|radial|conic)-(?:from|to))-(?:(?:${PALETTES.join('|')})-\d{2,3}|black|white)`,
+	'g'
+);
 
 /** The stage allowances (spec, "Stage guard"): white in the stage's own rules, nowhere else. */
 const isStageWhite = (path: string, selector: string, literal: string) =>
@@ -57,9 +100,11 @@ function scanColors(path: string, source: string): { text: string; allowed: bool
 	}
 	for (const [, script] of source.matchAll(SCRIPT)) {
 		for (const [, literal] of script.matchAll(ARBITRARY_COLOR)) add('script', literal);
+		for (const [literal] of script.matchAll(PALETTE)) add('script', literal);
 	}
 	const markup = source.replace(STYLE, '').replace(SCRIPT, '').replace(HTML_COMMENT, '');
 	for (const [literal] of markup.matchAll(COLOR)) add('markup', literal);
+	for (const [literal] of markup.matchAll(PALETTE)) add('markup', literal);
 	return found;
 }
 
@@ -106,9 +151,34 @@ describe('scanColors', () => {
 			PLAY,
 			'<style>.play { background: #fff; } @keyframes k { to { background: #fff } }</style>',
 			[PLAY + ': style: #fff']
-		]
+		],
+		[OTHER, '<p class="text-red-600">x</p>', [OTHER + ': markup: text-red-600']],
+		[OTHER, '<style>.x { color: oklch(50% 0.1 30) }</style>', [OTHER + ': .x: oklch(50% 0.1 30)']],
+		[
+			OTHER,
+			'<p class="hover:bg-blue-500/50 border-x-white">x</p>',
+			[OTHER + ': markup: bg-blue-500', OTHER + ': markup: border-x-white']
+		],
+		[OTHER, "<script>const tone = 'text-rose-700';</script>", [OTHER + ': script: text-rose-700']],
+		[OTHER, '<p class="text-[lab(50%_40_30)]">x</p>', [OTHER + ': markup: lab(50%_40_30)']],
+		[
+			OTHER,
+			'<p class="bg-neutral/85 text-neutral-content">x</p><style>.a { color: color-mix(in oklab, var(--color-base-content) 55%, transparent); border-color: currentColor; }</style>',
+			[]
+		],
+		[OTHER, '<p class="text-taupe-500">x</p>', [OTHER + ': markup: text-taupe-500']],
+		[OTHER, '<p class="border-e-red-500">x</p>', [OTHER + ': markup: border-e-red-500']],
+		[OTHER, '<p class="drop-shadow-black/50">x</p>', [OTHER + ': markup: drop-shadow-black']]
 	])('%s with %s reports %j', (path, source, expected) => {
 		expect(violations(path, source)).toEqual(expected);
+	});
+});
+
+describe('PALETTES', () => {
+	it("lists exactly the palettes of the installed Tailwind's theme", () => {
+		const theme = readFileSync(here('../node_modules/tailwindcss/theme.css'), 'utf8');
+		const installed = [...theme.matchAll(/--color-([a-z]+)-50:/g)].map(([, name]) => name);
+		expect([...PALETTES].sort()).toEqual(installed.sort());
 	});
 });
 
@@ -119,7 +189,7 @@ describe('the real components', () => {
 			.map((e) => e.text)
 			.sort();
 		expect(allowed).toEqual([
-			'src/lib/components/ShareLink.svelte: .qr-code: #fff',
+			'src/lib/components/SharePanel.svelte: .qr-code: #fff',
 			'src/routes/play/+page.svelte: .finish-screen: #fff',
 			'src/routes/play/+page.svelte: .play: #fff'
 		]);

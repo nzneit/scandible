@@ -236,8 +236,16 @@ describe('overrides the tables rely on', () => {
 		);
 	});
 
+	it('styles.css darkens the setup page range tracks to 55%', () => {
+		expect(flat(read('./styles.css'))).toContain(
+			flat(
+				'.setup-page .range { --range-bg: color-mix(in oklab, var(--color-base-content) 55%, #0000); }'
+			)
+		);
+	});
+
 	it('the setup page keeps a disabled Start recognizable', () => {
-		expect(flat(read('./routes/+page.svelte'))).toContain(
+		expect(flat(read('./lib/components/ActionBar.svelte'))).toContain(
 			flat(
 				'.start:disabled { background-color: var(--color-primary); color: var(--color-primary-content); opacity: 0.5; }'
 			)

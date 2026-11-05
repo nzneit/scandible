@@ -2,7 +2,7 @@
  *  four 2D symbologies and eleven GS1 carriers rendered by bwip-js (`engine: 'bwipjs'`).
  *  Descriptors stay data-only; behaviour lives in `src/lib/engines/`. CODE39 must never
  *  define `normalize` — the encoder's own uppercasing is what the UI's
- *  `raw ✓ → encoded` row exists to surface; the GS1 descriptors are the only ones that do,
+ *  `raw ✓ valid → encoded` row exists to surface; the GS1 descriptors are the only ones that do,
  *  to strip whitespace. */
 
 export type FormatId =

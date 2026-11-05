@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { tick } from 'svelte';
 	import Gs1Breakdown from './Gs1Breakdown.svelte';
-	import Note from './Note.svelte';
+	import Hint from './Hint.svelte';
 	import FormatSelect from './FormatSelect.svelte';
 	import EccSelect from './EccSelect.svelte';
 	import { FORMAT_BY_ID, canonicalEcc, canonicalLax, isGs1, type FormatId } from '$lib/formats';
@@ -57,99 +57,126 @@
 	}
 </script>
 
+{#snippet icon(d: string)}
+	<svg
+		aria-hidden="true"
+		viewBox="0 0 24 24"
+		class="size-4"
+		fill="none"
+		stroke="currentColor"
+		stroke-width="2"
+		stroke-linecap="round"
+		stroke-linejoin="round"><path {d} /></svg
+	>
+{/snippet}
+
 <ol class="row-editor" role="list" aria-label="Codes" bind:this={listEl}>
 	{#each rows as row, i (row)}
 		{@const entry = entries[i]}
 		{@const opt = FORMAT_BY_ID.get(row.format)?.ecc}
+		{@const valid = entry?.valid === true && entry.lint === undefined}
+		{@const lenient = entry?.lint !== undefined}
+		{@const invalid = entry?.valid === false}
 		<li class="row border-b border-base-300 pb-3">
-			<div class="row-main">
-				<span class="row-number text-base-content/70">{i + 1}</span>
-				<textarea
-					class="row-payload textarea min-h-0 font-mono"
-					rows="2"
-					aria-label="Code {i + 1}"
-					aria-describedby="{uid}-verdict-{i}"
-					bind:value={row.payload}></textarea>
-			</div>
-			<div class="row-controls">
+			<div class="flex flex-col gap-2" role="group" aria-label="Code {i + 1}">
+				<div class="flex items-start gap-2">
+					<span class="row-number w-6 shrink-0 pt-1 text-end text-base-content/70">{i + 1}</span>
+					<textarea
+						class="row-payload textarea min-h-0 min-w-0 flex-1 font-mono"
+						rows="2"
+						aria-label="Code {i + 1}"
+						aria-describedby="{uid}-verdict-{i}"
+						bind:value={row.payload}></textarea>
+					<div class="flex shrink-0 gap-1">
+						<button
+							type="button"
+							class="row-up btn btn-square btn-sm"
+							aria-label="Move up, code {i + 1}"
+							title="Move up"
+							disabled={i === 0}
+							onclick={() => move(i, -1)}>{@render icon('M12 19V5M5 12l7-7 7 7')}</button
+						>
+						<button
+							type="button"
+							class="row-down btn btn-square btn-sm"
+							aria-label="Move down, code {i + 1}"
+							title="Move down"
+							disabled={i === rows.length - 1}
+							onclick={() => move(i, 1)}>{@render icon('M12 5v14M5 12l7 7 7-7')}</button
+						>
+						<button
+							type="button"
+							class="row-delete btn ms-3 btn-ghost btn-square text-error btn-sm"
+							aria-label="Delete code {i + 1}"
+							title="Delete"
+							onclick={() => remove(i)}>{@render icon('M6 6l12 12M18 6L6 18')}</button
+						>
+					</div>
+				</div>
+				<div class="flex flex-wrap items-center gap-2 ps-8">
+					<FormatSelect
+						class="row-format"
+						aria-label="Format of code {i + 1}"
+						bind:value={
+							() => row.format,
+							(next) => {
+								row.ecc = canonicalEcc(next, row.ecc);
+								row.lax = canonicalLax(next, row.lax);
+								row.format = next;
+							}
+						}
+					/>
+					{#if opt}
+						<EccSelect
+							class="row-ecc"
+							aria-label="Error correction of code {i + 1}"
+							option={opt}
+							bind:value={row.ecc}
+						/>
+					{/if}
+					{#if isGs1(FORMAT_BY_ID.get(row.format))}
+						<label class="flex items-center gap-2"
+							><input
+								type="checkbox"
+								class="checkbox checkbox-sm"
+								aria-label="Render if invalid, code {i + 1}"
+								bind:checked={row.lax}
+							/> Render if invalid</label
+						>
+					{/if}
+				</div>
 				<span
-					class="row-verdict"
-					class:valid={entry?.valid === true && entry.lint === undefined}
-					class:lenient={entry?.lint !== undefined}
-					class:invalid={entry?.valid === false}
-					class:text-success={entry?.valid === true && entry.lint === undefined}
-					class:text-warning={entry?.lint !== undefined}
-					class:text-error={entry?.valid === false}
+					class="row-verdict ps-8"
+					class:valid
+					class:lenient
+					class:invalid
+					class:text-success={valid}
+					class:text-warning={lenient}
+					class:text-error={invalid}
 					id="{uid}-verdict-{i}">{entry ? verdictText(entry) : ' skipped (empty)'}</span
 				>
-				<FormatSelect
-					class="row-format"
-					aria-label="Format of code {i + 1}"
-					bind:value={
-						() => row.format,
-						(next) => {
-							row.ecc = canonicalEcc(next, row.ecc);
-							row.lax = canonicalLax(next, row.lax);
-							row.format = next;
-						}
-					}
-				/>
-				{#if opt}
-					<EccSelect
-						class="row-ecc"
-						aria-label="Error correction of code {i + 1}"
-						option={opt}
-						bind:value={row.ecc}
-					/>
+				{#if entry?.gs1}
+					<div class="ps-8">
+						<Gs1Breakdown data={entry.gs1.data} label="Code {i + 1} breakdown" />
+					</div>
 				{/if}
-				{#if isGs1(FORMAT_BY_ID.get(row.format))}
-					<label class="row-lax"
-						><input
-							type="checkbox"
-							class="row-lax-input checkbox checkbox-sm"
-							aria-label="Render code {i + 1} if invalid"
-							bind:checked={row.lax}
-						/> Render if invalid</label
-					>
-				{/if}
-				<button
-					type="button"
-					class="row-up btn btn-sm min-h-9"
-					aria-label="Move up, code {i + 1}"
-					disabled={i === 0}
-					onclick={() => move(i, -1)}>Move up</button
-				>
-				<button
-					type="button"
-					class="row-down btn btn-sm min-h-9"
-					aria-label="Move down, code {i + 1}"
-					disabled={i === rows.length - 1}
-					onclick={() => move(i, 1)}>Move down</button
-				>
-				<button
-					type="button"
-					class="row-delete btn btn-ghost btn-sm min-h-9 text-error"
-					aria-label="Delete code {i + 1}"
-					onclick={() => remove(i)}>Delete</button
-				>
 			</div>
-			{#if entry?.gs1}
-				<Gs1Breakdown data={entry.gs1.data} label="Code {i + 1} breakdown" />
-			{/if}
 		</li>
 	{/each}
 </ol>
-<button type="button" class="row-add btn btn-sm" bind:this={addEl} onclick={add}>Add code</button>
-<Note class="row-hint">{ROW_HINT}</Note>
+<button type="button" class="row-add btn self-start btn-sm" bind:this={addEl} onclick={add}
+	>Add code</button
+>
+<Hint summary="How rows work" class="row-hint">{ROW_HINT}</Hint>
 {#if rows.some((r) => isGs1(FORMAT_BY_ID.get(r.format))) || isGs1(FORMAT_BY_ID.get(newRowFormat))}
-	<Note class="gs1-hint">{GS1_HINT}</Note>
-	<Note class="lax-note">{LAX_NOTE}</Note>
+	<Hint summary="How to write GS1 data" class="gs1-hint">{GS1_HINT}</Hint>
+	<Hint summary="What can never be rendered anyway" class="lax-note">{LAX_NOTE}</Hint>
 {/if}
 {#if entries.some((e) => e?.gs1)}
-	<Note class="scan-hint">{SCAN_HINT}</Note>
+	<Hint summary="What the arrow and GS mark mean" class="scan-hint">{SCAN_HINT}</Hint>
 {/if}
 {#if entries.some((e) => e?.facts?.dense)}
-	<Note class="dense-hint">{DENSE_HINT}</Note>
+	<Hint summary="If dense codes don't scan" class="dense-hint">{DENSE_HINT}</Hint>
 {/if}
 
 <style>
@@ -161,37 +188,12 @@
 		flex-direction: column;
 		gap: 12px;
 	}
-	.row {
-		display: flex;
-		flex-direction: column;
-		gap: 4px;
-	}
-	/* The number and the payload; the verdict and the controls go on the line beneath. */
-	.row-main {
-		display: flex;
-		gap: 6px;
-		align-items: flex-start;
-	}
-	.row-payload {
-		flex: 1;
-		min-width: 0;
-	}
 	/* Grow the payload with its content where the browser supports it. */
 	@supports (field-sizing: content) {
 		.row-payload {
 			field-sizing: content;
 			min-height: 2lh;
 		}
-	}
-	.row-controls {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 6px;
-		align-items: center;
-	}
-	/* Sets Delete apart from the Move buttons, at the end of its line. */
-	.row-delete {
-		margin-left: auto;
 	}
 	.row-verdict {
 		overflow-wrap: anywhere;
