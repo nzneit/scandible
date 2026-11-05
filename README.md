@@ -23,7 +23,7 @@ so there is nothing to install.
 1. Open **[scandible](https://nzneit.github.io/scandible/)**.
 2. Choose a **Format**, then paste your codes one per line, or upload a `.txt` or `.csv` file.
    Invalid codes are flagged and skipped.
-3. Choose a **Playback** mode. **Scroll** moves the codes past at a set speed. **Step** shows one
+3. Choose a **Playback mode**. **Scroll** moves the codes past at a set speed. **Step** shows one
    still code at a time for a set dwell, the time each code stays on screen.
 4. Press **Start**. Scroll begins at once. A Step run opens paused: press **Play** or Space when
    the scanner is ready.

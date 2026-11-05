@@ -87,7 +87,7 @@ vCard.
 - A comma never splits a row: one row is one code.
 - Each row shows its verdict, with the same details as the Plain text list. Blank rows are skipped.
 - **Add code** appends a row in the format chosen under **Format for new rows**.
-- **Move up**, **Move down** and **Delete** reorder and remove rows.
+- The ↑ and ↓ buttons (**Move up**, **Move down**) reorder rows, and ✕ (**Delete**) removes one.
 - Uploading a file adds one row per code after the existing rows.
 
 ### Switching between Plain text and Per row

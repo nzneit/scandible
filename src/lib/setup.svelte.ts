@@ -107,7 +107,9 @@ export class Setup {
 				: 'Paste codes — one per line'
 	);
 
-	// `.by`: a plain $derived initializer would read `seed` before the constructor sets it.
+	// `.by`, not a plain `$derived({ …, seed: this.seed })`: TypeScript rejects that field
+	// initializer with TS2729 ("Property 'seed' is used before its initialization"), though
+	// `$derived` is lazy and would read `seed` only after the constructor sets it.
 	settings: Settings = $derived.by(() => ({
 		speedPxPerSec: this.speedPxPerSec,
 		loop: this.loop,

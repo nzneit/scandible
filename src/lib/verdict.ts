@@ -34,7 +34,7 @@ const parentheses = (entry: CodeEntry) =>
 const override = (entry: CodeEntry) =>
 	entry.options.lax === true ? ' (the validation setting cannot override this)' : '';
 
-/** The verdict of a valid GS1 entry: ✓ or the amber lint, size, count, and the scan data. */
+/** The verdict of a valid GS1 entry: ✓ valid or the amber lint, size, count, and the scan data. */
 function gs1Line(entry: CodeEntry, gs1: Gs1Data): string {
 	const d = descriptorOf(entry);
 	const n = dataCharacters(gs1.data);
