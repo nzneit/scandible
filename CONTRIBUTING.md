@@ -2,7 +2,7 @@
 
 ## Setup
 
-Requires Node 24 (the version in `.nvmrc`).
+Requires Node 24.15 or later; `.nvmrc` holds `24`.
 
 ```bash
 npm install      # install dependencies
