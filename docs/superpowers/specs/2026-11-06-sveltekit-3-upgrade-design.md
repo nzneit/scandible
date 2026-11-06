@@ -1,7 +1,7 @@
 # SvelteKit 3 and a current toolchain — Design
 
 **Date:** 2026-11-06
-**Status:** Draft for the owner's review. Design agreed in conversation on 2026-11-05 and
+**Status:** Approved by the owner on 2026-11-06 (text `9f8596b`). Design agreed in conversation on 2026-11-05 and
 2026-11-06, question by question and then section by section. Reviewed on 2026-11-06 by three
 lenses (codebase fit with probes in a throwaway worktree, on Opus; completeness against the
 official guides, on Sonnet; coherence and plan-readiness, on Sonnet) and revised by the author. The
