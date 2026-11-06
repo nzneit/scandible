@@ -565,7 +565,8 @@ gzipped`; Vite's chunk warning is 579.37 kB (accepted, F2). `npm run stage-check
 - **Status:** ☑ closed — 2026-11-04 (session 3); after the UI series. SvelteKit 3.1.1 (the latest
   on that day) needs Vite 8, `@sveltejs/vite-plugin-svelte` 7 and TypeScript 6, so vitest and
   `@tailwindcss/vite` move too: a toolchain change of its own. The setup-page tests touch SvelteKit
-  only through three `vi.mock` lines, so spec 2 gains little from taking it first.
+  only through three `vi.mock` lines, so spec 2 gains little from taking it first. Implemented on `build/sveltekit-3` by
+  `docs/superpowers/specs/2026-11-06-sveltekit-3-upgrade-design.md`.
 
 ### F1 — Two Svelte `state_referenced_locally` warnings in the RowEditor test run
 
@@ -678,7 +679,9 @@ gzipped`; Vite's chunk warning is 579.37 kB (accepted, F2). `npm run stage-check
   so it is verified after the merge.
 - **Acceptance:** the first deploy run on `main` after the merge succeeds, and `gh run view <id>`
   lists no Node 20 annotation.
-- **Status:** ☐ open
+- **Status:** ☑ closed on `build/sveltekit-3` — 2026-11-06; the five majors per
+  `docs/superpowers/specs/2026-11-06-sveltekit-3-upgrade-design.md` (step 4). Its Acceptance is that
+  spec's H1, after the merge.
 
 ### F5 — Small debt carried over from spec 1's reviews
 
@@ -763,3 +766,5 @@ _(Append one row per resolved item: ID · decision taken · file(s) patched · r
 | T8 plan     | Plan `a0c5784` accepted with its three readings (63 rem sticky threshold, the guide's quoted verdicts updated, "1 degree"); slider minimum stays 1; subagent-driven: Opus and Sonnet implementers, Sonnet task reviewers, three Opus final-review chunks, no Fable                                                                | plan (`a0c5784`)                                                        | user                                  | 2026-11-04 |
 | T8 build    | Spec 2 implemented subagent-driven (`371c1c8`..`de71258`): Opus and Sonnet implementers, Sonnet task reviewers, three Opus final-review chunks, one Opus fix wave (a long code widened the page; Close focus; forced colors; guard widened to Tailwind 4.3.4's 26 palettes, a spec erratum), Sonnet audit of the record; no Fable | spec 2 code, docs                                                       | session 3                             | 2026-11-05 |
 | T9 build    | Spec 3 implemented (`a9b1b07`..`31a861a`), 1000 tests; the record's non-PASS rows: C8 (the faded overlay's opacity after focus, unmeasurable headless) and H1 to H4; H1 to H4 open; Opus and Sonnet implementers, Sonnet task reviewers, three Opus final-review chunks, one Opus fix wave, a Sonnet re-review; 0 Fable           | spec 3 code, docs                                                       | session 3                             | 2026-11-05 |
+| Q2 build    | SvelteKit 3.1.1 with Vite 8, vite-plugin-svelte 7, TypeScript 6, Vitest 5 and jsdom 31, in five step commits on `build/sveltekit-3` (spec `2026-11-06-sveltekit-3-upgrade-design.md`)                                                                                                                                             | toolchain, `src/` imports, `vite.config.ts`                             | SvelteKit 3 session                   | 2026-11-06 |
+| F4          | `actions/checkout` v7, `setup-node` v7, `configure-pages` v6, `upload-pages-artifact` v5, `deploy-pages` v5; `ubuntu-latest` kept; acceptance is the spec's H1, after the merge                                                                                                                                                   | `.github/workflows/deploy.yml`                                          | SvelteKit 3 session                   | 2026-11-06 |
