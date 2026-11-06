@@ -15,6 +15,8 @@ npm run gs1-ais  # regenerate src/lib/gs1-ais.json from the pinned GS1 Syntax Di
 npm run stage-check  # compare the play stage with main in headless Firefox
 ```
 
+After `npm install <package>`, `npm uninstall` or `npm update`, run `npm install` (or `npx svelte-kit sync`) once more. SvelteKit 3 keeps the TypeScript base that `tsconfig.json` extends in `node_modules/$app/`, and those commands delete it; until it is regenerated, `npm run lint` fails with "Unused eslint-disable directive" errors and the editor loses the project's types.
+
 ## Stack
 
 - **SvelteKit** and **Svelte 5** (static-adapter SPA, TypeScript)

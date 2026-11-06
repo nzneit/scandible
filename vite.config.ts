@@ -14,7 +14,8 @@ export default defineConfig({
 			adapter: adapter({ pages: 'dist', assets: 'dist' }),
 			// Project-site subpath on GitHub Pages; dev and tests serve from root.
 			paths: { base: process.env.NODE_ENV === 'production' ? '/scandible' : '' },
-			// No hourly version poll: the app shows no "new version" prompt (Kit 3's default is an hour).
+			// No hourly version poll (Kit 3's default): the app shows no "new version" prompt.
+			// Kit 3 still checks _app/version.json on window focus and when the tab becomes visible.
 			version: { pollInterval: 0 }
 		}),
 		svelteTesting()
