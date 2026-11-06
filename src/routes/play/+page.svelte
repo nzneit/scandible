@@ -60,7 +60,7 @@
 			// Nothing scannable — bounce to setup, keeping whichever form it received (fragment or
 			// legacy query string).
 			// eslint-disable-next-line svelte/no-navigation-without-resolve -- pathname IS resolve()-based; the rule cannot see through the fragment concatenation
-			goto(resolve('/') + page.url.search + page.url.hash, { replaceState: true });
+			goto(resolve('/') + page.url.search + page.url.hash, { replace: true });
 			return;
 		}
 		keepAwake = createKeepAwake({

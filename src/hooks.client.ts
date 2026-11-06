@@ -1,4 +1,4 @@
-import type { ClientInit } from '@sveltejs/kit';
+import type { ClientInit } from '@sveltejs/kit/hooks';
 
 /**
  * The SvelteKit router runs decodeURIComponent on the URL fragment during

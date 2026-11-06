@@ -104,7 +104,7 @@ describe('play page', () => {
 		mockPage.url = new URL('http://localhost/play?codes=bad');
 		render(PlayPage);
 		expect(screen.queryByRole('group', { name: 'Playback controls' })).toBeNull();
-		expect(goto).toHaveBeenCalledWith('/?codes=bad', { replaceState: true });
+		expect(goto).toHaveBeenCalledWith('/?codes=bad', { replace: true });
 	});
 
 	it('decodes fmt and renders that format', () => {
@@ -147,7 +147,7 @@ it('bounces a fragment URL with no valid codes to the setup fragment', () => {
 	mockPage.url = new URL('http://localhost/play#codes=bad');
 	render(PlayPage);
 	expect(screen.queryByRole('group', { name: 'Playback controls' })).toBeNull();
-	expect(goto).toHaveBeenCalledWith('/#codes=bad', { replaceState: true });
+	expect(goto).toHaveBeenCalledWith('/#codes=bad', { replace: true });
 });
 
 it('validates with the URL level: x × 2000 bounces at H and plays at L', () => {
@@ -155,7 +155,7 @@ it('validates with the URL level: x × 2000 bounces at H and plays at L', () => 
 	mockPage.url = new URL(`http://localhost/play#codes=${X2000}&fmt=qr&ecc=H&seed=7`);
 	const { unmount } = render(PlayPage);
 	expect(screen.queryByRole('group', { name: 'Playback controls' })).toBeNull();
-	expect(goto).toHaveBeenCalledWith(`/#codes=${X2000}&fmt=qr&ecc=H&seed=7`, { replaceState: true });
+	expect(goto).toHaveBeenCalledWith(`/#codes=${X2000}&fmt=qr&ecc=H&seed=7`, { replace: true });
 	unmount();
 	mockPage.url = new URL(`http://localhost/play#codes=${X2000}&fmt=qr&ecc=L&seed=7`);
 	render(PlayPage);
@@ -617,7 +617,7 @@ describe('play page: records links', () => {
 	it('bounces a records link whose every record is dropped', () => {
 		mockPage.url = new URL('http://localhost/play#r1=foo_bar&seed=7');
 		render(PlayPage);
-		expect(goto).toHaveBeenCalledWith('/#r1=foo_bar&seed=7', { replaceState: true });
+		expect(goto).toHaveBeenCalledWith('/#r1=foo_bar&seed=7', { replace: true });
 	});
 
 	it('carries the records and the live speed back to setup', async () => {
@@ -639,7 +639,7 @@ it('plays a GS1-128 list link that renders invalid data only with lax=1, and car
 	const { unmount } = render(PlayPage);
 	expect(screen.queryByRole('group', { name: 'Playback controls' })).toBeNull();
 	expect(goto).toHaveBeenCalledWith('/#codes=%2801%2909501101530004&fmt=gs1128&seed=7', {
-		replaceState: true
+		replace: true
 	});
 	unmount();
 	goto.mockReset();

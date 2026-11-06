@@ -1,11 +1,10 @@
 {
-	"extends": "./.svelte-kit/tsconfig.json",
+	"extends": "$app/tsconfig",
+	"include": ["src", "scripts", "vite.config.ts"],
 	"compilerOptions": {
+		"types": ["$app/types", "node"],
 		"strict": true,
 		"noUnusedLocals": true,
-		"noUnusedParameters": true,
-		"skipLibCheck": true,
-		"allowImportingTsExtensions": true,
-		"types": ["node"]
+		"noUnusedParameters": true
 	}
 }

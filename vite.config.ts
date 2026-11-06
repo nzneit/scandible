@@ -14,12 +14,8 @@ export default defineConfig({
 			adapter: adapter({ pages: 'dist', assets: 'dist' }),
 			// Project-site subpath on GitHub Pages; dev and tests serve from root.
 			paths: { base: process.env.NODE_ENV === 'production' ? '/scandible' : '' },
-			// Type-check the scripts too; removed in step 2b, when tsconfig.json gets its own include.
-			typescript: {
-				config: (config) => {
-					config.include.push('../scripts/**/*.ts');
-				}
-			}
+			// No hourly version poll: the app shows no "new version" prompt (Kit 3's default is an hour).
+			version: { pollInterval: 0 }
 		}),
 		svelteTesting()
 	],
