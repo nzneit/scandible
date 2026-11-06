@@ -23,6 +23,9 @@ export default defineConfig({
 		}),
 		svelteTesting()
 	],
+	// Tailwind CSS 4's browser floor. At Vite 8's default target, Lightning CSS splits the theme
+	// rule (its :has() selector) in two, and check-css fails.
+	build: { cssTarget: ['chrome111', 'edge111', 'firefox128', 'safari16.4'] },
 	test: {
 		environment: 'jsdom',
 		setupFiles: ['./src/vitest.setup.ts']

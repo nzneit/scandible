@@ -5,6 +5,7 @@
 		"noUnusedLocals": true,
 		"noUnusedParameters": true,
 		"skipLibCheck": true,
-		"allowImportingTsExtensions": true
+		"allowImportingTsExtensions": true,
+		"types": ["node"]
 	}
 }
