@@ -2,9 +2,9 @@ import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
 import { render, fireEvent, within } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import RowEditor from './RowEditor.svelte';
-import { DENSE_HINT, GS1_HINT, LAX_NOTE, SCAN_HINT } from '$lib/verdict';
-import type { FormatId } from '$lib/formats';
-import type { Row } from '$lib/rows';
+import { DENSE_HINT, GS1_HINT, LAX_NOTE, SCAN_HINT } from '#lib/verdict.ts';
+import type { FormatId } from '#lib/formats.ts';
+import type { Row } from '#lib/rows.ts';
 
 /** Rows in the spec's record form, `format[-level][-lax]_payload`, tokens in either order; the
  *  payload is everything after the first `_`. */

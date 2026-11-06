@@ -1,12 +1,12 @@
 <script lang="ts">
-	import { DWELL_RANGE, GAP_RANGE, SPEED_RANGE, type PlaybackMode } from '$lib/types';
-	import type { Setup } from '$lib/setup.svelte';
+	import { DWELL_RANGE, GAP_RANGE, SPEED_RANGE, type PlaybackMode } from '#lib/types.ts';
+	import type { Setup } from '#lib/setup.svelte.ts';
 	import Section from './Section.svelte';
 	import Segmented from './Segmented.svelte';
 	import ValueSlider from './ValueSlider.svelte';
 	import Field from './Field.svelte';
 	import Note from './Note.svelte';
-	import { speedText, speedValuetext } from '$lib/speed';
+	import { speedText, speedValuetext } from '#lib/speed.ts';
 	import SecondsSlider from './SecondsSlider.svelte';
 
 	interface SettingsPaneProps {

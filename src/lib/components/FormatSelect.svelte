@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { FORMAT_GROUPS, type FormatId } from '$lib/formats';
+	import { FORMAT_GROUPS, type FormatId } from '#lib/formats.ts';
 
 	interface FormatSelectProps {
 		value: FormatId;

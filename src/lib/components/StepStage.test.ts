@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render } from '@testing-library/svelte';
 import StepStage from './StepStage.svelte';
-import { DEFAULT_SETTINGS, type Settings, type CodeEntry } from '$lib/types';
+import { DEFAULT_SETTINGS, type Settings, type CodeEntry } from '#lib/types.ts';
 
 const entry = (value: string, valid: boolean): CodeEntry => ({
 	raw: value,

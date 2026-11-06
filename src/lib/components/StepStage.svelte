@@ -12,8 +12,8 @@
 
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { createStepper, type Stepper, type StepSummary } from '$lib/stepper';
-	import type { Settings, CodeEntry } from '$lib/types';
+	import { createStepper, type Stepper, type StepSummary } from '#lib/stepper.ts';
+	import type { Settings, CodeEntry } from '#lib/types.ts';
 	import './barcode-caps.css';
 
 	let {

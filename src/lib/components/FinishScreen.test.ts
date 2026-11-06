@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, within } from '@testing-library/svelte';
 import FinishScreen from './FinishScreen.svelte';
-import type { FinishedRun } from '$lib/finish';
+import type { FinishedRun } from '#lib/finish.ts';
 
 const SCROLL: FinishedRun = { mode: 'scroll', count: 5, seconds: 9.5 };
 const STEP: FinishedRun = {

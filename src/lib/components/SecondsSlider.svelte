@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { formatSeconds, parseSeconds } from '$lib/seconds';
+	import { formatSeconds, parseSeconds } from '#lib/seconds.ts';
 
 	interface SecondsSliderProps {
 		value: number; // $bindable, milliseconds

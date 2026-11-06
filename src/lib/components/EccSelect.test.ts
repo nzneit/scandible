@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, within } from '@testing-library/svelte';
 import EccSelect from './EccSelect.svelte';
-import { FORMAT_BY_ID, type EccOption } from '$lib/formats';
+import { FORMAT_BY_ID, type EccOption } from '#lib/formats.ts';
 
 const QR = FORMAT_BY_ID.get('qr')!.ecc!;
 const AZTEC = FORMAT_BY_ID.get('aztec')!.ecc!;

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import * as bwip from 'bwip-js/browser';
-import { parseCodeList } from '$lib/codes';
+import { parseCodeList } from '#lib/codes.ts';
 
 vi.mock('bwip-js/browser', async (importOriginal) => {
 	const actual = await importOriginal<typeof import('bwip-js/browser')>();

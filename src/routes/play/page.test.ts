@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, fireEvent, screen, within } from '@testing-library/svelte';
 import PlayPage from './+page.svelte';
-import { encodeShareUrl } from '$lib/shareUrl';
-import { DEFAULT_SETTINGS } from '$lib/types';
-import { KEEP_AWAKE_NOTE } from '$lib/keepAwake';
+import { encodeShareUrl } from '#lib/shareUrl.ts';
+import { DEFAULT_SETTINGS } from '#lib/types.ts';
+import { KEEP_AWAKE_NOTE } from '#lib/keepAwake.ts';
 import { tick } from 'svelte';
 
 const mockPage = vi.hoisted(() => ({ url: new URL('http://localhost/play') }));

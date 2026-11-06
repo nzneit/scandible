@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, within, fireEvent } from '@testing-library/svelte';
 import ValidationList from './ValidationList.svelte';
-import type { CodeEntry, SymbolFacts } from '$lib/types';
-import type { FormatId } from '$lib/formats';
-import { parseCodeList } from '$lib/codes';
-import { SCAN_HINT } from '$lib/verdict';
-import { GS } from '$lib/gs1';
+import type { CodeEntry, SymbolFacts } from '#lib/types.ts';
+import type { FormatId } from '#lib/formats.ts';
+import { parseCodeList } from '#lib/codes.ts';
+import { SCAN_HINT } from '#lib/verdict.ts';
+import { GS } from '#lib/gs1.ts';
 
 const BREAKDOWN = /^Code \d+ breakdown: /; // the labelled summary, whose text varies
 const HEADER = 'Application Identifier Name Value'; // the breakdown header row's computed name

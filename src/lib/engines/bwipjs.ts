@@ -17,9 +17,9 @@ import {
 	drawingSVG
 } from 'bwip-js/browser';
 import type { RenderOptions } from 'bwip-js/browser';
-import { isGs1, type BwipDescriptor } from '$lib/formats';
-import { parseElementString, scanData } from '$lib/gs1';
-import type { SymbolOptions } from '$lib/types';
+import { isGs1, type BwipDescriptor } from '#lib/formats.ts';
+import { parseElementString, scanData } from '#lib/gs1.ts';
+import type { SymbolOptions } from '#lib/types.ts';
 import type { CheckResult, Engine } from './types';
 
 export const ENCODERS = {

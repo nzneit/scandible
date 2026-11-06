@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { finishStats, type FinishedRun, type Stat } from '$lib/finish';
+	import { finishStats, type FinishedRun, type Stat } from '#lib/finish.ts';
 
 	interface Props {
 		run: FinishedRun;

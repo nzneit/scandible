@@ -24,6 +24,11 @@ npm run stage-check  # compare the play stage with main in headless Firefox
   `src/styles.css`
 - **Vitest** and **@testing-library/svelte** (jsdom) for the unit tests
 
+Import from `src/lib` through the `#lib/*` entry of `package.json`'s `imports`, naming the file with its
+real extension: `#lib/shareUrl.ts`, `#lib/setup.svelte.ts`, `#lib/components/ActionBar.svelte`.
+The SvelteKit config (adapter, base path, preprocessing) is the `sveltekit()` options in
+`vite.config.ts`; there is no `svelte.config.js`.
+
 ## Styling
 
 Tailwind CSS and daisyUI style the app. `src/styles.css` holds the one theme, **Instrument**, and

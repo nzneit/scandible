@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, within } from '@testing-library/svelte';
 import FormatSelect from './FormatSelect.svelte';
-import { FORMAT_GROUPS, type FormatId } from '$lib/formats';
+import { FORMAT_GROUPS, type FormatId } from '#lib/formats.ts';
 
 /** Render bound to a plain parent value: `set` records every write the select makes. */
 function mount(extra: Record<string, unknown> = {}, start: FormatId = 'qr') {

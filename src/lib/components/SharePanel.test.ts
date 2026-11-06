@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, within, fireEvent } from '@testing-library/svelte';
 import SharePanel from './SharePanel.svelte';
-import { encodeShareUrl } from '$lib/shareUrl';
-import { QR_CAPACITY_BYTES } from '$lib/qr';
-import { DEFAULT_SETTINGS, type Settings } from '$lib/types';
+import { encodeShareUrl } from '#lib/shareUrl.ts';
+import { QR_CAPACITY_BYTES } from '#lib/qr.ts';
+import { DEFAULT_SETTINGS, type Settings } from '#lib/types.ts';
 
 const SETTINGS: Settings = { ...DEFAULT_SETTINGS };
 const hashOf = (n: number) =>

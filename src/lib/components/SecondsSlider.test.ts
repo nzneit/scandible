@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/svelte';
 import SecondsSlider from './SecondsSlider.svelte';
-import { DWELL_RANGE, GAP_RANGE } from '$lib/types';
+import { DWELL_RANGE, GAP_RANGE } from '#lib/types.ts';
 
 /** Render bound to a plain parent value: `set` records every write the slider makes. */
 function mount(extra: Record<string, unknown> = {}, start = 1000) {
