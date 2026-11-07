@@ -2,8 +2,8 @@
 	import Icon from './Icon.svelte';
 	import SecondsSlider from './SecondsSlider.svelte';
 	import ValueSlider from './ValueSlider.svelte';
-	import { DWELL_RANGE, GAP_RANGE, SPEED_RANGE } from '$lib/types';
-	import { speedText, speedValuetext } from '$lib/speed';
+	import { DWELL_RANGE, GAP_RANGE, SPEED_RANGE } from '#lib/types.ts';
+	import { speedText, speedValuetext } from '#lib/speed.ts';
 
 	interface PlayOverlayProps {
 		mode: 'scroll' | 'step';

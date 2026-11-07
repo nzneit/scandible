@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { breakdown } from '$lib/gs1';
+	import { breakdown } from '#lib/gs1.ts';
 
 	let { data, label, today }: { data: string; label?: string; today?: Date } = $props();
 

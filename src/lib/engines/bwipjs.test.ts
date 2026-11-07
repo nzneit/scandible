@@ -1,9 +1,9 @@
 import { describe, it, expect, vi } from 'vitest';
 import { encode } from 'uqr';
 import { qrcode } from 'bwip-js/browser';
-import { FORMAT_BY_ID, type BwipDescriptor, type FormatId } from '$lib/formats';
-import { resolveOptions } from '$lib/codes';
-import type { SymbolFacts } from '$lib/types';
+import { FORMAT_BY_ID, type BwipDescriptor, type FormatId } from '#lib/formats.ts';
+import { resolveOptions } from '#lib/codes.ts';
+import type { SymbolFacts } from '#lib/types.ts';
 import type { CheckResult } from './types';
 import { bwippErrorName, bwippErrorText, check, ECC_OPTIONS, render, TOO_LONG } from './bwipjs';
 

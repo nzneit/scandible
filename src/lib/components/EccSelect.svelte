@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { EccOption } from '$lib/formats';
+	import type { EccOption } from '#lib/formats.ts';
 
 	interface EccSelectProps {
 		option: EccOption;

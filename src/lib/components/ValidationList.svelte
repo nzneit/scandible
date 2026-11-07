@@ -1,9 +1,9 @@
 <script lang="ts">
-	import type { CodeEntry } from '$lib/types';
+	import type { CodeEntry } from '#lib/types.ts';
 	import Gs1Breakdown from './Gs1Breakdown.svelte';
 	import Hint from './Hint.svelte';
-	import { displayData } from '$lib/gs1';
-	import { DENSE_HINT, SCAN_HINT, verdictText } from '$lib/verdict';
+	import { displayData } from '#lib/gs1.ts';
+	import { DENSE_HINT, SCAN_HINT, verdictText } from '#lib/verdict.ts';
 
 	let { entries }: { entries: CodeEntry[] } = $props();
 </script>

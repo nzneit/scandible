@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import type { QrEcc } from '$lib/qr';
-	import type { Setup } from '$lib/setup.svelte';
+	import type { QrEcc } from '#lib/qr.ts';
+	import type { Setup } from '#lib/setup.svelte.ts';
 	import SharePanel from './SharePanel.svelte';
 
 	interface ActionBarProps {

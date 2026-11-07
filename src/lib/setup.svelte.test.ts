@@ -1,9 +1,9 @@
 import { describe, it, expect, vi } from 'vitest';
-import { readCodesFile } from '$lib/fileInput';
+import { readCodesFile } from '#lib/fileInput.ts';
 import { decodeShareUrl } from './shareUrl';
 import { Setup } from './setup.svelte';
 
-vi.mock('$lib/fileInput', () => ({ readCodesFile: vi.fn() }));
+vi.mock('#lib/fileInput.ts', () => ({ readCodesFile: vi.fn() }));
 
 /** A Setup for `link`, made as the page makes it; the seed is the link's, else 0. */
 const open = (link: string) => {

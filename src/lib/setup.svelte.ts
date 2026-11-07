@@ -1,4 +1,4 @@
-import { parseCodeList } from '$lib/codes';
+import { parseCodeList } from '#lib/codes.ts';
 import {
 	rowEntries,
 	rowNumbers,
@@ -6,12 +6,12 @@ import {
 	textFromRows,
 	type Row,
 	type TextConversion
-} from '$lib/rows';
-import { FORMAT_BY_ID, canonicalEcc, canonicalLax, isGs1, type FormatId } from '$lib/formats';
-import { readCodesFile } from '$lib/fileInput';
-import { decodeShareUrl, encodeRowsShareUrl, encodeShareUrl } from '$lib/shareUrl';
-import { DEFAULT_SETTINGS, type CodeEntry, type PlaybackMode, type Settings } from '$lib/types';
-import { duplicateNeighbours } from '$lib/duplicates';
+} from '#lib/rows.ts';
+import { FORMAT_BY_ID, canonicalEcc, canonicalLax, isGs1, type FormatId } from '#lib/formats.ts';
+import { readCodesFile } from '#lib/fileInput.ts';
+import { decodeShareUrl, encodeRowsShareUrl, encodeShareUrl } from '#lib/shareUrl.ts';
+import { DEFAULT_SETTINGS, type CodeEntry, type PlaybackMode, type Settings } from '#lib/types.ts';
+import { duplicateNeighbours } from '#lib/duplicates.ts';
 
 export type Editor = 'text' | 'rows';
 /** What selectEditor did: switched either way, opened the lossy note, or nothing. */

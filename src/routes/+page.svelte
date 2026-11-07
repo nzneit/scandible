@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
-	import { decodeShareUrl } from '$lib/shareUrl';
-	import { Setup } from '$lib/setup.svelte';
-	import CodesPane from '$lib/components/CodesPane.svelte';
-	import SettingsPane from '$lib/components/SettingsPane.svelte';
-	import ActionBar from '$lib/components/ActionBar.svelte';
+	import { decodeShareUrl } from '#lib/shareUrl.ts';
+	import { Setup } from '#lib/setup.svelte.ts';
+	import CodesPane from '#lib/components/CodesPane.svelte';
+	import SettingsPane from '#lib/components/SettingsPane.svelte';
+	import ActionBar from '#lib/components/ActionBar.svelte';
 
 	const decoded = decodeShareUrl(page.url);
 	const seed = decoded.settings.seed ?? Math.floor(Math.random() * 0x100000000) >>> 0;

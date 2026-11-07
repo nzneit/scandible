@@ -1,6 +1,6 @@
-import type { FormatDescriptor } from '$lib/formats';
-import type { Gs1Data } from '$lib/gs1';
-import type { SymbolFacts, SymbolOptions } from '$lib/types'; // see _Entries, options and facts_
+import type { FormatDescriptor } from '#lib/formats.ts';
+import type { Gs1Data } from '#lib/gs1.ts';
+import type { SymbolFacts, SymbolOptions } from '#lib/types.ts'; // see _Entries, options and facts_
 
 export type CheckResult =
 	| { valid: true; encoded?: string; facts?: SymbolFacts; gs1?: Gs1Data; lint?: string }

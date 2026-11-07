@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { tick } from 'svelte';
-	import { describeLoss } from '$lib/rows';
-	import { isGs1 } from '$lib/formats';
-	import { GS1_HINT, LAX_NOTE } from '$lib/verdict';
-	import type { Editor, Setup } from '$lib/setup.svelte';
+	import { describeLoss } from '#lib/rows.ts';
+	import { isGs1 } from '#lib/formats.ts';
+	import { GS1_HINT, LAX_NOTE } from '#lib/verdict.ts';
+	import type { Editor, Setup } from '#lib/setup.svelte.ts';
 	import Section from './Section.svelte';
 	import Hint from './Hint.svelte';
 	import Segmented from './Segmented.svelte';

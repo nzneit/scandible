@@ -3,24 +3,24 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import { parseCodeList } from '$lib/codes';
-	import { rowEntries } from '$lib/rows';
-	import { decodeShareUrl, encodeRowsShareUrl, encodeShareUrl } from '$lib/shareUrl';
-	import { formatFinishMessage, formatStepFinishMessage, type FinishedRun } from '$lib/finish';
-	import { formatSeconds } from '$lib/seconds';
+	import { parseCodeList } from '#lib/codes.ts';
+	import { rowEntries } from '#lib/rows.ts';
+	import { decodeShareUrl, encodeRowsShareUrl, encodeShareUrl } from '#lib/shareUrl.ts';
+	import { formatFinishMessage, formatStepFinishMessage, type FinishedRun } from '#lib/finish.ts';
+	import { formatSeconds } from '#lib/seconds.ts';
 	import {
 		createKeepAwake,
 		keepAwakeNote,
 		type KeepAwake,
 		type KeepAwakeState
-	} from '$lib/keepAwake';
-	import { DEFAULT_SETTINGS, type Settings } from '$lib/types';
-	import type { Player } from '$lib/player';
-	import type { StepSummary } from '$lib/stepper';
-	import ScrollColumn, { type ScrollColumnHandle } from '$lib/components/ScrollColumn.svelte';
-	import StepStage, { type StepStageHandle } from '$lib/components/StepStage.svelte';
-	import PlayOverlay from '$lib/components/PlayOverlay.svelte';
-	import FinishScreen from '$lib/components/FinishScreen.svelte';
+	} from '#lib/keepAwake.ts';
+	import { DEFAULT_SETTINGS, type Settings } from '#lib/types.ts';
+	import type { Player } from '#lib/player.ts';
+	import type { StepSummary } from '#lib/stepper.ts';
+	import ScrollColumn, { type ScrollColumnHandle } from '#lib/components/ScrollColumn.svelte';
+	import StepStage, { type StepStageHandle } from '#lib/components/StepStage.svelte';
+	import PlayOverlay from '#lib/components/PlayOverlay.svelte';
+	import FinishScreen from '#lib/components/FinishScreen.svelte';
 
 	const OVERLAY_IDLE_MS = 3000;
 
@@ -60,7 +60,7 @@
 			// Nothing scannable — bounce to setup, keeping whichever form it received (fragment or
 			// legacy query string).
 			// eslint-disable-next-line svelte/no-navigation-without-resolve -- pathname IS resolve()-based; the rule cannot see through the fragment concatenation
-			goto(resolve('/') + page.url.search + page.url.hash, { replaceState: true });
+			goto(resolve('/') + page.url.search + page.url.hash, { replace: true });
 			return;
 		}
 		keepAwake = createKeepAwake({

@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, within, fireEvent } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import PlayOverlay from './PlayOverlay.svelte';
-import { KEEP_AWAKE_NOTE } from '$lib/keepAwake';
+import { KEEP_AWAKE_NOTE } from '#lib/keepAwake.ts';
 
 const UNAVAILABLE = KEEP_AWAKE_NOTE.unavailable;
 const REFUSED = KEEP_AWAKE_NOTE.refused;

@@ -217,7 +217,7 @@ describe('createScroller', () => {
 		});
 		const track = container.querySelector<HTMLElement>('.scroller-track')!;
 		// Initial render (offset 0) must use the 3D transform form, not translateY.
-		expect(track.style.transform).toBe('translate3d(0, 0px, 0)');
+		expect(track.style.transform).toBe('translate3d(0px, 0px, 0px)');
 		s.destroy();
 	});
 

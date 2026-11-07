@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Field from './Field.svelte';
 	import Note from './Note.svelte';
-	import { buildQrSvg, qrStatus, QR_CAPACITY_BYTES, type QrEcc, type QrStatus } from '$lib/qr';
+	import { buildQrSvg, qrStatus, QR_CAPACITY_BYTES, type QrEcc, type QrStatus } from '#lib/qr.ts';
 
 	interface SharePanelProps {
 		id: string; // the region's id, which Share's aria-controls names

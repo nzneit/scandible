@@ -9,8 +9,8 @@
 
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { createScroller, type Scroller } from '$lib/scroller';
-	import type { Settings, CodeEntry } from '$lib/types';
+	import { createScroller, type Scroller } from '#lib/scroller.ts';
+	import type { Settings, CodeEntry } from '#lib/types.ts';
 	import './barcode-caps.css';
 
 	let {

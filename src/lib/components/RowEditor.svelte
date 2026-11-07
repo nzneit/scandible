@@ -5,9 +5,9 @@
 	import Icon from './Icon.svelte';
 	import FormatSelect from './FormatSelect.svelte';
 	import EccSelect from './EccSelect.svelte';
-	import { FORMAT_BY_ID, canonicalEcc, canonicalLax, isGs1, type FormatId } from '$lib/formats';
-	import { rowEntry, type Row } from '$lib/rows';
-	import { DENSE_HINT, GS1_HINT, LAX_NOTE, SCAN_HINT, verdictText } from '$lib/verdict';
+	import { FORMAT_BY_ID, canonicalEcc, canonicalLax, isGs1, type FormatId } from '#lib/formats.ts';
+	import { rowEntry, type Row } from '#lib/rows.ts';
+	import { DENSE_HINT, GS1_HINT, LAX_NOTE, SCAN_HINT, verdictText } from '#lib/verdict.ts';
 
 	interface RowEditorProps {
 		rows: Row[]; // bound by the page to its deep $state rows; the editor mutates and reassigns it

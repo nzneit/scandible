@@ -1,7 +1,17 @@
 import JsBarcode from 'jsbarcode';
-import barcodes from 'jsbarcode/bin/barcodes';
-import type { JsBarcodeDescriptor } from '$lib/formats';
+import barcodesModule from 'jsbarcode/bin/barcodes';
+import type { JsBarcodeDescriptor } from '#lib/formats.ts';
 import type { CheckResult, Engine } from './types';
+
+type EncoderTable = typeof barcodesModule; // Record<string, encoder class> (src/lib/jsbarcode.d.ts)
+/** The encoder table, whichever CommonJS interop shape the bundler gave the default import. */
+export function encoderTable(mod: EncoderTable | { default: EncoderTable }): EncoderTable {
+	// The table's entries are encoder classes; the whole module's `default` is the table itself.
+	return typeof mod.default === 'object' ? mod.default : (mod as EncoderTable);
+}
+
+// Rolldown (the Vite 8 build) gives this default import the whole module.exports, not the table.
+const barcodes = encoderTable(barcodesModule);
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 

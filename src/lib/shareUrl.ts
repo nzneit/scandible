@@ -128,7 +128,7 @@ function parseRecord(value: string): Row | null {
 /** Parse a page URL into codes or records, plus partial settings. The fragment is the source
  *  when it carries `codes` or an `r<n>` key with a non-empty value, else the legacy query string
  *  is, so old links keep working. Per-parameter leniency, never throws. */
-export function decodeShareUrl(url: URL): {
+export function decodeShareUrl(url: Pick<URL, 'hash' | 'search'>): {
 	codes: string[];
 	settings: Partial<Settings>;
 	records: Row[] | undefined;

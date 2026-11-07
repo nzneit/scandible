@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render } from '@testing-library/svelte';
 import ScrollColumn from './ScrollColumn.svelte';
-import { parseCodeList } from '$lib/codes';
-import { DEFAULT_SETTINGS, type Settings, type CodeEntry } from '$lib/types';
+import { parseCodeList } from '#lib/codes.ts';
+import { DEFAULT_SETTINGS, type Settings, type CodeEntry } from '#lib/types.ts';
 
 const entry = (value: string, valid: boolean): CodeEntry => ({
 	raw: value,

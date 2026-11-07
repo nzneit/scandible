@@ -2,17 +2,17 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, fireEvent, createEvent, screen, within } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import SetupPage from './+page.svelte';
-import { readCodesFile } from '$lib/fileInput';
-import { encodeShareUrl } from '$lib/shareUrl';
-import { DEFAULT_SETTINGS } from '$lib/types';
-import { GS1_HINT, LAX_NOTE, SCAN_HINT } from '$lib/verdict';
+import { readCodesFile } from '#lib/fileInput.ts';
+import { encodeShareUrl } from '#lib/shareUrl.ts';
+import { DEFAULT_SETTINGS } from '#lib/types.ts';
+import { GS1_HINT, LAX_NOTE, SCAN_HINT } from '#lib/verdict.ts';
 
 const mockPage = vi.hoisted(() => ({ url: new URL('http://localhost/') }));
 const goto = vi.hoisted(() => vi.fn());
 vi.mock('$app/state', () => ({ page: mockPage }));
 vi.mock('$app/navigation', () => ({ goto }));
 vi.mock('$app/paths', () => ({ resolve: (id: string) => id }));
-vi.mock('$lib/fileInput', () => ({ readCodesFile: vi.fn() }));
+vi.mock('#lib/fileInput.ts', () => ({ readCodesFile: vi.fn() }));
 
 const EDITOR_HINT =
 	'Per row gives each code its own format, error-correction level and GS1 validation setting, and lets a code span several lines.';
