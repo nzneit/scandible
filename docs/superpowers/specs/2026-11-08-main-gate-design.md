@@ -4,8 +4,8 @@
 **Status:** Draft, for the owner's review. Design agreed in conversation on 2026-11-08, question by
 question and then section by section. Reviewed on 2026-11-08 by two lenses (GitHub facts against
 GitHub's documentation and the actions' source, on Opus; coherence and plan readiness, on Sonnet)
-and revised by the author. _Review_ lists what changed and what was not taken. _Decision_ 15 waits
-for the owner.
+and revised by the author. _Review_ lists what changed and what was not taken. The owner settled
+the question the review raised (_Decision_ 15).
 
 Today nothing runs on a pull request, and anyone with push access can push straight to `main`. The
 checks run only after a push to `main`, as the first job of the deploy (_M1_, _M2_). This spec
@@ -41,7 +41,7 @@ as one required check (question 2, option A); the bypass works only through a pu
 (question 3, option A); squash merges only, and the branch must be up to date with `main`
 (question 4, option A); the ruleset lives in a committed JSON file applied with documented commands
 (question 5, option B); one workflow serves both events (approach 1); sections 1 to 4 of the design
-approved.
+approved; after the review, kept the bypass with a merge rule for `gh` (_Decision_ 15).
 
 **What the author assumed, and the owner did not correct:** the owner merges their own pull
 requests, so no approving review is required; the checks are the ones the deploy already runs.
@@ -116,16 +116,17 @@ requests, so no approving review is required; the checks are the ones the deploy
 14. **Review tiers.** Two lenses reviewed this spec: GitHub facts on Opus, coherence and plan
     readiness on Sonnet. No Fable agent ran; nothing here is a judgement gate that needs one.
 
-15. **Merging with `gh` waits for the required check.** _Pending the owner._ A merge with the
-    owner's login outside the merge box, such as `gh pr merge` or the REST merge endpoint, may
-    bypass the rules without asking, because the owner is a bypass actor (_U12_). `gh` itself
+15. **Merging with `gh` waits for the required check.** The owner chose this over removing the
+    bypass. A merge with the owner's login outside the merge box, such as `gh pr merge` or the REST
+    merge endpoint, may bypass the rules without asking, because the owner is a bypass actor
+    (_U12_). `gh` itself
     refuses a pull request that GitHub reports as blocked, but not one whose state GitHub has not
     computed yet, as happens just after a push or an "Update branch". So CONTRIBUTING says: before
     `gh pr merge`, run `gh pr checks <number> --required --watch` and go on only if every required
     check passed; then merge with `gh pr merge <number> --squash --match-head-commit <sha>`, so the
-    merge fails if the branch moved. Agents merge only when the owner asks. The alternative is no
-    bypass actor at all; an emergency then means switching the ruleset's enforcement off and on
-    again with `gh api`.
+    merge fails if the branch moved. Agents merge only when the owner asks. Not chosen: no bypass
+    actor at all, where an emergency means switching the ruleset's enforcement off and on again
+    with `gh api`.
 
 ## What changes for contributors
 
@@ -505,7 +506,8 @@ should-fix, 7 nits). Their reports are kept in the run record. What changed:
   attempt is gone too: `gh` refuses a blocked pull request in the client, and for a bypass actor the
   server may not refuse (_U12_). P5 now reads `isDraft`, `mergeStateStatus` and the required check,
   and spells out the order and the cleanup.
-- **_Decision_ 15 is new**, pending the owner, for the same reason.
+- **_Decision_ 15 is new**, for the same reason. The owner kept the bypass and chose the merge
+  rule over removing it.
 - **P3 defines its comparison** (a subset check, rules matched by `type`, in a throwaway script)
   and reads `current_user_can_bypass`, which settles the admin role ID before _P4_ writes anything.
 - **P4** requires the `GH013` text, names the scratch worktree, and states the full risk.
