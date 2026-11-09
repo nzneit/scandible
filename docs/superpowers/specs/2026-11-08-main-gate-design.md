@@ -1,8 +1,8 @@
 # Pull request checks as a gate for `main` — Design
 
 **Date:** 2026-11-08
-**Status:** Draft, for the owner's review. Design agreed in conversation on 2026-11-08, question by
-question and then section by section. Reviewed on 2026-11-08 by two lenses (GitHub facts against
+**Status:** Approved by the owner on 2026-11-08 (text `f8cdaa8`). Design agreed in conversation on
+2026-11-08, question by question and then section by section. Reviewed on 2026-11-08 by two lenses (GitHub facts against
 GitHub's documentation and the actions' source, on Opus; coherence and plan readiness, on Sonnet)
 and revised by the author. _Review_ lists what changed and what was not taken. The owner settled
 the question the review raised (_Decision_ 15).
