@@ -125,18 +125,22 @@ resemble the way your software is used, the more confidence they can give you."
 - `CI / checks` runs on every pull request: `npm ci`, `npm run lint`, `npm test` and
   `npm run build`, the same commands as locally (see Setup).
 - The merge button works only when `checks` passed and the branch is up to date with `main`. Click
-  "Update branch" when GitHub offers it, and the check runs again.
+  "Update branch" when GitHub offers it, and the check runs again. The merge box merges whatever the head is when you click, so on someone else's pull request check
+  that the head commit is still the one you reviewed.
 - Merges are squash only.
 - A pull request with a merge conflict runs no check until the conflict is resolved.
-- **Merging with `gh`:** agents merge only when the owner asks. A merge outside the merge box by the
-  owner, who is a bypass actor, may skip the rules without asking. So read the head commit with
-  `gh pr view <number> --json headRefOid --jq .headRefOid`. Then run
-  `gh pr checks <number> --required --watch` and go on only if every required check passed. Then run
-  `gh pr view <number> --json mergeStateStatus --jq .mergeStateStatus` and go on only if it prints
-  `CLEAN`. If it prints `UNKNOWN`, GitHub is still working it out, so run it again. If it prints
-  `BEHIND`, run `gh pr update-branch <number>` and start again from reading the head commit.
-  Then run `gh pr merge <number> --squash --match-head-commit <sha>` with that commit, so the merge
-  fails if the branch moved.
+- **Merging with `gh`:** agents merge only when the owner asks, and the owner names the commit they
+  reviewed. A merge outside the merge box by the owner, who is a bypass actor, may skip the rules
+  without asking, so go step by step:
+  1. Read the head commit with `gh pr view <number> --json headRefOid --jq .headRefOid`. Stop if it
+     is not the commit the owner reviewed.
+  2. Run `gh pr checks <number> --required --watch`. Go on only if every required check passed.
+  3. Run `gh pr view <number> --json mergeStateStatus --jq .mergeStateStatus`. Go on only if it
+     prints `CLEAN`. If it prints `UNKNOWN`, GitHub is still working it out, so run it again. If it
+     prints `BEHIND`, run `gh pr update-branch <number>`: the head is then a new merge commit, so the
+     owner names it again and you start over at step 1.
+  4. Run `gh pr merge <number> --squash --match-head-commit <sha>` with the commit the owner
+     reviewed, so the merge fails if the head is no longer that commit.
 - **Bypass**, for emergencies only: open the pull request as usual, tick the bypass option in the
   merge box, and say in the pull request why. Direct pushes stay refused even then.
 - **Renaming the `checks` job** means changing `.github/rulesets/main.json` in the same pull request.
@@ -153,19 +157,22 @@ resemble the way your software is used, the more confidence they can give you."
 
 ### Maintainers: the `main` gate
 
-Run these commands from the repository root, because they read `.github/rulesets/main.json`.
+Run these commands from anywhere inside the repository. They send the ruleset as it is on
+`origin/main`, never your working copy, so whatever branch you have checked out cannot change the
+gate.
 
 First time, after the workflow is on `main` and within seven days of its first green run there:
 
 ```
-gh api --method POST repos/nzneit/scandible/rulesets --input .github/rulesets/main.json
+git fetch origin
+git show origin/main:.github/rulesets/main.json | gh api --method POST repos/nzneit/scandible/rulesets --input -
 gh repo edit nzneit/scandible --enable-squash-merge --enable-merge-commit=false --enable-rebase-merge=false
 ```
 
-To change the gate later, change the file in a pull request. After the merge, read the ruleset's ID
-with `gh api repos/nzneit/scandible/rulesets`, then run
-`gh api --method PUT repos/nzneit/scandible/rulesets/<id> --input .github/rulesets/main.json` with
-the ID typed in.
+To change the gate later, change the file in a pull request. After the merge, run `git fetch origin`,
+read the ruleset's ID with `gh api repos/nzneit/scandible/rulesets`, then run
+`git show origin/main:.github/rulesets/main.json | gh api --method PUT repos/nzneit/scandible/rulesets/<id> --input -`
+with the ID typed in.
 
 ## Documentation
 
