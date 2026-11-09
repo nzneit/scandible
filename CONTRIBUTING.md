@@ -118,13 +118,54 @@ resemble the way your software is used, the more confidence they can give you."
   the engine renders, which are the contract between the engine and the stage CSS.
 - **Events use `fireEvent`** until a later spec decides on `@testing-library/user-event`.
 
-## Deployment
+## Pull requests and deployment
 
-Every push to `main` runs the lint, tests and build in GitHub Actions
-(`.github/workflows/deploy.yml`) and publishes `dist/` to GitHub Pages with
-`actions/deploy-pages`. Production builds set SvelteKit's `paths.base` to `'/scandible'` for the
-project-site subpath, adapter-static emits the site to `dist/`, and the repository's Pages source
-is set to **GitHub Actions**.
+- Every change to `main` goes through a pull request: code, docs, specs, plans and handoffs alike.
+  Nobody pushes to `main` directly, the owner included; GitHub refuses the push.
+- `CI / checks` runs on every pull request: `npm ci`, `npm run lint`, `npm test` and
+  `npm run build`, the same commands as locally (see Setup).
+- The merge button works only when `checks` passed and the branch is up to date with `main`. Click
+  "Update branch" when GitHub offers it, and the check runs again.
+- Merges are squash only.
+- A pull request with a merge conflict runs no check until the conflict is resolved.
+- **Merging with `gh`:** agents merge only when the owner asks. A merge outside the merge box by the
+  owner, who is a bypass actor, may skip the rules without asking. So read the head commit with
+  `gh pr view <number> --json headRefOid --jq .headRefOid`. Then run
+  `gh pr checks <number> --required --watch` and go on only if every required check passed. Then run
+  `gh pr view <number> --json mergeStateStatus --jq .mergeStateStatus` and go on only if it prints
+  `CLEAN`. If it prints `UNKNOWN`, GitHub is still working it out, so run it again. If it prints
+  `BEHIND`, run `gh pr update-branch <number>` and start again from reading the head commit.
+  Then run `gh pr merge <number> --squash --match-head-commit <sha>` with that commit, so the merge
+  fails if the branch moved.
+- **Bypass**, for emergencies only: open the pull request as usual, tick the bypass option in the
+  merge box, and say in the pull request why. Direct pushes stay refused even then.
+- **Renaming the `checks` job** means changing `.github/rulesets/main.json` in the same pull request.
+  What GitHub matches is the check name (`name: checks`), so renaming only the job ID changes
+  nothing there. `npm test` (`src/ci.test.ts`) fails until the workflow and
+  `.github/rulesets/main.json` agree. That pull request needs the bypass, because the old check name
+  never reports. Run the PUT command (see Maintainers, below) right after the merge.
+- The `checks` job must have no job-level `if:` or `needs:`, because GitHub counts a skipped
+  required check as passed. `src/ci.test.ts` fails if either appears.
+- The push to `main` that a merge makes runs the checks again and publishes `dist/` to GitHub Pages
+  with `actions/deploy-pages`, from `.github/workflows/ci.yml`. Production builds set SvelteKit's
+  `paths.base` to `'/scandible'` for the project-site subpath, adapter-static emits the site to
+  `dist/`, and the repository's Pages source is set to **GitHub Actions**.
+
+### Maintainers: the `main` gate
+
+Run these commands from the repository root, because they read `.github/rulesets/main.json`.
+
+First time, after the workflow is on `main` and within seven days of its first green run there:
+
+```
+gh api --method POST repos/nzneit/scandible/rulesets --input .github/rulesets/main.json
+gh repo edit nzneit/scandible --enable-squash-merge --enable-merge-commit=false --enable-rebase-merge=false
+```
+
+To change the gate later, change the file in a pull request. After the merge, read the ruleset's ID
+with `gh api repos/nzneit/scandible/rulesets`, then run
+`gh api --method PUT repos/nzneit/scandible/rulesets/<id> --input .github/rulesets/main.json` with
+the ID typed in.
 
 ## Documentation
 
